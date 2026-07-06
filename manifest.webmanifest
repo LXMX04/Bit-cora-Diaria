@@ -1,0 +1,15 @@
+{
+  "name": "Bitácora Diaria",
+  "short_name": "Bitácora",
+  "description": "Agenda diaria de hábitos, comidas, consumo y reflexión personal.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f1512",
+  "theme_color": "#2f6f5e",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

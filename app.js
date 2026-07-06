@@ -1,0 +1,634 @@
+(function () {
+  'use strict';
+
+  /* ============ Storage ============ */
+  const STORAGE_KEY = 'bitacora_v1';
+
+  function loadStore() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return { entries: {}, weeks: {}, settings: { reminderEnabled: false, reminderTime: '21:00' }, lastNotifiedDate: null };
+      const parsed = JSON.parse(raw);
+      parsed.entries = parsed.entries || {};
+      parsed.weeks = parsed.weeks || {};
+      parsed.settings = parsed.settings || { reminderEnabled: false, reminderTime: '21:00' };
+      return parsed;
+    } catch (e) {
+      return { entries: {}, weeks: {}, settings: { reminderEnabled: false, reminderTime: '21:00' }, lastNotifiedDate: null };
+    }
+  }
+
+  function saveStore() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+  }
+
+  const store = loadStore();
+
+  function emptyEntry() {
+    return {
+      exercise: false,
+      read: false,
+      test: false,
+      teeth: 0,
+      reflection: '',
+      meals: {
+        desayuno: { time: '', desc: '' },
+        comida: { time: '', desc: '' },
+        cena: { time: '', desc: '' }
+      },
+      cigarettes: 0,
+      joints: 0
+    };
+  }
+
+  function getEntry(key) {
+    return store.entries[key] || null;
+  }
+
+  function ensureEntry(key) {
+    if (!store.entries[key]) store.entries[key] = emptyEntry();
+    return store.entries[key];
+  }
+
+  function getWeek(key) {
+    return store.weeks[key] || { abuelos: false, abuela: false };
+  }
+
+  function ensureWeek(key) {
+    if (!store.weeks[key]) store.weeks[key] = { abuelos: false, abuela: false };
+    return store.weeks[key];
+  }
+
+  /* ============ Date helpers ============ */
+  const DAY_MS = 86400000;
+
+  function pad2(n) { return String(n).padStart(2, '0'); }
+
+  function dateKey(d) {
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  }
+
+  function startOfDay(d) {
+    const c = new Date(d);
+    c.setHours(0, 0, 0, 0);
+    return c;
+  }
+
+  function isoWeekKey(d) {
+    const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const dayNum = (date.getUTCDay() + 6) % 7; // Mon=0..Sun=6
+    date.setUTCDate(date.getUTCDate() - dayNum + 3); // Thursday of this week
+    const firstThursday = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));
+    const firstDayNum = (firstThursday.getUTCDay() + 6) % 7;
+    firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDayNum + 3);
+    const week = 1 + Math.round((date - firstThursday) / (7 * DAY_MS));
+    return `${date.getUTCFullYear()}-W${pad2(week)}`;
+  }
+
+  function weekRangeLabel(d) {
+    const day = (d.getDay() + 6) % 7; // Mon=0
+    const monday = new Date(d);
+    monday.setDate(d.getDate() - day);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    const fmt = (x) => `${x.getDate()} ${MONTHS_SHORT[x.getMonth()]}`;
+    return `${fmt(monday)} – ${fmt(sunday)}`;
+  }
+
+  const MONTHS_LONG = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  const MONTHS_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  const WEEKDAYS_LONG = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+
+  function daysInMonth(year, monthIndex) {
+    return new Date(year, monthIndex + 1, 0).getDate();
+  }
+
+  /* ============ App state ============ */
+  let currentDate = startOfDay(new Date());
+  let statsMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  let activeTab = 'hoy';
+
+  /* ============ Tab switching ============ */
+  const tabButtons = document.querySelectorAll('.tab-btn');
+  const panels = document.querySelectorAll('.tab-panel');
+  const daySelector = document.getElementById('daySelector');
+
+  function switchTab(tab) {
+    activeTab = tab;
+    tabButtons.forEach((b) => b.classList.toggle('is-active', b.dataset.tab === tab));
+    panels.forEach((p) => { p.hidden = p.dataset.panel !== tab; });
+    daySelector.style.display = (tab === 'stats' || tab === 'ajustes') ? 'none' : 'flex';
+    if (tab === 'stats') renderStats();
+  }
+
+  tabButtons.forEach((btn) => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+
+  /* ============ Day navigation ============ */
+  const dayLabelMain = document.getElementById('dayLabelMain');
+  const dayLabelSub = document.getElementById('dayLabelSub');
+
+  function updateDayLabel() {
+    const today = startOfDay(new Date());
+    if (currentDate.getTime() === today.getTime()) {
+      dayLabelMain.textContent = 'Hoy';
+    } else {
+      dayLabelMain.textContent = WEEKDAYS_LONG[currentDate.getDay()];
+      dayLabelMain.textContent = dayLabelMain.textContent[0].toUpperCase() + dayLabelMain.textContent.slice(1);
+    }
+    dayLabelSub.textContent = `${currentDate.getDate()} de ${MONTHS_LONG[currentDate.getMonth()]}`;
+  }
+
+  document.getElementById('prevDay').addEventListener('click', () => {
+    currentDate = new Date(currentDate.getTime() - DAY_MS);
+    renderAll();
+  });
+  document.getElementById('nextDay').addEventListener('click', () => {
+    currentDate = new Date(currentDate.getTime() + DAY_MS);
+    renderAll();
+  });
+
+  /* ============ HOY panel ============ */
+  const checkBtns = document.querySelectorAll('[data-check]');
+  const weekCheckBtns = document.querySelectorAll('[data-check-week]');
+  const teethValueEl = document.getElementById('teethValue');
+  const reflectionInput = document.getElementById('reflectionInput');
+  const reflectionHint = document.getElementById('reflectionHint');
+  const weekRangeEl = document.getElementById('weekRange');
+
+  checkBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const key = dateKey(currentDate);
+      const entry = ensureEntry(key);
+      const field = btn.dataset.check;
+      entry[field] = !entry[field];
+      saveStore();
+      renderHoy();
+    });
+  });
+
+  weekCheckBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const wk = isoWeekKey(currentDate);
+      const week = ensureWeek(wk);
+      const field = btn.dataset.checkWeek;
+      week[field] = !week[field];
+      saveStore();
+      renderHoy();
+    });
+  });
+
+  document.querySelectorAll('[data-stepper="teeth"] .stepper-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const key = dateKey(currentDate);
+      const entry = ensureEntry(key);
+      const delta = parseInt(btn.dataset.step, 10);
+      entry.teeth = Math.max(0, (entry.teeth || 0) + delta);
+      saveStore();
+      renderHoy();
+    });
+  });
+
+  let reflectionTimer = null;
+  reflectionInput.addEventListener('input', () => {
+    const key = dateKey(currentDate);
+    const entry = ensureEntry(key);
+    entry.reflection = reflectionInput.value;
+    reflectionHint.textContent = 'Escribiendo…';
+    clearTimeout(reflectionTimer);
+    reflectionTimer = setTimeout(() => {
+      saveStore();
+      reflectionHint.textContent = 'Guardado automáticamente';
+    }, 400);
+  });
+
+  function renderHoy() {
+    const key = dateKey(currentDate);
+    const entry = getEntry(key) || emptyEntry();
+    checkBtns.forEach((btn) => {
+      const field = btn.dataset.check;
+      btn.setAttribute('aria-pressed', String(!!entry[field]));
+    });
+    teethValueEl.textContent = entry.teeth || 0;
+
+    const wk = isoWeekKey(currentDate);
+    const week = getWeek(wk);
+    weekCheckBtns.forEach((btn) => {
+      const field = btn.dataset.checkWeek;
+      btn.setAttribute('aria-pressed', String(!!week[field]));
+    });
+    weekRangeEl.textContent = weekRangeLabel(currentDate);
+
+    reflectionInput.value = entry.reflection || '';
+    reflectionHint.textContent = 'Guardado automáticamente';
+  }
+
+  /* ============ COMIDAS panel ============ */
+  const mealInputs = document.querySelectorAll('[data-meal-time], [data-meal-desc]');
+
+  mealInputs.forEach((input) => {
+    input.addEventListener('input', () => {
+      const key = dateKey(currentDate);
+      const entry = ensureEntry(key);
+      const mealTime = input.dataset.mealTime;
+      const mealDesc = input.dataset.mealDesc;
+      if (mealTime) entry.meals[mealTime].time = input.value;
+      if (mealDesc) entry.meals[mealDesc].desc = input.value;
+      saveStore();
+    });
+  });
+
+  function renderComidas() {
+    const key = dateKey(currentDate);
+    const entry = getEntry(key) || emptyEntry();
+    ['desayuno', 'comida', 'cena'].forEach((meal) => {
+      document.getElementById(`time-${meal}`).value = entry.meals[meal].time || '';
+      document.getElementById(`desc-${meal}`).value = entry.meals[meal].desc || '';
+    });
+  }
+
+  /* ============ CONSUMO panel ============ */
+  const cigarettesValueEl = document.getElementById('cigarettesValue');
+  const jointsValueEl = document.getElementById('jointsValue');
+
+  document.querySelectorAll('[data-stepper="cigarettes"] .stepper-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const key = dateKey(currentDate);
+      const entry = ensureEntry(key);
+      entry.cigarettes = Math.max(0, (entry.cigarettes || 0) + parseInt(btn.dataset.step, 10));
+      saveStore();
+      renderConsumo();
+    });
+  });
+
+  document.querySelectorAll('[data-stepper="joints"] .stepper-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const key = dateKey(currentDate);
+      const entry = ensureEntry(key);
+      entry.joints = Math.max(0, (entry.joints || 0) + parseInt(btn.dataset.step, 10));
+      saveStore();
+      renderConsumo();
+    });
+  });
+
+  function monthConsumoAverage(year, monthIndex, field) {
+    const today = startOfDay(new Date());
+    const isCurrentMonth = (year === today.getFullYear() && monthIndex === today.getMonth());
+    const isFutureMonth = new Date(year, monthIndex, 1) > today;
+    if (isFutureMonth) return { avg: 0, count: 0 };
+    const lastDay = isCurrentMonth ? today.getDate() : daysInMonth(year, monthIndex);
+    let sum = 0, count = 0;
+    for (let d = 1; d <= lastDay; d++) {
+      const key = dateKey(new Date(year, monthIndex, d));
+      const entry = getEntry(key);
+      if (entry) { sum += entry[field] || 0; count++; }
+    }
+    return { avg: count > 0 ? sum / count : 0, count };
+  }
+
+  function renderConsumo() {
+    const key = dateKey(currentDate);
+    const entry = getEntry(key) || emptyEntry();
+    cigarettesValueEl.textContent = entry.cigarettes || 0;
+    jointsValueEl.textContent = entry.joints || 0;
+
+    const now = new Date();
+    const y = now.getFullYear(), m = now.getMonth();
+    const cig = monthConsumoAverage(y, m, 'cigarettes');
+    const joint = monthConsumoAverage(y, m, 'joints');
+    const prevDate = new Date(y, m - 1, 1);
+    const cigPrev = monthConsumoAverage(prevDate.getFullYear(), prevDate.getMonth(), 'cigarettes');
+    const jointPrev = monthConsumoAverage(prevDate.getFullYear(), prevDate.getMonth(), 'joints');
+
+    document.getElementById('avgCigarettes').textContent = cig.avg.toFixed(1);
+    document.getElementById('avgJoints').textContent = joint.avg.toFixed(1);
+    setDelta('deltaCigarettes', cig.avg, cigPrev.avg, cigPrev.count > 0);
+    setDelta('deltaJoints', joint.avg, jointPrev.avg, jointPrev.count > 0);
+  }
+
+  function setDelta(elId, current, previous, hasPrevious) {
+    const el = document.getElementById(elId);
+    if (!hasPrevious) { el.textContent = 'sin datos del mes anterior'; el.className = 'avg-delta'; return; }
+    const diff = current - previous;
+    if (Math.abs(diff) < 0.05) { el.textContent = '= igual que el mes anterior'; el.className = 'avg-delta'; return; }
+    if (diff < 0) {
+      el.textContent = `↓ ${Math.abs(diff).toFixed(1)} menos que el mes anterior`;
+      el.className = 'avg-delta down';
+    } else {
+      el.textContent = `↑ ${diff.toFixed(1)} más que el mes anterior`;
+      el.className = 'avg-delta up';
+    }
+  }
+
+  /* ============ STATS panel ============ */
+  const monthLabel = document.getElementById('monthLabel');
+  const ringsGrid = document.getElementById('ringsGrid');
+  const weeklyBars = document.getElementById('weeklyBars');
+  const consumoChart = document.getElementById('consumoChart');
+  const compareList = document.getElementById('compareList');
+
+  document.getElementById('prevMonth').addEventListener('click', () => {
+    statsMonth = new Date(statsMonth.getFullYear(), statsMonth.getMonth() - 1, 1);
+    renderStats();
+  });
+  document.getElementById('nextMonth').addEventListener('click', () => {
+    statsMonth = new Date(statsMonth.getFullYear(), statsMonth.getMonth() + 1, 1);
+    renderStats();
+  });
+
+  const HABITS = [
+    { field: 'exercise', icon: '🏋️', name: 'Ejercicio' },
+    { field: 'read', icon: '📖', name: 'Leer' },
+    { field: 'test', icon: '🚗', name: 'Test' },
+    { field: 'teeth', icon: '🦷', name: 'Dientes' }
+  ];
+
+  function monthDayRange(year, monthIndex) {
+    const today = startOfDay(new Date());
+    const isCurrentMonth = (year === today.getFullYear() && monthIndex === today.getMonth());
+    const isFutureMonth = new Date(year, monthIndex, 1) > today;
+    if (isFutureMonth) return 0;
+    return isCurrentMonth ? today.getDate() : daysInMonth(year, monthIndex);
+  }
+
+  function ringSVG(pct) {
+    const r = 26, c = 2 * Math.PI * r;
+    const filled = (Math.max(0, Math.min(100, pct)) / 100) * c;
+    return `
+      <svg width="64" height="64" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--border)" stroke-width="6"/>
+        <circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--accent)" stroke-width="6"
+          stroke-linecap="round" stroke-dasharray="${filled} ${c}"
+          transform="rotate(-90 32 32)"/>
+      </svg>`;
+  }
+
+  function renderStats() {
+    const year = statsMonth.getFullYear(), monthIndex = statsMonth.getMonth();
+    monthLabel.textContent = `${MONTHS_LONG[monthIndex]} ${year}`;
+
+    const lastDay = monthDayRange(year, monthIndex);
+
+    // Habit rings
+    ringsGrid.innerHTML = '';
+    HABITS.forEach((h) => {
+      let done = 0;
+      for (let d = 1; d <= lastDay; d++) {
+        const key = dateKey(new Date(year, monthIndex, d));
+        const entry = getEntry(key);
+        if (!entry) continue;
+        if (h.field === 'teeth' ? entry.teeth > 0 : entry[h.field]) done++;
+      }
+      const pct = lastDay > 0 ? (done / lastDay) * 100 : 0;
+      const tile = document.createElement('div');
+      tile.className = 'ring-tile';
+      tile.innerHTML = `${ringSVG(pct)}<span class="ring-pct">${Math.round(pct)}%</span><span class="ring-name">${h.icon} ${h.name}</span>`;
+      ringsGrid.appendChild(tile);
+    });
+
+    // Weekly tasks bars
+    const weekKeys = new Set();
+    for (let d = 1; d <= daysInMonth(year, monthIndex); d++) {
+      const day = new Date(year, monthIndex, d);
+      if (day > startOfDay(new Date())) continue;
+      weekKeys.add(isoWeekKey(day));
+    }
+    weeklyBars.innerHTML = '';
+    [{ field: 'abuelos', name: 'Ver a mis abuelos' }, { field: 'abuela', name: 'Ver a mi abuela' }].forEach((w) => {
+      let done = 0;
+      weekKeys.forEach((wk) => { if (getWeek(wk)[w.field]) done++; });
+      const total = weekKeys.size;
+      const pct = total > 0 ? (done / total) * 100 : 0;
+      const row = document.createElement('div');
+      row.className = 'bar-row';
+      row.innerHTML = `
+        <div class="bar-row-top">
+          <span class="bar-name">${w.name}</span>
+          <span class="bar-frac">${done}/${total}</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>`;
+      weeklyBars.appendChild(row);
+    });
+
+    renderConsumoChart(year, monthIndex, lastDay);
+    renderCompare(year, monthIndex);
+  }
+
+  function renderConsumoChart(year, monthIndex, lastDay) {
+    const totalDays = daysInMonth(year, monthIndex);
+    if (lastDay === 0) {
+      consumoChart.innerHTML = '<p class="hint-text" style="margin-top:0">Sin datos todavía para este mes.</p>';
+      return;
+    }
+    const data = [];
+    let sumTotal = 0, countLogged = 0;
+    for (let d = 1; d <= totalDays; d++) {
+      if (d > lastDay) { data.push(null); continue; }
+      const key = dateKey(new Date(year, monthIndex, d));
+      const entry = getEntry(key);
+      if (entry) {
+        const cig = entry.cigarettes || 0, joint = entry.joints || 0;
+        data.push({ cig, joint });
+        sumTotal += cig + joint;
+        countLogged++;
+      } else {
+        data.push(undefined);
+      }
+    }
+    const avg = countLogged > 0 ? sumTotal / countLogged : 0;
+    const maxVal = Math.max(1, ...data.map((x) => (x ? x.cig + x.joint : 0)));
+
+    const W = 340, H = 150, padL = 22, padR = 8, padT = 10, padB = 20;
+    const plotW = W - padL - padR, plotH = H - padT - padB;
+    const barGap = 2;
+    const barW = Math.max(2, plotW / totalDays - barGap);
+
+    let bars = '';
+    data.forEach((v, i) => {
+      const x = padL + i * (plotW / totalDays);
+      if (!v) return;
+      const total = v.cig + v.joint;
+      const totalH = (total / maxVal) * plotH;
+      const jointH = (v.joint / maxVal) * plotH;
+      const cigH = (v.cig / maxVal) * plotH;
+      const yBase = padT + plotH;
+      if (v.joint > 0) {
+        bars += `<rect x="${x.toFixed(1)}" y="${(yBase - jointH).toFixed(1)}" width="${barW.toFixed(1)}" height="${jointH.toFixed(1)}" rx="1" fill="#4fae93"/>`;
+      }
+      if (v.cig > 0) {
+        bars += `<rect x="${x.toFixed(1)}" y="${(yBase - jointH - cigH).toFixed(1)}" width="${barW.toFixed(1)}" height="${cigH.toFixed(1)}" rx="1" fill="#e08683"/>`;
+      }
+      if (total === 0) {
+        bars += `<rect x="${x.toFixed(1)}" y="${(yBase - 2).toFixed(1)}" width="${barW.toFixed(1)}" height="2" rx="1" fill="var(--border)"/>`;
+      }
+    });
+
+    const avgY = padT + plotH - (avg / maxVal) * plotH;
+    const avgLine = `<line x1="${padL}" y1="${avgY.toFixed(1)}" x2="${W - padR}" y2="${avgY.toFixed(1)}" stroke="#9aa6a1" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+
+    let ticks = '';
+    const tickStep = totalDays > 20 ? 5 : totalDays > 10 ? 5 : 2;
+    for (let d = 1; d <= totalDays; d += tickStep) {
+      const x = padL + (d - 0.5) * (plotW / totalDays);
+      ticks += `<text x="${x.toFixed(1)}" y="${H - 5}" font-size="8" text-anchor="middle" fill="var(--text-muted)">${d}</text>`;
+    }
+
+    consumoChart.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${bars}${avgLine}${ticks}</svg>`;
+  }
+
+  function renderCompare(year, monthIndex) {
+    const cur = {
+      cig: monthConsumoAverage(year, monthIndex, 'cigarettes'),
+      joint: monthConsumoAverage(year, monthIndex, 'joints')
+    };
+    const prevDate = new Date(year, monthIndex - 1, 1);
+    const prev = {
+      cig: monthConsumoAverage(prevDate.getFullYear(), prevDate.getMonth(), 'cigarettes'),
+      joint: monthConsumoAverage(prevDate.getFullYear(), prevDate.getMonth(), 'joints')
+    };
+
+    compareList.innerHTML = '';
+    [{ label: 'Cigarros / día', cur: cur.cig, prev: prev.cig }, { label: 'Joints / día', cur: cur.joint, prev: prev.joint }].forEach((item) => {
+      const row = document.createElement('div');
+      row.className = 'compare-row';
+      let arrow = '', arrowClass = 'flat';
+      if (item.prev.count > 0) {
+        const diff = item.cur.avg - item.prev.avg;
+        if (diff < -0.05) { arrow = '↓'; arrowClass = 'down'; }
+        else if (diff > 0.05) { arrow = '↑'; arrowClass = 'up'; }
+        else { arrow = '='; arrowClass = 'flat'; }
+      }
+      row.innerHTML = `
+        <span class="compare-name">${item.label}</span>
+        <span class="compare-values">
+          <span>${item.prev.count > 0 ? item.prev.avg.toFixed(1) : '–'}</span>
+          <span class="compare-arrow ${arrowClass}">→</span>
+          <span>${item.cur.avg.toFixed(1)}</span>
+          <span class="compare-arrow ${arrowClass}">${arrow}</span>
+        </span>`;
+      compareList.appendChild(row);
+    });
+  }
+
+  /* ============ AJUSTES panel / Notifications ============ */
+  const reminderToggle = document.getElementById('reminderToggle');
+  const reminderTime = document.getElementById('reminderTime');
+  const enableNotifBtn = document.getElementById('enableNotifBtn');
+  const notifStatus = document.getElementById('notifStatus');
+
+  reminderToggle.checked = !!store.settings.reminderEnabled;
+  reminderTime.value = store.settings.reminderTime || '21:00';
+
+  reminderToggle.addEventListener('change', () => {
+    store.settings.reminderEnabled = reminderToggle.checked;
+    saveStore();
+  });
+  reminderTime.addEventListener('change', () => {
+    store.settings.reminderTime = reminderTime.value;
+    saveStore();
+  });
+
+  function updateNotifStatus() {
+    if (!('Notification' in window)) {
+      notifStatus.textContent = 'Estado: las notificaciones no están soportadas en este navegador.';
+      return;
+    }
+    const map = {
+      granted: 'Estado: permiso concedido.',
+      denied: 'Estado: permiso denegado. Actívalo desde los ajustes del sistema.',
+      default: 'Estado: sin permiso solicitado.'
+    };
+    notifStatus.textContent = map[Notification.permission];
+  }
+  updateNotifStatus();
+
+  enableNotifBtn.addEventListener('click', () => {
+    if (!('Notification' in window)) return;
+    Notification.requestPermission().then(() => updateNotifStatus());
+  });
+
+  function isTodayComplete() {
+    const entry = getEntry(dateKey(startOfDay(new Date())));
+    if (!entry) return false;
+    return entry.exercise && entry.read && entry.test && entry.teeth > 0;
+  }
+
+  function checkReminder() {
+    if (!store.settings.reminderEnabled) return;
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    const now = new Date();
+    const [h, m] = (store.settings.reminderTime || '21:00').split(':').map(Number);
+    const target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
+    const todayKey = dateKey(now);
+    if (now >= target && store.lastNotifiedDate !== todayKey && !isTodayComplete()) {
+      const title = 'Bitácora Diaria';
+      const body = 'No olvides rellenar tu bitácora de hoy.';
+      if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+        navigator.serviceWorker.ready.then((reg) => reg.showNotification(title, { body, icon: 'icons/icon-192.png' }));
+      } else {
+        new Notification(title, { body, icon: 'icons/icon-192.png' });
+      }
+      store.lastNotifiedDate = todayKey;
+      saveStore();
+    }
+  }
+
+  setInterval(checkReminder, 60000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkReminder(); });
+
+  /* ============ Backup / restore ============ */
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(store, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bitacora-backup-${dateKey(new Date())}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  const importFile = document.getElementById('importFile');
+  document.getElementById('importBtn').addEventListener('click', () => importFile.click());
+  importFile.addEventListener('change', () => {
+    const file = importFile.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        if (!confirm('Esto reemplazará los datos actuales por los del archivo importado. ¿Continuar?')) return;
+        store.entries = data.entries || {};
+        store.weeks = data.weeks || {};
+        store.settings = data.settings || store.settings;
+        saveStore();
+        renderAll();
+        reminderToggle.checked = !!store.settings.reminderEnabled;
+        reminderTime.value = store.settings.reminderTime || '21:00';
+        alert('Datos importados correctamente.');
+      } catch (e) {
+        alert('El archivo no es válido.');
+      }
+    };
+    reader.readAsText(file);
+    importFile.value = '';
+  });
+
+  /* ============ Init ============ */
+  function renderAll() {
+    updateDayLabel();
+    renderHoy();
+    renderComidas();
+    renderConsumo();
+    if (activeTab === 'stats') renderStats();
+  }
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
+
+  renderAll();
+  checkReminder();
+})();

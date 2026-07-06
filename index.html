@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<title>Bitácora Diaria</title>
+<meta name="theme-color" content="#2f6f5e" />
+<meta name="description" content="Agenda diaria de hábitos, comidas, consumo y reflexión personal." />
+
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Bitácora" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div id="app">
+
+  <header class="topbar">
+    <h1>Bitácora Diaria</h1>
+  </header>
+
+  <div class="day-selector" id="daySelector">
+    <button class="day-nav" id="prevDay" aria-label="Día anterior">‹</button>
+    <div class="day-label">
+      <span id="dayLabelMain">Hoy</span>
+      <span id="dayLabelSub">1 de enero</span>
+    </div>
+    <button class="day-nav" id="nextDay" aria-label="Día siguiente">›</button>
+  </div>
+
+  <main id="main">
+
+    <!-- HOY -->
+    <section class="tab-panel" id="panel-hoy" data-panel="hoy">
+
+      <div class="card">
+        <h2 class="card-title">Hábitos diarios</h2>
+        <ul class="habit-list">
+          <li class="habit-row" data-habit="exercise">
+            <button class="check-btn" data-check="exercise" aria-pressed="false">
+              <span class="check-icon">✓</span>
+            </button>
+            <div class="habit-text">
+              <span class="habit-name">Hacer ejercicio</span>
+              <span class="habit-meta">30 min / día</span>
+            </div>
+          </li>
+          <li class="habit-row" data-habit="read">
+            <button class="check-btn" data-check="read" aria-pressed="false">
+              <span class="check-icon">✓</span>
+            </button>
+            <div class="habit-text">
+              <span class="habit-name">Leer</span>
+              <span class="habit-meta">30 min / día</span>
+            </div>
+          </li>
+          <li class="habit-row" data-habit="test">
+            <button class="check-btn" data-check="test" aria-pressed="false">
+              <span class="check-icon">✓</span>
+            </button>
+            <div class="habit-text">
+              <span class="habit-name">Test Autoescuela</span>
+              <span class="habit-meta">30 min / día</span>
+            </div>
+          </li>
+          <li class="habit-row habit-row--stepper" data-habit="teeth">
+            <div class="habit-text">
+              <span class="habit-name">Lavarme los dientes</span>
+              <span class="habit-meta">mínimo 1 vez / día</span>
+            </div>
+            <div class="stepper" data-stepper="teeth">
+              <button class="stepper-btn" data-step="-1" aria-label="Restar">–</button>
+              <span class="stepper-value" id="teethValue">0</span>
+              <button class="stepper-btn" data-step="1" aria-label="Sumar">+</button>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-title-row">
+          <h2 class="card-title">Tareas semanales</h2>
+          <span class="week-range" id="weekRange">–</span>
+        </div>
+        <ul class="habit-list">
+          <li class="habit-row" data-habit="abuelos">
+            <button class="check-btn" data-check-week="abuelos" aria-pressed="false">
+              <span class="check-icon">✓</span>
+            </button>
+            <div class="habit-text">
+              <span class="habit-name">Ver a mis abuelos</span>
+              <span class="habit-meta">esta semana</span>
+            </div>
+          </li>
+          <li class="habit-row" data-habit="abuela">
+            <button class="check-btn" data-check-week="abuela" aria-pressed="false">
+              <span class="check-icon">✓</span>
+            </button>
+            <div class="habit-text">
+              <span class="habit-name">Ver a mi abuela</span>
+              <span class="habit-meta">esta semana</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">Reflexión del día</h2>
+        <textarea id="reflectionInput" class="reflection-box" rows="5" placeholder="¿Cómo ha ido el día? ¿Qué destacarías?"></textarea>
+        <div class="save-hint" id="reflectionHint">Guardado automáticamente</div>
+      </div>
+
+    </section>
+
+    <!-- COMIDAS -->
+    <section class="tab-panel" id="panel-comidas" data-panel="comidas" hidden>
+      <div class="card meal-card" data-meal="desayuno">
+        <h2 class="card-title">Desayuno</h2>
+        <div class="meal-row">
+          <label class="meal-label" for="time-desayuno">Hora</label>
+          <input type="time" id="time-desayuno" class="meal-time" data-meal-time="desayuno" />
+        </div>
+        <textarea class="meal-desc" id="desc-desayuno" data-meal-desc="desayuno" rows="2" placeholder="¿Qué has comido?"></textarea>
+      </div>
+
+      <div class="card meal-card" data-meal="comida">
+        <h2 class="card-title">Comida</h2>
+        <div class="meal-row">
+          <label class="meal-label" for="time-comida">Hora</label>
+          <input type="time" id="time-comida" class="meal-time" data-meal-time="comida" />
+        </div>
+        <textarea class="meal-desc" id="desc-comida" data-meal-desc="comida" rows="2" placeholder="¿Qué has comido?"></textarea>
+      </div>
+
+      <div class="card meal-card" data-meal="cena">
+        <h2 class="card-title">Cena</h2>
+        <div class="meal-row">
+          <label class="meal-label" for="time-cena">Hora</label>
+          <input type="time" id="time-cena" class="meal-time" data-meal-time="cena" />
+        </div>
+        <textarea class="meal-desc" id="desc-cena" data-meal-desc="cena" rows="2" placeholder="¿Qué has comido?"></textarea>
+      </div>
+    </section>
+
+    <!-- CONSUMO -->
+    <section class="tab-panel" id="panel-consumo" data-panel="consumo" hidden>
+      <div class="card">
+        <h2 class="card-title">Consumo de hoy</h2>
+        <div class="consumo-row">
+          <div class="consumo-label">
+            <span class="consumo-name">Cigarros</span>
+          </div>
+          <div class="stepper stepper--lg" data-stepper="cigarettes">
+            <button class="stepper-btn" data-step="-1" aria-label="Restar cigarro">–</button>
+            <span class="stepper-value" id="cigarettesValue">0</span>
+            <button class="stepper-btn" data-step="1" aria-label="Sumar cigarro">+</button>
+          </div>
+        </div>
+        <div class="consumo-row">
+          <div class="consumo-label">
+            <span class="consumo-name">Joints</span>
+          </div>
+          <div class="stepper stepper--lg" data-stepper="joints">
+            <button class="stepper-btn" data-step="-1" aria-label="Restar joint">–</button>
+            <span class="stepper-value" id="jointsValue">0</span>
+            <button class="stepper-btn" data-step="1" aria-label="Sumar joint">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">Media mensual</h2>
+        <div class="avg-grid">
+          <div class="avg-tile">
+            <span class="avg-value" id="avgCigarettes">0.0</span>
+            <span class="avg-label">cigarros/día</span>
+            <span class="avg-delta" id="deltaCigarettes"></span>
+          </div>
+          <div class="avg-tile">
+            <span class="avg-value" id="avgJoints">0.0</span>
+            <span class="avg-label">joints/día</span>
+            <span class="avg-delta" id="deltaJoints"></span>
+          </div>
+        </div>
+        <p class="hint-text">La media se recalcula cada vez que añades un dato nuevo, comparada con el mes anterior.</p>
+      </div>
+    </section>
+
+    <!-- STATS -->
+    <section class="tab-panel" id="panel-stats" data-panel="stats" hidden>
+      <div class="card">
+        <div class="month-selector">
+          <button class="day-nav" id="prevMonth" aria-label="Mes anterior">‹</button>
+          <span class="month-label" id="monthLabel">–</span>
+          <button class="day-nav" id="nextMonth" aria-label="Mes siguiente">›</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">Hábitos del mes</h2>
+        <div class="rings-grid" id="ringsGrid"></div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">Tareas semanales</h2>
+        <div class="bars-list" id="weeklyBars"></div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">Cigarros y Joints</h2>
+        <div class="chart-wrap" id="consumoChart"></div>
+        <div class="legend">
+          <span class="legend-item"><span class="dot dot--cig"></span>Cigarros</span>
+          <span class="legend-item"><span class="dot dot--joint"></span>Joints</span>
+          <span class="legend-item"><span class="dot dot--avg"></span>Media</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">Comparativa mensual</h2>
+        <div class="compare-list" id="compareList"></div>
+      </div>
+    </section>
+
+    <!-- AJUSTES -->
+    <section class="tab-panel" id="panel-ajustes" data-panel="ajustes" hidden>
+      <div class="card">
+        <h2 class="card-title">Recordatorio diario</h2>
+        <div class="setting-row">
+          <span>Notificación activada</span>
+          <label class="switch">
+            <input type="checkbox" id="reminderToggle" />
+            <span class="switch-slider"></span>
+          </label>
+        </div>
+        <div class="setting-row">
+          <span>Hora del recordatorio</span>
+          <input type="time" id="reminderTime" value="21:00" />
+        </div>
+        <button class="primary-btn" id="enableNotifBtn">Permitir notificaciones</button>
+        <p class="hint-text" id="notifStatus">Estado: sin permiso solicitado.</p>
+        <p class="hint-text">Para que el recordatorio funcione en segundo plano en tu iPhone, añade esta app a la pantalla de inicio: pulsa Compartir → "Añadir a pantalla de inicio". El aviso se comprueba cada vez que la app está abierta en segundo plano y a la hora configurada.</p>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">Copia de seguridad</h2>
+        <div class="backup-row">
+          <button class="secondary-btn" id="exportBtn">Exportar datos</button>
+          <button class="secondary-btn" id="importBtn">Importar datos</button>
+        </div>
+        <input type="file" id="importFile" accept="application/json" hidden />
+        <p class="hint-text">Todos los datos se guardan solo en este dispositivo. Exporta un archivo de vez en cuando para no perder tu historial.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <nav class="tabbar">
+    <button class="tab-btn is-active" data-tab="hoy">
+      <span class="tab-icon">🏡</span>
+      <span class="tab-label">Hoy</span>
+    </button>
+    <button class="tab-btn" data-tab="comidas">
+      <span class="tab-icon">🍽️</span>
+      <span class="tab-label">Comidas</span>
+    </button>
+    <button class="tab-btn" data-tab="consumo">
+      <span class="tab-icon">🚬</span>
+      <span class="tab-label">Consumo</span>
+    </button>
+    <button class="tab-btn" data-tab="stats">
+      <span class="tab-icon">📊</span>
+      <span class="tab-label">Stats</span>
+    </button>
+    <button class="tab-btn" data-tab="ajustes">
+      <span class="tab-icon">⚙️</span>
+      <span class="tab-label">Ajustes</span>
+    </button>
+  </nav>
+
+</div>
+<script src="app.js"></script>
+</body>
+</html>
