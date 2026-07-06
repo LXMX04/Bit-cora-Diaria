@@ -384,6 +384,20 @@
       </svg>`;
   }
 
+  /* ---- Health color gradient (nada saludable -> muy saludable) ---- */
+  function currentTheme() {
+    const override = document.documentElement.dataset.theme;
+    if (override === 'dark' || override === 'light') return override;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+
+  function healthColor(value) {
+    const clamped = Math.max(1, Math.min(5, value));
+    const hue = ((clamped - 1) / 4) * 120; // 0 = red, 60 = amber, 120 = green
+    const dark = currentTheme() === 'dark';
+    return `hsl(${hue.toFixed(0)}, ${dark ? 68 : 62}%, ${dark ? 58 : 46}%)`;
+  }
+
   /* ---- Monthly heatmap ---- */
   const heatmapLegend = document.getElementById('heatmapLegend');
   const heatmapWrap = document.getElementById('heatmapWrap');
@@ -396,7 +410,7 @@
     { key: 'read', label: 'Leer', type: 'daily', color: 'var(--h-read)' },
     { key: 'test', label: 'Autoescuela', type: 'daily', color: 'var(--h-test)' },
     { key: 'teeth', label: 'Dientes', type: 'daily', color: 'var(--h-teeth)' },
-    { key: 'health', label: 'Alimentación', type: 'health', color: 'var(--h-food)', groupStart: true },
+    { key: 'health', label: 'Alimentación', type: 'health', groupStart: true },
     { key: 'abuelos', label: 'Abuelos', type: 'weekly', color: 'var(--h-abuelos)', groupStart: true },
     { key: 'abuela', label: 'Abuela', type: 'weekly', color: 'var(--h-abuela)' },
     { key: 'total', label: 'Total', type: 'total', color: 'var(--h-total)', groupStart: true },
@@ -472,8 +486,7 @@
     }
     if (row.type === 'health') {
       if (!dayInfo.health) return '';
-      const pct = 20 + (dayInfo.health / 5) * 80;
-      return `background:color-mix(in srgb, ${row.color} ${pct.toFixed(0)}%, var(--surface-alt))`;
+      return `background:${healthColor(dayInfo.health)}`;
     }
     // consumo
     const max = row.key === 'cigarettes' ? maxCig : maxJoint;
@@ -498,7 +511,11 @@
 
     // Legend
     heatmapLegend.innerHTML = HEATMAP_ROWS.filter((r) => r.type !== 'total').map((r) => {
-      const suffix = r.type === 'weekly' ? ' (semanal)' : r.type === 'health' ? ' (1-5)' : '';
+      if (r.type === 'health') {
+        const gradient = `linear-gradient(to right, ${healthColor(1)}, ${healthColor(3)}, ${healthColor(5)})`;
+        return `<span class="legend-item"><span class="legend-gradient" style="background:${gradient}"></span>${r.label} (nada → muy saludable)</span>`;
+      }
+      const suffix = r.type === 'weekly' ? ' (semanal)' : '';
       return `<span class="legend-item"><span class="dot" style="background:${r.color}"></span>${r.label}${suffix}</span>`;
     }).join('');
 
@@ -531,6 +548,44 @@
       </table>`;
   }
 
+  const foodAvgTile = document.getElementById('foodAvgTile');
+  const foodAvgValue = document.getElementById('foodAvgValue');
+  const foodScaleGradient = document.getElementById('foodScaleGradient');
+  const foodScaleMarker = document.getElementById('foodScaleMarker');
+
+  function monthFoodHealthAverage(year, monthIndex, lastDay) {
+    let sum = 0, count = 0;
+    for (let d = 1; d <= lastDay; d++) {
+      const key = dateKey(new Date(year, monthIndex, d));
+      const entry = getEntry(key);
+      if (!entry || !entry.meals) continue;
+      ['desayuno', 'comida', 'cena'].forEach((meal) => {
+        const h = entry.meals[meal] && entry.meals[meal].health;
+        if (h) { sum += h; count++; }
+      });
+    }
+    return count > 0 ? sum / count : 0;
+  }
+
+  function renderFoodAvg(year, monthIndex, lastDay) {
+    foodScaleGradient.style.background = `linear-gradient(to right, ${healthColor(1)}, ${healthColor(3)}, ${healthColor(5)})`;
+    const avg = monthFoodHealthAverage(year, monthIndex, lastDay);
+    if (avg === 0) {
+      foodAvgValue.textContent = '–';
+      foodAvgTile.style.background = 'var(--surface-alt)';
+      foodAvgTile.style.color = 'var(--text-muted)';
+      foodAvgTile.style.textShadow = 'none';
+      foodScaleMarker.style.display = 'none';
+      return;
+    }
+    foodAvgValue.textContent = `${avg.toFixed(1)} / 5`;
+    foodAvgTile.style.background = healthColor(avg);
+    foodAvgTile.style.color = '#fff';
+    foodAvgTile.style.textShadow = '';
+    foodScaleMarker.style.display = '';
+    foodScaleMarker.style.left = `${((avg - 1) / 4) * 100}%`;
+  }
+
   function renderStats() {
     const year = statsMonth.getFullYear(), monthIndex = statsMonth.getMonth();
     monthLabel.textContent = `${MONTHS_LONG[monthIndex]} ${year}`;
@@ -538,6 +593,7 @@
     const lastDay = monthDayRange(year, monthIndex);
 
     renderHeatmap(year, monthIndex, lastDay);
+    renderFoodAvg(year, monthIndex, lastDay);
 
     // Habit rings
     ringsGrid.innerHTML = '';
