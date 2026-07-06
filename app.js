@@ -32,9 +32,9 @@
       teeth: 0,
       reflection: '',
       meals: {
-        desayuno: { time: '', desc: '' },
-        comida: { time: '', desc: '' },
-        cena: { time: '', desc: '' }
+        desayuno: { time: '', desc: '', health: 0 },
+        comida: { time: '', desc: '', health: 0 },
+        cena: { time: '', desc: '', health: 0 }
       },
       cigarettes: 0,
       joints: 0
@@ -237,12 +237,32 @@
     });
   });
 
+  const healthScales = document.querySelectorAll('.health-scale');
+
+  healthScales.forEach((scale) => {
+    scale.addEventListener('click', (e) => {
+      const btn = e.target.closest('.health-btn');
+      if (!btn) return;
+      const meal = scale.dataset.health;
+      const value = parseInt(btn.dataset.value, 10);
+      const key = dateKey(currentDate);
+      const entry = ensureEntry(key);
+      entry.meals[meal].health = entry.meals[meal].health === value ? 0 : value;
+      saveStore();
+      renderComidas();
+    });
+  });
+
   function renderComidas() {
     const key = dateKey(currentDate);
     const entry = getEntry(key) || emptyEntry();
     ['desayuno', 'comida', 'cena'].forEach((meal) => {
       document.getElementById(`time-${meal}`).value = entry.meals[meal].time || '';
       document.getElementById(`desc-${meal}`).value = entry.meals[meal].desc || '';
+      const health = entry.meals[meal].health || 0;
+      document.querySelectorAll(`.health-scale[data-health="${meal}"] .health-btn`).forEach((btn) => {
+        btn.classList.toggle('is-active', parseInt(btn.dataset.value, 10) === health);
+      });
     });
   }
 
@@ -374,6 +394,7 @@
     { key: 'read', label: 'Leer', type: 'daily', color: 'var(--h-read)' },
     { key: 'test', label: 'Autoescuela', type: 'daily', color: 'var(--h-test)' },
     { key: 'teeth', label: 'Dientes', type: 'daily', color: 'var(--h-teeth)' },
+    { key: 'health', label: 'Alimentación', type: 'health', color: 'var(--h-food)', groupStart: true },
     { key: 'abuelos', label: 'Abuelos', type: 'weekly', color: 'var(--h-abuelos)', groupStart: true },
     { key: 'abuela', label: 'Abuela', type: 'weekly', color: 'var(--h-abuela)' },
     { key: 'total', label: 'Total', type: 'total', color: 'var(--h-total)', groupStart: true },
@@ -413,12 +434,21 @@
         teeth: !!(entry && entry.teeth > 0)
       };
       const total = (daily.exercise ? 1 : 0) + (daily.read ? 1 : 0) + (daily.test ? 1 : 0) + (daily.teeth ? 1 : 0);
+      const healthVals = [];
+      if (entry && entry.meals) {
+        ['desayuno', 'comida', 'cena'].forEach((meal) => {
+          const h = entry.meals[meal] && entry.meals[meal].health;
+          if (h) healthVals.push(h);
+        });
+      }
+      const health = healthVals.length ? healthVals.reduce((a, b) => a + b, 0) / healthVals.length : 0;
       days.push({
         day: d,
         exercise: daily.exercise,
         read: daily.read,
         test: daily.test,
         teeth: daily.teeth,
+        health,
         abuelos: !!week.abuelos,
         abuela: !!week.abuela,
         total,
@@ -438,6 +468,11 @@
       const pct = 25 + (dayInfo.total / 4) * 75;
       return `background:color-mix(in srgb, ${row.color} ${pct.toFixed(0)}%, var(--surface-alt))`;
     }
+    if (row.type === 'health') {
+      if (!dayInfo.health) return '';
+      const pct = 20 + (dayInfo.health / 5) * 80;
+      return `background:color-mix(in srgb, ${row.color} ${pct.toFixed(0)}%, var(--surface-alt))`;
+    }
     // consumo
     const max = row.key === 'cigarettes' ? maxCig : maxJoint;
     const val = dayInfo[row.key];
@@ -449,6 +484,7 @@
   function heatmapCellText(row, dayInfo) {
     if (row.type === 'daily' || row.type === 'weekly') return dayInfo[row.key] ? '✓' : '';
     if (row.type === 'total') return dayInfo.total > 0 ? String(dayInfo.total) : '';
+    if (row.type === 'health') return dayInfo.health > 0 ? dayInfo.health.toFixed(1) : '';
     return dayInfo[row.key] > 0 ? String(dayInfo[row.key]) : '';
   }
 
@@ -460,7 +496,7 @@
 
     // Legend
     heatmapLegend.innerHTML = HEATMAP_ROWS.filter((r) => r.type !== 'total').map((r) => {
-      const suffix = r.type === 'weekly' ? ' (semanal)' : '';
+      const suffix = r.type === 'weekly' ? ' (semanal)' : r.type === 'health' ? ' (1-5)' : '';
       return `<span class="legend-item"><span class="dot" style="background:${r.color}"></span>${r.label}${suffix}</span>`;
     }).join('');
 

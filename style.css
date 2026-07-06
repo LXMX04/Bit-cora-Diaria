@@ -26,6 +26,7 @@
   --h-total: #2f6f5e;
   --h-cig: #c25450;
   --h-joint: #2f6f5e;
+  --h-food: #3b8f5e;
 }
 
 :root[data-theme="dark"] {
@@ -52,6 +53,7 @@
   --h-total: #4fae93;
   --h-cig: #e08683;
   --h-joint: #4fae93;
+  --h-food: #5bc287;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -79,6 +81,7 @@
     --h-total: #4fae93;
     --h-cig: #e08683;
     --h-joint: #4fae93;
+    --h-food: #5bc287;
   }
 }
 
@@ -368,6 +371,40 @@ main {
   line-height: 1.4;
 }
 .meal-desc:focus { outline: none; border-color: var(--accent); }
+
+.health-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+.health-label {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.health-scale {
+  display: flex;
+  gap: 6px;
+}
+.health-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.health-btn.is-active {
+  background: var(--h-food);
+  border-color: var(--h-food);
+  color: #fff;
+}
 
 /* ---------- Consumo ---------- */
 .consumo-row {
