@@ -742,6 +742,24 @@ main {
 .switch input:checked + .switch-slider { background: var(--accent); }
 .switch input:checked + .switch-slider::before { transform: translateX(19px); }
 
+.reminder-preview-label {
+  margin-top: 14px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+}
+.reminder-preview {
+  margin: 6px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface-alt);
+  font-size: 13.5px;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
 .primary-btn {
   width: 100%;
   margin-top: 12px;
