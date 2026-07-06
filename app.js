@@ -362,11 +362,144 @@
       </svg>`;
   }
 
+  /* ---- Monthly heatmap ---- */
+  const heatmapLegend = document.getElementById('heatmapLegend');
+  const heatmapWrap = document.getElementById('heatmapWrap');
+  const heatmapTableWrap = document.getElementById('heatmapTableWrap');
+  const toggleHeatmapBtn = document.getElementById('toggleHeatmapView');
+  let heatmapView = 'grid';
+
+  const HEATMAP_ROWS = [
+    { key: 'exercise', label: 'Ejercicio', type: 'daily', color: 'var(--h-exercise)' },
+    { key: 'read', label: 'Leer', type: 'daily', color: 'var(--h-read)' },
+    { key: 'test', label: 'Autoescuela', type: 'daily', color: 'var(--h-test)' },
+    { key: 'teeth', label: 'Dientes', type: 'daily', color: 'var(--h-teeth)' },
+    { key: 'abuelos', label: 'Abuelos', type: 'weekly', color: 'var(--h-abuelos)', groupStart: true },
+    { key: 'abuela', label: 'Abuela', type: 'weekly', color: 'var(--h-abuela)' },
+    { key: 'total', label: 'Total', type: 'total', color: 'var(--h-total)', groupStart: true },
+    { key: 'cigarettes', label: 'Cigarros', type: 'consumo', color: 'var(--h-cig)', groupStart: true },
+    { key: 'joints', label: 'Joints', type: 'consumo', color: 'var(--h-joint)' }
+  ];
+
+  toggleHeatmapBtn.addEventListener('click', () => {
+    heatmapView = heatmapView === 'grid' ? 'table' : 'grid';
+    toggleHeatmapBtn.textContent = heatmapView === 'grid' ? 'Ver tabla' : 'Ver mapa';
+    heatmapWrap.hidden = heatmapView !== 'grid';
+    heatmapTableWrap.hidden = heatmapView !== 'table';
+  });
+
+  heatmapWrap.addEventListener('click', (e) => {
+    const btn = e.target.closest('.heatmap-cell');
+    if (!btn || btn.disabled) return;
+    const day = parseInt(btn.dataset.day, 10);
+    const year = parseInt(btn.dataset.year, 10);
+    const monthIndex = parseInt(btn.dataset.month, 10);
+    currentDate = new Date(year, monthIndex, day);
+    switchTab('hoy');
+    renderAll();
+  });
+
+  function buildDayData(year, monthIndex, totalDays) {
+    const days = [];
+    for (let d = 1; d <= totalDays; d++) {
+      const date = new Date(year, monthIndex, d);
+      const entry = getEntry(dateKey(date));
+      const wk = isoWeekKey(date);
+      const week = getWeek(wk);
+      const daily = {
+        exercise: !!(entry && entry.exercise),
+        read: !!(entry && entry.read),
+        test: !!(entry && entry.test),
+        teeth: !!(entry && entry.teeth > 0)
+      };
+      const total = (daily.exercise ? 1 : 0) + (daily.read ? 1 : 0) + (daily.test ? 1 : 0) + (daily.teeth ? 1 : 0);
+      days.push({
+        day: d,
+        exercise: daily.exercise,
+        read: daily.read,
+        test: daily.test,
+        teeth: daily.teeth,
+        abuelos: !!week.abuelos,
+        abuela: !!week.abuela,
+        total,
+        cigarettes: entry ? (entry.cigarettes || 0) : 0,
+        joints: entry ? (entry.joints || 0) : 0
+      });
+    }
+    return days;
+  }
+
+  function heatmapCellStyle(row, dayInfo, maxCig, maxJoint) {
+    if (row.type === 'daily' || row.type === 'weekly') {
+      return dayInfo[row.key] ? `background:${row.color}` : '';
+    }
+    if (row.type === 'total') {
+      if (dayInfo.total === 0) return '';
+      const pct = 25 + (dayInfo.total / 4) * 75;
+      return `background:color-mix(in srgb, ${row.color} ${pct.toFixed(0)}%, var(--surface-alt))`;
+    }
+    // consumo
+    const max = row.key === 'cigarettes' ? maxCig : maxJoint;
+    const val = dayInfo[row.key];
+    if (!val || max <= 0) return '';
+    const pct = 25 + (val / max) * 75;
+    return `background:color-mix(in srgb, ${row.color} ${pct.toFixed(0)}%, var(--surface-alt))`;
+  }
+
+  function heatmapCellText(row, dayInfo) {
+    if (row.type === 'daily' || row.type === 'weekly') return dayInfo[row.key] ? '✓' : '';
+    if (row.type === 'total') return dayInfo.total > 0 ? String(dayInfo.total) : '';
+    return dayInfo[row.key] > 0 ? String(dayInfo[row.key]) : '';
+  }
+
+  function renderHeatmap(year, monthIndex, lastDay) {
+    const totalDays = daysInMonth(year, monthIndex);
+    const days = buildDayData(year, monthIndex, totalDays);
+    const maxCig = Math.max(0, ...days.slice(0, lastDay).map((d) => d.cigarettes));
+    const maxJoint = Math.max(0, ...days.slice(0, lastDay).map((d) => d.joints));
+
+    // Legend
+    heatmapLegend.innerHTML = HEATMAP_ROWS.filter((r) => r.type !== 'total').map((r) => {
+      const suffix = r.type === 'weekly' ? ' (semanal)' : '';
+      return `<span class="legend-item"><span class="dot" style="background:${r.color}"></span>${r.label}${suffix}</span>`;
+    }).join('');
+
+    // Grid
+    const labelsHtml = HEATMAP_ROWS.map((r) => `<div class="heatmap-label${r.groupStart ? ' heatmap-label--gap' : ''}">${r.label}</div>`).join('');
+    heatmapWrap.innerHTML = `
+      <div class="heatmap-labels">${labelsHtml}</div>
+      <div class="heatmap-scroll">
+        ${HEATMAP_ROWS.map((r) => `
+          <div class="heatmap-row${r.groupStart ? ' heatmap-row--gap' : ''}">
+            ${days.map((d) => {
+              const isFuture = d.day > lastDay;
+              const style = isFuture ? '' : heatmapCellStyle(r, d, maxCig, maxJoint);
+              return `<button type="button" class="heatmap-cell${isFuture ? ' is-future' : ''}" style="${style}" data-day="${d.day}" data-year="${year}" data-month="${monthIndex}" ${isFuture ? 'disabled' : ''} aria-label="${r.label} día ${d.day}"></button>`;
+            }).join('')}
+          </div>`).join('')}
+        <div class="heatmap-daynums">
+          ${days.map((d) => `<span class="heatmap-daynum">${d.day % 5 === 0 || d.day === 1 ? d.day : ''}</span>`).join('')}
+        </div>
+      </div>`;
+
+    // Table
+    const theadDays = days.map((d) => `<th>${d.day}</th>`).join('');
+    const tbodyRows = HEATMAP_ROWS.map((r) => `
+      <tr><th>${r.label}</th>${days.map((d) => `<td>${heatmapCellText(r, d)}</td>`).join('')}</tr>`).join('');
+    heatmapTableWrap.innerHTML = `
+      <table class="heatmap-table">
+        <thead><tr><th></th>${theadDays}</tr></thead>
+        <tbody>${tbodyRows}</tbody>
+      </table>`;
+  }
+
   function renderStats() {
     const year = statsMonth.getFullYear(), monthIndex = statsMonth.getMonth();
     monthLabel.textContent = `${MONTHS_LONG[monthIndex]} ${year}`;
 
     const lastDay = monthDayRange(year, monthIndex);
+
+    renderHeatmap(year, monthIndex, lastDay);
 
     // Habit rings
     ringsGrid.innerHTML = '';
