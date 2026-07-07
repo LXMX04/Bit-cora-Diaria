@@ -443,6 +443,9 @@ main {
   justify-content: space-between;
   padding: 8px 0;
 }
+.consumo-row[hidden] {
+  display: none;
+}
 .consumo-row + .consumo-row {
   border-top: 1px solid var(--border);
   padding-top: 14px;
@@ -467,6 +470,14 @@ main {
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
+.avg-grid.single {
+  grid-template-columns: 1fr;
+}
+.avg-grid.single .avg-tile {
+  max-width: 220px;
+  margin: 0 auto;
+  width: 100%;
+}
 .avg-tile {
   background: var(--surface-alt);
   border-radius: 12px;
@@ -475,6 +486,9 @@ main {
   flex-direction: column;
   align-items: center;
   gap: 2px;
+}
+.avg-tile[hidden] {
+  display: none;
 }
 .avg-value {
   font-size: 24px;
@@ -492,6 +506,32 @@ main {
 }
 .avg-delta.down { color: var(--good); }
 .avg-delta.up { color: var(--danger); }
+
+.spend-group + .spend-group {
+  margin-top: 14px;
+}
+.spend-group-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.spend-group--total {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border);
+}
+.spend-group--total .spend-group-label {
+  color: var(--accent);
+}
+.spend-group--total .avg-tile {
+  background: var(--accent-soft);
+}
+.spend-group--total .avg-value {
+  color: var(--accent);
+}
 
 .hint-text {
   font-size: 12px;
@@ -757,6 +797,9 @@ main {
   display: flex;
   align-items: center;
   gap: 5px;
+}
+.legend-item[hidden] {
+  display: none;
 }
 .dot {
   width: 8px;

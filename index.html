@@ -130,7 +130,7 @@
             <button class="stepper-btn" data-step="1" aria-label="Sumar cigarro">+</button>
           </div>
         </div>
-        <div class="consumo-row">
+        <div class="consumo-row" id="jointsRow">
           <div class="consumo-label">
             <span class="consumo-name">Joints</span>
             <span class="consumo-price">4,50 €/4 porros</span>
@@ -145,13 +145,13 @@
 
       <div class="card">
         <h2 class="card-title">Media mensual</h2>
-        <div class="avg-grid">
+        <div class="avg-grid" id="mediaMensualGrid">
           <div class="avg-tile">
             <span class="avg-value" id="avgCigarettes">0.0</span>
             <span class="avg-label">cigarros/día</span>
             <span class="avg-delta" id="deltaCigarettes"></span>
           </div>
-          <div class="avg-tile">
+          <div class="avg-tile" id="jointsAvgTile">
             <span class="avg-value" id="avgJoints">0.0</span>
             <span class="avg-label">joints/día</span>
             <span class="avg-delta" id="deltaJoints"></span>
@@ -188,17 +188,8 @@
 
       <div class="card">
         <h2 class="card-title">Gasto total</h2>
-        <div class="avg-grid">
-          <div class="avg-tile">
-            <span class="avg-value" id="spendMonth">0,00 €</span>
-            <span class="avg-label">este mes</span>
-          </div>
-          <div class="avg-tile">
-            <span class="avg-value" id="spendYear">0,00 €</span>
-            <span class="avg-label">este año</span>
-          </div>
-        </div>
-        <p class="hint-text">Incluye paquetes de tabaco y joints (4,50 € cada 4 porros).</p>
+        <div id="spendGroups"></div>
+        <p class="hint-text">Lucky rojo 5,50 € · Lucky blanco 6,30 € por paquete · Joints 4,50 € cada 4 porros.</p>
       </div>
     </section>
 
@@ -251,11 +242,11 @@
       </div>
 
       <div class="card">
-        <h2 class="card-title">Cigarros y Joints</h2>
+        <h2 class="card-title" id="consumoChartTitle">Cigarros y Joints</h2>
         <div class="chart-wrap" id="consumoChart"></div>
         <div class="legend">
           <span class="legend-item"><span class="dot dot--cig"></span>Cigarros</span>
-          <span class="legend-item"><span class="dot dot--joint"></span>Joints</span>
+          <span class="legend-item" id="legendJointsItem"><span class="dot dot--joint"></span>Joints</span>
           <span class="legend-item"><span class="dot dot--avg"></span>Media</span>
         </div>
       </div>
@@ -267,16 +258,7 @@
 
       <div class="card">
         <h2 class="card-title">Gasto total</h2>
-        <div class="avg-grid">
-          <div class="avg-tile">
-            <span class="avg-value" id="statsSpendMonth">0,00 €</span>
-            <span class="avg-label" id="statsSpendMonthLabel">este mes</span>
-          </div>
-          <div class="avg-tile">
-            <span class="avg-value" id="statsSpendYear">0,00 €</span>
-            <span class="avg-label" id="statsSpendYearLabel">este año</span>
-          </div>
-        </div>
+        <div id="statsSpendGroups"></div>
         <p class="hint-text">Lucky rojo 5,50 € · Lucky blanco 6,30 € por paquete · Joints 4,50 € cada 4 porros.</p>
       </div>
     </section>
@@ -303,6 +285,23 @@
           <button class="primary-btn" id="enableNotifBtn">Permitir notificaciones</button>
           <p class="hint-text" id="notifStatus">Estado: sin permiso solicitado.</p>
           <p class="hint-text">Para que el recordatorio funcione en segundo plano en tu iPhone, añade esta app a la pantalla de inicio: pulsa Compartir → "Añadir a pantalla de inicio". El aviso se comprueba cada vez que la app está abierta en segundo plano y a la hora configurada.</p>
+        </div>
+      </div>
+
+      <div class="card accordion-card">
+        <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
+          <h2 class="card-title">Preferencias de consumo</h2>
+          <span class="accordion-chevron">›</span>
+        </button>
+        <div class="accordion-body" hidden>
+          <div class="setting-row">
+            <span>Registrar joints</span>
+            <label class="switch">
+              <input type="checkbox" id="tracksJointsToggle" checked />
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+          <p class="hint-text">Si solo fumas tabaco, desactívalo para que Joints desaparezca de Consumo y de Stats.</p>
         </div>
       </div>
 

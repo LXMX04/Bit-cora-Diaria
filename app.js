@@ -8,6 +8,7 @@
     return {
       reminderEnabled: false,
       reminderTime: '21:00',
+      tracksJoints: true,
       dailyTasks: [
         { id: 'exercise', label: 'Hacer ejercicio (30 min)' },
         { id: 'read', label: 'Leer (30 min)' },
@@ -33,6 +34,9 @@
       }
       if (!Array.isArray(parsed.settings.dailyTasks)) {
         parsed.settings.dailyTasks = defaultSettings().dailyTasks;
+      }
+      if (typeof parsed.settings.tracksJoints !== 'boolean') {
+        parsed.settings.tracksJoints = true;
       }
       return parsed;
     } catch (e) {
@@ -69,6 +73,37 @@
 
   function formatEuro(n) {
     return `${n.toFixed(2).replace('.', ',')} €`;
+  }
+
+  function jointsEnabled() {
+    return store.settings.tracksJoints !== false;
+  }
+
+  function renderSpendGroups(container, year, monthIndex, lastDay, monthLabel, yearLabel) {
+    const tobaccoMonth = monthPackSpend(year, monthIndex, lastDay);
+    const tobaccoYear = yearPackSpend(year);
+    const showJoints = jointsEnabled();
+    const jointsMonth = showJoints ? monthJointsSpend(year, monthIndex, lastDay) : 0;
+    const jointsYear = showJoints ? yearJointsSpend(year) : 0;
+
+    const groups = [{ label: 'Tabaco', month: tobaccoMonth, year: tobaccoYear }];
+    if (showJoints) groups.push({ label: 'Joints', month: jointsMonth, year: jointsYear });
+    groups.push({ label: 'Total', month: tobaccoMonth + jointsMonth, year: tobaccoYear + jointsYear, isTotal: true });
+
+    container.innerHTML = groups.map((g) => `
+      <div class="spend-group${g.isTotal ? ' spend-group--total' : ''}">
+        <div class="spend-group-label">${g.label}</div>
+        <div class="avg-grid">
+          <div class="avg-tile">
+            <span class="avg-value">${formatEuro(g.month)}</span>
+            <span class="avg-label">${monthLabel}</span>
+          </div>
+          <div class="avg-tile">
+            <span class="avg-value">${formatEuro(g.year)}</span>
+            <span class="avg-label">${yearLabel}</span>
+          </div>
+        </div>
+      </div>`).join('');
   }
 
   function getEntry(key) {
@@ -412,14 +447,6 @@
     return sum;
   }
 
-  function monthTotalSpend(year, monthIndex, lastDay) {
-    return monthPackSpend(year, monthIndex, lastDay) + monthJointsSpend(year, monthIndex, lastDay);
-  }
-
-  function yearTotalSpend(year) {
-    return yearPackSpend(year) + yearJointsSpend(year);
-  }
-
   function monthConsumoAverage(year, monthIndex, field) {
     const today = startOfDay(new Date());
     const isCurrentMonth = (year === today.getFullYear() && monthIndex === today.getMonth());
@@ -456,8 +483,11 @@
     setDelta('deltaCigarettes', cig.avg, cigPrev.avg, cigPrev.count > 0);
     setDelta('deltaJoints', joint.avg, jointPrev.avg, jointPrev.count > 0);
 
-    document.getElementById('spendMonth').textContent = formatEuro(monthTotalSpend(y, m, monthDayRange(y, m)));
-    document.getElementById('spendYear').textContent = formatEuro(yearTotalSpend(y));
+    document.getElementById('jointsRow').hidden = !jointsEnabled();
+    document.getElementById('jointsAvgTile').hidden = !jointsEnabled();
+    document.getElementById('mediaMensualGrid').classList.toggle('single', !jointsEnabled());
+
+    renderSpendGroups(document.getElementById('spendGroups'), y, m, monthDayRange(y, m), 'este mes', 'este año');
   }
 
   function setDelta(elId, current, previous, hasPrevious) {
@@ -567,7 +597,7 @@
       ...weeklyRows,
       { key: 'total', label: 'Total', type: 'total', color: 'var(--h-total)', groupStart: true },
       { key: 'cigarettes', label: 'Cigarros', type: 'consumo', color: 'var(--h-cig)', groupStart: true },
-      { key: 'joints', label: 'Joints', type: 'consumo', color: 'var(--h-joint)' },
+      ...(jointsEnabled() ? [{ key: 'joints', label: 'Joints', type: 'consumo', color: 'var(--h-joint)' }] : []),
       { key: 'packRojo', label: 'Lucky rojo', type: 'consumo', color: 'var(--h-pack-rojo)' },
       { key: 'packBlanco', label: 'Lucky blanco', type: 'consumo', color: 'var(--h-pack-blanco)' }
     ];
@@ -800,13 +830,18 @@
   }
 
   function renderTobaccoSpendStats(year, monthIndex, lastDay) {
-    document.getElementById('statsSpendMonth').textContent = formatEuro(monthTotalSpend(year, monthIndex, lastDay));
-    document.getElementById('statsSpendMonthLabel').textContent = `en ${MONTHS_LONG[monthIndex]}`;
-    document.getElementById('statsSpendYear').textContent = formatEuro(yearTotalSpend(year));
-    document.getElementById('statsSpendYearLabel').textContent = `en ${year}`;
+    renderSpendGroups(
+      document.getElementById('statsSpendGroups'),
+      year, monthIndex, lastDay,
+      `en ${MONTHS_LONG[monthIndex]}`, `en ${year}`
+    );
   }
 
   function renderConsumoChart(year, monthIndex, lastDay) {
+    const showJoints = jointsEnabled();
+    document.getElementById('consumoChartTitle').textContent = showJoints ? 'Cigarros y Joints' : 'Cigarros';
+    document.getElementById('legendJointsItem').hidden = !showJoints;
+
     const totalDays = daysInMonth(year, monthIndex);
     if (lastDay === 0) {
       consumoChart.innerHTML = '<p class="hint-text" style="margin-top:0">Sin datos todavía para este mes.</p>';
@@ -819,7 +854,7 @@
       const key = dateKey(new Date(year, monthIndex, d));
       const entry = getEntry(key);
       if (entry) {
-        const cig = entry.cigarettes || 0, joint = entry.joints || 0;
+        const cig = entry.cigarettes || 0, joint = showJoints ? (entry.joints || 0) : 0;
         data.push({ cig, joint });
         sumTotal += cig + joint;
         countLogged++;
@@ -880,7 +915,9 @@
     };
 
     compareList.innerHTML = '';
-    [{ label: 'Cigarros / día', cur: cur.cig, prev: prev.cig }, { label: 'Joints / día', cur: cur.joint, prev: prev.joint }].forEach((item) => {
+    const compareItems = [{ label: 'Cigarros / día', cur: cur.cig, prev: prev.cig }];
+    if (jointsEnabled()) compareItems.push({ label: 'Joints / día', cur: cur.joint, prev: prev.joint });
+    compareItems.forEach((item) => {
       const row = document.createElement('div');
       row.className = 'compare-row';
       let arrow = '', arrowClass = 'flat';
@@ -987,6 +1024,16 @@
   });
 
   renderWeeklyTaskManageList();
+
+  /* ============ AJUSTES panel / Consumption preferences ============ */
+  const tracksJointsToggle = document.getElementById('tracksJointsToggle');
+  tracksJointsToggle.checked = jointsEnabled();
+  tracksJointsToggle.addEventListener('change', () => {
+    store.settings.tracksJoints = tracksJointsToggle.checked;
+    saveStore();
+    renderConsumo();
+    if (activeTab === 'stats') renderStats();
+  });
 
   /* ============ AJUSTES panel / Notifications ============ */
   const reminderToggle = document.getElementById('reminderToggle');
