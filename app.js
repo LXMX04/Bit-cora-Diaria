@@ -4,17 +4,31 @@
   /* ============ Storage ============ */
   const STORAGE_KEY = 'bitacora_v1';
 
+  function defaultSettings() {
+    return {
+      reminderEnabled: false,
+      reminderTime: '21:00',
+      weeklyTasks: [
+        { id: 'abuelos', label: 'Ver a mis abuelos' },
+        { id: 'abuela', label: 'Ver a mi abuela' }
+      ]
+    };
+  }
+
   function loadStore() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return { entries: {}, weeks: {}, settings: { reminderEnabled: false, reminderTime: '21:00' }, lastNotifiedDate: null };
+      if (!raw) return { entries: {}, weeks: {}, settings: defaultSettings(), lastNotifiedDate: null };
       const parsed = JSON.parse(raw);
       parsed.entries = parsed.entries || {};
       parsed.weeks = parsed.weeks || {};
-      parsed.settings = parsed.settings || { reminderEnabled: false, reminderTime: '21:00' };
+      parsed.settings = parsed.settings || defaultSettings();
+      if (!Array.isArray(parsed.settings.weeklyTasks)) {
+        parsed.settings.weeklyTasks = defaultSettings().weeklyTasks;
+      }
       return parsed;
     } catch (e) {
-      return { entries: {}, weeks: {}, settings: { reminderEnabled: false, reminderTime: '21:00' }, lastNotifiedDate: null };
+      return { entries: {}, weeks: {}, settings: defaultSettings(), lastNotifiedDate: null };
     }
   }
 
@@ -59,11 +73,11 @@
   }
 
   function getWeek(key) {
-    return store.weeks[key] || { abuelos: false, abuela: false };
+    return store.weeks[key] || {};
   }
 
   function ensureWeek(key) {
-    if (!store.weeks[key]) store.weeks[key] = { abuelos: false, abuela: false };
+    if (!store.weeks[key]) store.weeks[key] = {};
     return store.weeks[key];
   }
 
@@ -157,11 +171,11 @@
 
   /* ============ HOY panel ============ */
   const checkBtns = document.querySelectorAll('[data-check]');
-  const weekCheckBtns = document.querySelectorAll('[data-check-week]');
   const teethValueEl = document.getElementById('teethValue');
   const reflectionInput = document.getElementById('reflectionInput');
   const reflectionHint = document.getElementById('reflectionHint');
   const weekRangeEl = document.getElementById('weekRange');
+  const weeklyTaskList = document.getElementById('weeklyTaskList');
 
   checkBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -174,15 +188,15 @@
     });
   });
 
-  weekCheckBtns.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const wk = isoWeekKey(currentDate);
-      const week = ensureWeek(wk);
-      const field = btn.dataset.checkWeek;
-      week[field] = !week[field];
-      saveStore();
-      renderHoy();
-    });
+  weeklyTaskList.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-check-week]');
+    if (!btn) return;
+    const wk = isoWeekKey(currentDate);
+    const week = ensureWeek(wk);
+    const taskId = btn.dataset.checkWeek;
+    week[taskId] = !week[taskId];
+    saveStore();
+    renderHoy();
   });
 
   document.querySelectorAll('[data-stepper="teeth"] .stepper-btn').forEach((btn) => {
@@ -220,10 +234,17 @@
 
     const wk = isoWeekKey(currentDate);
     const week = getWeek(wk);
-    weekCheckBtns.forEach((btn) => {
-      const field = btn.dataset.checkWeek;
-      btn.setAttribute('aria-pressed', String(!!week[field]));
-    });
+    const tasks = store.settings.weeklyTasks;
+    weeklyTaskList.innerHTML = tasks.length ? tasks.map((t) => `
+      <li class="habit-row" data-habit="${t.id}">
+        <button class="check-btn" data-check-week="${t.id}" aria-pressed="${!!week[t.id]}">
+          <span class="check-icon">✓</span>
+        </button>
+        <div class="habit-text">
+          <span class="habit-name">${t.label}</span>
+          <span class="habit-meta">esta semana</span>
+        </div>
+      </li>`).join('') : '<li class="task-empty-hint">No tienes tareas semanales. Añade una en Ajustes.</li>';
     weekRangeEl.textContent = weekRangeLabel(currentDate);
 
     reflectionInput.value = entry.reflection || '';
@@ -456,20 +477,30 @@
   const toggleHeatmapBtn = document.getElementById('toggleHeatmapView');
   let heatmapView = 'grid';
 
-  const HEATMAP_ROWS = [
-    { key: 'exercise', label: 'Ejercicio', type: 'daily', color: 'var(--h-exercise)' },
-    { key: 'read', label: 'Leer', type: 'daily', color: 'var(--h-read)' },
-    { key: 'test', label: 'Autoescuela', type: 'daily', color: 'var(--h-test)' },
-    { key: 'teeth', label: 'Dientes', type: 'daily', color: 'var(--h-teeth)' },
-    { key: 'health', label: 'Alimentación', type: 'health', groupStart: true },
-    { key: 'abuelos', label: 'Abuelos', type: 'weekly', color: 'var(--h-abuelos)', groupStart: true },
-    { key: 'abuela', label: 'Abuela', type: 'weekly', color: 'var(--h-abuela)' },
-    { key: 'total', label: 'Total', type: 'total', color: 'var(--h-total)', groupStart: true },
-    { key: 'cigarettes', label: 'Cigarros', type: 'consumo', color: 'var(--h-cig)', groupStart: true },
-    { key: 'joints', label: 'Joints', type: 'consumo', color: 'var(--h-joint)' },
-    { key: 'packRojo', label: 'Lucky rojo', type: 'consumo', color: 'var(--h-pack-rojo)' },
-    { key: 'packBlanco', label: 'Lucky blanco', type: 'consumo', color: 'var(--h-pack-blanco)' }
-  ];
+  function weeklyTaskColor(index) {
+    const hue = (index * 47) % 360;
+    const dark = currentTheme() === 'dark';
+    return `hsl(${hue}, ${dark ? 55 : 50}%, ${dark ? 62 : 45}%)`;
+  }
+
+  function buildHeatmapRows() {
+    const weeklyRows = store.settings.weeklyTasks.map((t, i) => ({
+      key: t.id, label: t.label, type: 'weekly', color: weeklyTaskColor(i), groupStart: i === 0
+    }));
+    return [
+      { key: 'exercise', label: 'Ejercicio', type: 'daily', color: 'var(--h-exercise)' },
+      { key: 'read', label: 'Leer', type: 'daily', color: 'var(--h-read)' },
+      { key: 'test', label: 'Autoescuela', type: 'daily', color: 'var(--h-test)' },
+      { key: 'teeth', label: 'Dientes', type: 'daily', color: 'var(--h-teeth)' },
+      { key: 'health', label: 'Alimentación', type: 'health', groupStart: true },
+      ...weeklyRows,
+      { key: 'total', label: 'Total', type: 'total', color: 'var(--h-total)', groupStart: true },
+      { key: 'cigarettes', label: 'Cigarros', type: 'consumo', color: 'var(--h-cig)', groupStart: true },
+      { key: 'joints', label: 'Joints', type: 'consumo', color: 'var(--h-joint)' },
+      { key: 'packRojo', label: 'Lucky rojo', type: 'consumo', color: 'var(--h-pack-rojo)' },
+      { key: 'packBlanco', label: 'Lucky blanco', type: 'consumo', color: 'var(--h-pack-blanco)' }
+    ];
+  }
 
   toggleHeatmapBtn.addEventListener('click', () => {
     heatmapView = heatmapView === 'grid' ? 'table' : 'grid';
@@ -511,21 +542,21 @@
         });
       }
       const health = healthVals.length ? healthVals.reduce((a, b) => a + b, 0) / healthVals.length : 0;
-      days.push({
+      const dayEntry = {
         day: d,
         exercise: daily.exercise,
         read: daily.read,
         test: daily.test,
         teeth: daily.teeth,
         health,
-        abuelos: !!week.abuelos,
-        abuela: !!week.abuela,
         total,
         cigarettes: entry ? (entry.cigarettes || 0) : 0,
         joints: entry ? (entry.joints || 0) : 0,
         packRojo: entry ? (entry.packRojo || 0) : 0,
         packBlanco: entry ? (entry.packBlanco || 0) : 0
-      });
+      };
+      store.settings.weeklyTasks.forEach((t) => { dayEntry[t.id] = !!week[t.id]; });
+      days.push(dayEntry);
     }
     return days;
   }
@@ -561,6 +592,7 @@
   function renderHeatmap(year, monthIndex, lastDay) {
     const totalDays = daysInMonth(year, monthIndex);
     const days = buildDayData(year, monthIndex, totalDays);
+    const HEATMAP_ROWS = buildHeatmapRows();
     const maxByKey = {};
     HEATMAP_ROWS.filter((r) => r.type === 'consumo').forEach((r) => {
       maxByKey[r.key] = Math.max(0, ...days.slice(0, lastDay).map((d) => d[r.key]));
@@ -577,7 +609,7 @@
     }).join('');
 
     // Grid
-    const labelsHtml = HEATMAP_ROWS.map((r) => `<div class="heatmap-label${r.groupStart ? ' heatmap-label--gap' : ''}">${r.label}</div>`).join('');
+    const labelsHtml = HEATMAP_ROWS.map((r) => `<div class="heatmap-label${r.groupStart ? ' heatmap-label--gap' : ''}" title="${r.label}">${r.label}</div>`).join('');
     heatmapWrap.innerHTML = `
       <div class="heatmap-labels">${labelsHtml}</div>
       <div class="heatmap-scroll">
@@ -676,17 +708,17 @@
       if (day > startOfDay(new Date())) continue;
       weekKeys.add(isoWeekKey(day));
     }
-    weeklyBars.innerHTML = '';
-    [{ field: 'abuelos', name: 'Ver a mis abuelos' }, { field: 'abuela', name: 'Ver a mi abuela' }].forEach((w) => {
+    weeklyBars.innerHTML = store.settings.weeklyTasks.length ? '' : '<p class="task-empty-hint">No tienes tareas semanales. Añade una en Ajustes.</p>';
+    store.settings.weeklyTasks.forEach((w) => {
       let done = 0;
-      weekKeys.forEach((wk) => { if (getWeek(wk)[w.field]) done++; });
+      weekKeys.forEach((wk) => { if (getWeek(wk)[w.id]) done++; });
       const total = weekKeys.size;
       const pct = total > 0 ? (done / total) * 100 : 0;
       const row = document.createElement('div');
       row.className = 'bar-row';
       row.innerHTML = `
         <div class="bar-row-top">
-          <span class="bar-name">${w.name}</span>
+          <span class="bar-name">${w.label}</span>
           <span class="bar-frac">${done}/${total}</span>
         </div>
         <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>`;
@@ -800,6 +832,51 @@
       compareList.appendChild(row);
     });
   }
+
+  /* ============ AJUSTES panel / Weekly task management ============ */
+  const weeklyTaskManageList = document.getElementById('weeklyTaskManageList');
+  const newWeeklyTaskInput = document.getElementById('newWeeklyTaskInput');
+  const addWeeklyTaskBtn = document.getElementById('addWeeklyTaskBtn');
+
+  function generateTaskId() {
+    return `wk_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+  }
+
+  function renderWeeklyTaskManageList() {
+    const tasks = store.settings.weeklyTasks;
+    weeklyTaskManageList.innerHTML = tasks.length ? tasks.map((t) => `
+      <li class="task-manage-item" data-task-id="${t.id}">
+        <span class="task-manage-label">${t.label}</span>
+        <button type="button" class="task-remove-btn" data-remove-task="${t.id}" aria-label="Eliminar ${t.label}">×</button>
+      </li>`).join('') : '<li class="task-empty-hint">No tienes tareas semanales todavía.</li>';
+  }
+
+  function addWeeklyTask() {
+    const label = newWeeklyTaskInput.value.trim();
+    if (!label) return;
+    store.settings.weeklyTasks.push({ id: generateTaskId(), label });
+    saveStore();
+    newWeeklyTaskInput.value = '';
+    renderWeeklyTaskManageList();
+    renderHoy();
+  }
+
+  addWeeklyTaskBtn.addEventListener('click', addWeeklyTask);
+  newWeeklyTaskInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') addWeeklyTask();
+  });
+
+  weeklyTaskManageList.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-remove-task]');
+    if (!btn) return;
+    const taskId = btn.dataset.removeTask;
+    store.settings.weeklyTasks = store.settings.weeklyTasks.filter((t) => t.id !== taskId);
+    saveStore();
+    renderWeeklyTaskManageList();
+    renderHoy();
+  });
+
+  renderWeeklyTaskManageList();
 
   /* ============ AJUSTES panel / Notifications ============ */
   const reminderToggle = document.getElementById('reminderToggle');

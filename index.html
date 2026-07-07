@@ -84,26 +84,7 @@
           <h2 class="card-title">Tareas semanales</h2>
           <span class="week-range" id="weekRange">–</span>
         </div>
-        <ul class="habit-list">
-          <li class="habit-row" data-habit="abuelos">
-            <button class="check-btn" data-check-week="abuelos" aria-pressed="false">
-              <span class="check-icon">✓</span>
-            </button>
-            <div class="habit-text">
-              <span class="habit-name">Ver a mis abuelos</span>
-              <span class="habit-meta">esta semana</span>
-            </div>
-          </li>
-          <li class="habit-row" data-habit="abuela">
-            <button class="check-btn" data-check-week="abuela" aria-pressed="false">
-              <span class="check-icon">✓</span>
-            </button>
-            <div class="habit-text">
-              <span class="habit-name">Ver a mi abuela</span>
-              <span class="habit-meta">esta semana</span>
-            </div>
-          </li>
-        </ul>
+        <ul class="habit-list" id="weeklyTaskList"></ul>
       </div>
 
       <div class="card">
@@ -276,7 +257,7 @@
         <div class="heatmap-legend" id="heatmapLegend"></div>
         <div class="heatmap-wrap" id="heatmapWrap"></div>
         <div class="heatmap-table-wrap" id="heatmapTableWrap" hidden></div>
-        <p class="hint-text">Toca un día para abrirlo. Abuelos y Abuela se marcan en toda la semana al cumplirse. Alimentación es la media de salud (1-5) de las comidas registradas ese día. En Cigarros y Joints, cuanto más intenso el color, mayor fue el consumo ese día.</p>
+        <p class="hint-text">Toca un día para abrirlo. Las tareas semanales se marcan en toda la semana al cumplirse. Alimentación es la media de salud (1-5) de las comidas registradas ese día. En Cigarros, Joints y paquetes, cuanto más intenso el color, mayor fue el consumo ese día.</p>
       </div>
 
       <div class="card">
@@ -355,6 +336,16 @@
         <button class="primary-btn" id="enableNotifBtn">Permitir notificaciones</button>
         <p class="hint-text" id="notifStatus">Estado: sin permiso solicitado.</p>
         <p class="hint-text">Para que el recordatorio funcione en segundo plano en tu iPhone, añade esta app a la pantalla de inicio: pulsa Compartir → "Añadir a pantalla de inicio". El aviso se comprueba cada vez que la app está abierta en segundo plano y a la hora configurada.</p>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">Tareas semanales</h2>
+        <ul class="task-manage-list" id="weeklyTaskManageList"></ul>
+        <div class="task-add-row">
+          <input type="text" id="newWeeklyTaskInput" class="task-add-input" placeholder="Nueva tarea semanal…" maxlength="40" />
+          <button class="secondary-btn task-add-btn" id="addWeeklyTaskBtn">Añadir</button>
+        </div>
+        <p class="hint-text">Se guardan solo en este dispositivo — cada persona que use la app puede tener sus propias tareas semanales.</p>
       </div>
 
       <div class="card">

@@ -21,8 +21,6 @@
   --h-read: #3b7dc4;
   --h-test: #d98a3d;
   --h-teeth: #8f6bc2;
-  --h-abuelos: #b98d1f;
-  --h-abuela: #c25a86;
   --h-total: #2f6f5e;
   --h-cig: #c25450;
   --h-joint: #2f6f5e;
@@ -50,8 +48,6 @@
   --h-read: #6fa8dc;
   --h-test: #e2a563;
   --h-teeth: #ab8bd9;
-  --h-abuelos: #d4b352;
-  --h-abuela: #d97fa3;
   --h-total: #4fae93;
   --h-cig: #e08683;
   --h-joint: #4fae93;
@@ -80,8 +76,6 @@
     --h-read: #6fa8dc;
     --h-test: #e2a563;
     --h-teeth: #ab8bd9;
-    --h-abuelos: #d4b352;
-    --h-abuela: #d97fa3;
     --h-total: #4fae93;
     --h-cig: #e08683;
     --h-joint: #4fae93;
@@ -519,10 +513,11 @@ main {
 }
 .heatmap-labels {
   flex: none;
-  width: 60px;
+  width: 68px;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 .heatmap-label {
   height: 17px;
@@ -532,6 +527,8 @@ main {
   font-weight: 600;
   color: var(--text-muted);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .heatmap-label--gap {
   margin-top: 7px;
@@ -808,6 +805,72 @@ main {
 }
 .switch input:checked + .switch-slider { background: var(--accent); }
 .switch input:checked + .switch-slider::before { transform: translateX(19px); }
+
+.task-manage-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.task-manage-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 0;
+}
+.task-manage-item + .task-manage-item {
+  border-top: 1px solid var(--border);
+}
+.task-manage-label {
+  font-size: 14.5px;
+  font-weight: 600;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+.task-remove-btn {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.task-empty-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 6px 0;
+}
+
+.task-add-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.task-add-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-alt);
+  color: var(--text);
+  padding: 9px 12px;
+  font-size: 14px;
+  font-family: inherit;
+}
+.task-add-input:focus { outline: none; border-color: var(--accent); }
+.task-add-btn {
+  flex: none;
+  width: auto;
+  padding: 9px 16px;
+}
 
 .primary-btn {
   width: 100%;
