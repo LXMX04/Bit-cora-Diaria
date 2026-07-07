@@ -392,6 +392,34 @@
     return sum;
   }
 
+  const JOINT_PRICE_PER_4 = 4.50;
+
+  function monthJointsSpend(year, monthIndex, lastDay) {
+    let joints = 0;
+    for (let d = 1; d <= lastDay; d++) {
+      const entry = getEntry(dateKey(new Date(year, monthIndex, d)));
+      if (!entry) continue;
+      joints += entry.joints || 0;
+    }
+    return (joints / 4) * JOINT_PRICE_PER_4;
+  }
+
+  function yearJointsSpend(year) {
+    let sum = 0;
+    for (let m = 0; m <= 11; m++) {
+      sum += monthJointsSpend(year, m, monthDayRange(year, m));
+    }
+    return sum;
+  }
+
+  function monthTotalSpend(year, monthIndex, lastDay) {
+    return monthPackSpend(year, monthIndex, lastDay) + monthJointsSpend(year, monthIndex, lastDay);
+  }
+
+  function yearTotalSpend(year) {
+    return yearPackSpend(year) + yearJointsSpend(year);
+  }
+
   function monthConsumoAverage(year, monthIndex, field) {
     const today = startOfDay(new Date());
     const isCurrentMonth = (year === today.getFullYear() && monthIndex === today.getMonth());
@@ -428,8 +456,8 @@
     setDelta('deltaCigarettes', cig.avg, cigPrev.avg, cigPrev.count > 0);
     setDelta('deltaJoints', joint.avg, jointPrev.avg, jointPrev.count > 0);
 
-    document.getElementById('spendMonth').textContent = formatEuro(monthPackSpend(y, m, monthDayRange(y, m)));
-    document.getElementById('spendYear').textContent = formatEuro(yearPackSpend(y));
+    document.getElementById('spendMonth').textContent = formatEuro(monthTotalSpend(y, m, monthDayRange(y, m)));
+    document.getElementById('spendYear').textContent = formatEuro(yearTotalSpend(y));
   }
 
   function setDelta(elId, current, previous, hasPrevious) {
@@ -772,9 +800,9 @@
   }
 
   function renderTobaccoSpendStats(year, monthIndex, lastDay) {
-    document.getElementById('statsSpendMonth').textContent = formatEuro(monthPackSpend(year, monthIndex, lastDay));
+    document.getElementById('statsSpendMonth').textContent = formatEuro(monthTotalSpend(year, monthIndex, lastDay));
     document.getElementById('statsSpendMonthLabel').textContent = `en ${MONTHS_LONG[monthIndex]}`;
-    document.getElementById('statsSpendYear').textContent = formatEuro(yearPackSpend(year));
+    document.getElementById('statsSpendYear').textContent = formatEuro(yearTotalSpend(year));
     document.getElementById('statsSpendYearLabel').textContent = `en ${year}`;
   }
 
