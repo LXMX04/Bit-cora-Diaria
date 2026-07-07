@@ -37,46 +37,7 @@
 
       <div class="card">
         <h2 class="card-title">Hábitos diarios</h2>
-        <ul class="habit-list">
-          <li class="habit-row" data-habit="exercise">
-            <button class="check-btn" data-check="exercise" aria-pressed="false">
-              <span class="check-icon">✓</span>
-            </button>
-            <div class="habit-text">
-              <span class="habit-name">Hacer ejercicio</span>
-              <span class="habit-meta">30 min / día</span>
-            </div>
-          </li>
-          <li class="habit-row" data-habit="read">
-            <button class="check-btn" data-check="read" aria-pressed="false">
-              <span class="check-icon">✓</span>
-            </button>
-            <div class="habit-text">
-              <span class="habit-name">Leer</span>
-              <span class="habit-meta">30 min / día</span>
-            </div>
-          </li>
-          <li class="habit-row" data-habit="test">
-            <button class="check-btn" data-check="test" aria-pressed="false">
-              <span class="check-icon">✓</span>
-            </button>
-            <div class="habit-text">
-              <span class="habit-name">Test Autoescuela</span>
-              <span class="habit-meta">30 min / día</span>
-            </div>
-          </li>
-          <li class="habit-row habit-row--stepper" data-habit="teeth">
-            <div class="habit-text">
-              <span class="habit-name">Lavarme los dientes</span>
-              <span class="habit-meta">mínimo 1 vez / día</span>
-            </div>
-            <div class="stepper" data-stepper="teeth">
-              <button class="stepper-btn" data-step="-1" aria-label="Restar">–</button>
-              <span class="stepper-value" id="teethValue">0</span>
-              <button class="stepper-btn" data-step="1" aria-label="Sumar">+</button>
-            </div>
-          </li>
-        </ul>
+        <ul class="habit-list" id="dailyTaskList"></ul>
       </div>
 
       <div class="card">
@@ -320,42 +281,72 @@
 
     <!-- AJUSTES -->
     <section class="tab-panel" id="panel-ajustes" data-panel="ajustes" hidden>
-      <div class="card">
-        <h2 class="card-title">Recordatorio diario</h2>
-        <div class="setting-row">
-          <span>Notificación activada</span>
-          <label class="switch">
-            <input type="checkbox" id="reminderToggle" />
-            <span class="switch-slider"></span>
-          </label>
+      <div class="card accordion-card">
+        <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
+          <h2 class="card-title">Recordatorio diario</h2>
+          <span class="accordion-chevron">›</span>
+        </button>
+        <div class="accordion-body" hidden>
+          <div class="setting-row">
+            <span>Notificación activada</span>
+            <label class="switch">
+              <input type="checkbox" id="reminderToggle" />
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <span>Hora del recordatorio</span>
+            <input type="time" id="reminderTime" value="21:00" />
+          </div>
+          <button class="primary-btn" id="enableNotifBtn">Permitir notificaciones</button>
+          <p class="hint-text" id="notifStatus">Estado: sin permiso solicitado.</p>
+          <p class="hint-text">Para que el recordatorio funcione en segundo plano en tu iPhone, añade esta app a la pantalla de inicio: pulsa Compartir → "Añadir a pantalla de inicio". El aviso se comprueba cada vez que la app está abierta en segundo plano y a la hora configurada.</p>
         </div>
-        <div class="setting-row">
-          <span>Hora del recordatorio</span>
-          <input type="time" id="reminderTime" value="21:00" />
-        </div>
-        <button class="primary-btn" id="enableNotifBtn">Permitir notificaciones</button>
-        <p class="hint-text" id="notifStatus">Estado: sin permiso solicitado.</p>
-        <p class="hint-text">Para que el recordatorio funcione en segundo plano en tu iPhone, añade esta app a la pantalla de inicio: pulsa Compartir → "Añadir a pantalla de inicio". El aviso se comprueba cada vez que la app está abierta en segundo plano y a la hora configurada.</p>
       </div>
 
-      <div class="card">
-        <h2 class="card-title">Tareas semanales</h2>
-        <ul class="task-manage-list" id="weeklyTaskManageList"></ul>
-        <div class="task-add-row">
-          <input type="text" id="newWeeklyTaskInput" class="task-add-input" placeholder="Nueva tarea semanal…" maxlength="40" />
-          <button class="secondary-btn task-add-btn" id="addWeeklyTaskBtn">Añadir</button>
+      <div class="card accordion-card">
+        <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
+          <h2 class="card-title">Tareas diarias</h2>
+          <span class="accordion-chevron">›</span>
+        </button>
+        <div class="accordion-body" hidden>
+          <ul class="task-manage-list" id="dailyTaskManageList"></ul>
+          <div class="task-add-row">
+            <input type="text" id="newDailyTaskInput" class="task-add-input" placeholder="Nueva tarea diaria…" maxlength="40" />
+            <button class="secondary-btn task-add-btn" id="addDailyTaskBtn">Añadir</button>
+          </div>
+          <p class="hint-text">Se guardan solo en este dispositivo. "Lavarme los dientes" es aparte porque se cuenta por veces, no se puede eliminar.</p>
         </div>
-        <p class="hint-text">Se guardan solo en este dispositivo — cada persona que use la app puede tener sus propias tareas semanales.</p>
       </div>
 
-      <div class="card">
-        <h2 class="card-title">Copia de seguridad</h2>
-        <div class="backup-row">
-          <button class="secondary-btn" id="exportBtn">Exportar datos</button>
-          <button class="secondary-btn" id="importBtn">Importar datos</button>
+      <div class="card accordion-card">
+        <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
+          <h2 class="card-title">Tareas semanales</h2>
+          <span class="accordion-chevron">›</span>
+        </button>
+        <div class="accordion-body" hidden>
+          <ul class="task-manage-list" id="weeklyTaskManageList"></ul>
+          <div class="task-add-row">
+            <input type="text" id="newWeeklyTaskInput" class="task-add-input" placeholder="Nueva tarea semanal…" maxlength="40" />
+            <button class="secondary-btn task-add-btn" id="addWeeklyTaskBtn">Añadir</button>
+          </div>
+          <p class="hint-text">Se guardan solo en este dispositivo — cada persona que use la app puede tener sus propias tareas semanales.</p>
         </div>
-        <input type="file" id="importFile" accept="application/json" hidden />
-        <p class="hint-text">Todos los datos se guardan solo en este dispositivo. Exporta un archivo de vez en cuando para no perder tu historial.</p>
+      </div>
+
+      <div class="card accordion-card">
+        <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
+          <h2 class="card-title">Copia de seguridad</h2>
+          <span class="accordion-chevron">›</span>
+        </button>
+        <div class="accordion-body" hidden>
+          <div class="backup-row">
+            <button class="secondary-btn" id="exportBtn">Exportar datos</button>
+            <button class="secondary-btn" id="importBtn">Importar datos</button>
+          </div>
+          <input type="file" id="importFile" accept="application/json" hidden />
+          <p class="hint-text">Todos los datos se guardan solo en este dispositivo. Exporta un archivo de vez en cuando para no perder tu historial.</p>
+        </div>
       </div>
     </section>
 

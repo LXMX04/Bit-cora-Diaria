@@ -8,6 +8,11 @@
     return {
       reminderEnabled: false,
       reminderTime: '21:00',
+      dailyTasks: [
+        { id: 'exercise', label: 'Hacer ejercicio (30 min)' },
+        { id: 'read', label: 'Leer (30 min)' },
+        { id: 'test', label: 'Test Autoescuela (30 min)' }
+      ],
       weeklyTasks: [
         { id: 'abuelos', label: 'Ver a mis abuelos' },
         { id: 'abuela', label: 'Ver a mi abuela' }
@@ -25,6 +30,9 @@
       parsed.settings = parsed.settings || defaultSettings();
       if (!Array.isArray(parsed.settings.weeklyTasks)) {
         parsed.settings.weeklyTasks = defaultSettings().weeklyTasks;
+      }
+      if (!Array.isArray(parsed.settings.dailyTasks)) {
+        parsed.settings.dailyTasks = defaultSettings().dailyTasks;
       }
       return parsed;
     } catch (e) {
@@ -145,6 +153,16 @@
 
   tabButtons.forEach((btn) => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
 
+  /* ============ AJUSTES accordion ============ */
+  document.getElementById('panel-ajustes').addEventListener('click', (e) => {
+    const header = e.target.closest('[data-accordion-toggle]');
+    if (!header) return;
+    const body = header.nextElementSibling;
+    const isOpen = header.getAttribute('aria-expanded') === 'true';
+    header.setAttribute('aria-expanded', String(!isOpen));
+    body.hidden = isOpen;
+  });
+
   /* ============ Day navigation ============ */
   const dayLabelMain = document.getElementById('dayLabelMain');
   const dayLabelSub = document.getElementById('dayLabelSub');
@@ -170,22 +188,30 @@
   });
 
   /* ============ HOY panel ============ */
-  const checkBtns = document.querySelectorAll('[data-check]');
-  const teethValueEl = document.getElementById('teethValue');
   const reflectionInput = document.getElementById('reflectionInput');
   const reflectionHint = document.getElementById('reflectionHint');
   const weekRangeEl = document.getElementById('weekRange');
   const weeklyTaskList = document.getElementById('weeklyTaskList');
+  const dailyTaskList = document.getElementById('dailyTaskList');
 
-  checkBtns.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const key = dateKey(currentDate);
-      const entry = ensureEntry(key);
-      const field = btn.dataset.check;
+  dailyTaskList.addEventListener('click', (e) => {
+    const key = dateKey(currentDate);
+    const entry = ensureEntry(key);
+    const checkBtn = e.target.closest('[data-check]');
+    if (checkBtn) {
+      const field = checkBtn.dataset.check;
       entry[field] = !entry[field];
       saveStore();
       renderHoy();
-    });
+      return;
+    }
+    const stepBtn = e.target.closest('[data-step]');
+    if (stepBtn) {
+      const delta = parseInt(stepBtn.dataset.step, 10);
+      entry.teeth = Math.max(0, (entry.teeth || 0) + delta);
+      saveStore();
+      renderHoy();
+    }
   });
 
   weeklyTaskList.addEventListener('click', (e) => {
@@ -197,17 +223,6 @@
     week[taskId] = !week[taskId];
     saveStore();
     renderHoy();
-  });
-
-  document.querySelectorAll('[data-stepper="teeth"] .stepper-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const key = dateKey(currentDate);
-      const entry = ensureEntry(key);
-      const delta = parseInt(btn.dataset.step, 10);
-      entry.teeth = Math.max(0, (entry.teeth || 0) + delta);
-      saveStore();
-      renderHoy();
-    });
   });
 
   let reflectionTimer = null;
@@ -226,11 +241,29 @@
   function renderHoy() {
     const key = dateKey(currentDate);
     const entry = getEntry(key) || emptyEntry();
-    checkBtns.forEach((btn) => {
-      const field = btn.dataset.check;
-      btn.setAttribute('aria-pressed', String(!!entry[field]));
-    });
-    teethValueEl.textContent = entry.teeth || 0;
+
+    const dailyItemsHtml = store.settings.dailyTasks.map((t) => `
+      <li class="habit-row" data-habit="${t.id}">
+        <button class="check-btn" data-check="${t.id}" aria-pressed="${!!entry[t.id]}">
+          <span class="check-icon">✓</span>
+        </button>
+        <div class="habit-text">
+          <span class="habit-name">${t.label}</span>
+        </div>
+      </li>`).join('');
+    const teethHtml = `
+      <li class="habit-row habit-row--stepper" data-habit="teeth">
+        <div class="habit-text">
+          <span class="habit-name">Lavarme los dientes</span>
+          <span class="habit-meta">mínimo 1 vez / día</span>
+        </div>
+        <div class="stepper" data-stepper="teeth">
+          <button class="stepper-btn" data-step="-1" aria-label="Restar">–</button>
+          <span class="stepper-value" id="teethValue">${entry.teeth || 0}</span>
+          <button class="stepper-btn" data-step="1" aria-label="Sumar">+</button>
+        </div>
+      </li>`;
+    dailyTaskList.innerHTML = dailyItemsHtml + teethHtml;
 
     const wk = isoWeekKey(currentDate);
     const week = getWeek(wk);
@@ -429,12 +462,15 @@
     renderStats();
   });
 
-  const HABITS = [
-    { field: 'exercise', icon: '🏋️', name: 'Ejercicio' },
-    { field: 'read', icon: '📖', name: 'Leer' },
-    { field: 'test', icon: '🚗', name: 'Test' },
-    { field: 'teeth', icon: '🦷', name: 'Dientes' }
-  ];
+  const DAILY_TASK_ICONS = { exercise: '🏋️', read: '📖', test: '🚗' };
+
+  function buildHabitsList() {
+    const list = store.settings.dailyTasks.map((t) => ({
+      field: t.id, icon: DAILY_TASK_ICONS[t.id] || '✅', name: t.label
+    }));
+    list.push({ field: 'teeth', icon: '🦷', name: 'Dientes' });
+    return list;
+  }
 
   function monthDayRange(year, monthIndex) {
     const today = startOfDay(new Date());
@@ -483,14 +519,21 @@
     return `hsl(${hue}, ${dark ? 55 : 50}%, ${dark ? 62 : 45}%)`;
   }
 
+  function dailyTaskColor(index) {
+    const hue = (index * 67 + 200) % 360;
+    const dark = currentTheme() === 'dark';
+    return `hsl(${hue}, ${dark ? 55 : 50}%, ${dark ? 62 : 45}%)`;
+  }
+
   function buildHeatmapRows() {
+    const dailyRows = store.settings.dailyTasks.map((t, i) => ({
+      key: t.id, label: t.label, type: 'daily', color: dailyTaskColor(i)
+    }));
     const weeklyRows = store.settings.weeklyTasks.map((t, i) => ({
       key: t.id, label: t.label, type: 'weekly', color: weeklyTaskColor(i), groupStart: i === 0
     }));
     return [
-      { key: 'exercise', label: 'Ejercicio', type: 'daily', color: 'var(--h-exercise)' },
-      { key: 'read', label: 'Leer', type: 'daily', color: 'var(--h-read)' },
-      { key: 'test', label: 'Autoescuela', type: 'daily', color: 'var(--h-test)' },
+      ...dailyRows,
       { key: 'teeth', label: 'Dientes', type: 'daily', color: 'var(--h-teeth)' },
       { key: 'health', label: 'Alimentación', type: 'health', groupStart: true },
       ...weeklyRows,
@@ -527,13 +570,8 @@
       const entry = getEntry(dateKey(date));
       const wk = isoWeekKey(date);
       const week = getWeek(wk);
-      const daily = {
-        exercise: !!(entry && entry.exercise),
-        read: !!(entry && entry.read),
-        test: !!(entry && entry.test),
-        teeth: !!(entry && entry.teeth > 0)
-      };
-      const total = (daily.exercise ? 1 : 0) + (daily.read ? 1 : 0) + (daily.test ? 1 : 0) + (daily.teeth ? 1 : 0);
+      const teethDone = !!(entry && entry.teeth > 0);
+      let total = teethDone ? 1 : 0;
       const healthVals = [];
       if (entry && entry.meals) {
         ['desayuno', 'comida', 'cena'].forEach((meal) => {
@@ -544,17 +582,19 @@
       const health = healthVals.length ? healthVals.reduce((a, b) => a + b, 0) / healthVals.length : 0;
       const dayEntry = {
         day: d,
-        exercise: daily.exercise,
-        read: daily.read,
-        test: daily.test,
-        teeth: daily.teeth,
+        teeth: teethDone,
         health,
-        total,
         cigarettes: entry ? (entry.cigarettes || 0) : 0,
         joints: entry ? (entry.joints || 0) : 0,
         packRojo: entry ? (entry.packRojo || 0) : 0,
         packBlanco: entry ? (entry.packBlanco || 0) : 0
       };
+      store.settings.dailyTasks.forEach((t) => {
+        const done = !!(entry && entry[t.id]);
+        dayEntry[t.id] = done;
+        if (done) total++;
+      });
+      dayEntry.total = total;
       store.settings.weeklyTasks.forEach((t) => { dayEntry[t.id] = !!week[t.id]; });
       days.push(dayEntry);
     }
@@ -567,7 +607,8 @@
     }
     if (row.type === 'total') {
       if (dayInfo.total === 0) return '';
-      const pct = 25 + (dayInfo.total / 4) * 75;
+      const totalMax = store.settings.dailyTasks.length + 1;
+      const pct = 25 + (dayInfo.total / totalMax) * 75;
       return `background:color-mix(in srgb, ${row.color} ${pct.toFixed(0)}%, var(--surface-alt))`;
     }
     if (row.type === 'health') {
@@ -686,7 +727,7 @@
 
     // Habit rings
     ringsGrid.innerHTML = '';
-    HABITS.forEach((h) => {
+    buildHabitsList().forEach((h) => {
       let done = 0;
       for (let d = 1; d <= lastDay; d++) {
         const key = dateKey(new Date(year, monthIndex, d));
@@ -833,14 +874,55 @@
     });
   }
 
+  /* ============ AJUSTES panel / Daily task management ============ */
+  const dailyTaskManageList = document.getElementById('dailyTaskManageList');
+  const newDailyTaskInput = document.getElementById('newDailyTaskInput');
+  const addDailyTaskBtn = document.getElementById('addDailyTaskBtn');
+
+  function generateTaskId() {
+    return `tk_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+  }
+
+  function renderDailyTaskManageList() {
+    const tasks = store.settings.dailyTasks;
+    dailyTaskManageList.innerHTML = tasks.length ? tasks.map((t) => `
+      <li class="task-manage-item" data-task-id="${t.id}">
+        <span class="task-manage-label">${t.label}</span>
+        <button type="button" class="task-remove-btn" data-remove-task="${t.id}" aria-label="Eliminar ${t.label}">×</button>
+      </li>`).join('') : '<li class="task-empty-hint">No tienes tareas diarias todavía.</li>';
+  }
+
+  function addDailyTask() {
+    const label = newDailyTaskInput.value.trim();
+    if (!label) return;
+    store.settings.dailyTasks.push({ id: generateTaskId(), label });
+    saveStore();
+    newDailyTaskInput.value = '';
+    renderDailyTaskManageList();
+    renderHoy();
+  }
+
+  addDailyTaskBtn.addEventListener('click', addDailyTask);
+  newDailyTaskInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') addDailyTask();
+  });
+
+  dailyTaskManageList.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-remove-task]');
+    if (!btn) return;
+    const taskId = btn.dataset.removeTask;
+    store.settings.dailyTasks = store.settings.dailyTasks.filter((t) => t.id !== taskId);
+    saveStore();
+    renderDailyTaskManageList();
+    renderHoy();
+  });
+
+  renderDailyTaskManageList();
+
   /* ============ AJUSTES panel / Weekly task management ============ */
   const weeklyTaskManageList = document.getElementById('weeklyTaskManageList');
   const newWeeklyTaskInput = document.getElementById('newWeeklyTaskInput');
   const addWeeklyTaskBtn = document.getElementById('addWeeklyTaskBtn');
-
-  function generateTaskId() {
-    return `wk_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
-  }
 
   function renderWeeklyTaskManageList() {
     const tasks = store.settings.weeklyTasks;
@@ -918,7 +1000,7 @@
   function isTodayComplete() {
     const entry = getEntry(dateKey(startOfDay(new Date())));
     if (!entry) return false;
-    return entry.exercise && entry.read && entry.test && entry.teeth > 0;
+    return store.settings.dailyTasks.every((t) => entry[t.id]) && entry.teeth > 0;
   }
 
   function checkReminder() {

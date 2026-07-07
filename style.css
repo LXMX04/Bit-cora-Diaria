@@ -17,9 +17,6 @@
   --dayselector-h: 52px;
   --topbar-h: 52px;
 
-  --h-exercise: #2f6f5e;
-  --h-read: #3b7dc4;
-  --h-test: #d98a3d;
   --h-teeth: #8f6bc2;
   --h-total: #2f6f5e;
   --h-cig: #c25450;
@@ -44,9 +41,6 @@
   --good: #4fae93;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 14px rgba(0, 0, 0, 0.35);
 
-  --h-exercise: #4fae93;
-  --h-read: #6fa8dc;
-  --h-test: #e2a563;
   --h-teeth: #ab8bd9;
   --h-total: #4fae93;
   --h-cig: #e08683;
@@ -72,9 +66,6 @@
     --good: #4fae93;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 14px rgba(0, 0, 0, 0.35);
 
-    --h-exercise: #4fae93;
-    --h-read: #6fa8dc;
-    --h-test: #e2a563;
     --h-teeth: #ab8bd9;
     --h-total: #4fae93;
     --h-cig: #e08683;
@@ -208,6 +199,45 @@ main {
   letter-spacing: 0.04em;
   color: var(--text-muted);
   margin: 0 0 12px;
+}
+
+.accordion-card {
+  padding: 0;
+  overflow: hidden;
+}
+.accordion-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 16px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+}
+.accordion-header .card-title {
+  margin: 0;
+}
+.accordion-header:active {
+  background: var(--surface-alt);
+}
+.accordion-chevron {
+  flex: none;
+  font-size: 17px;
+  color: var(--text-muted);
+  transition: transform 0.15s;
+}
+.accordion-header[aria-expanded="true"] .accordion-chevron {
+  transform: rotate(90deg);
+}
+.accordion-body {
+  padding: 0 16px 16px;
+}
+.accordion-body[hidden] {
+  display: none;
 }
 
 .card-title-row {

@@ -4,11 +4,11 @@ Agenda/bitácora diaria personal para seguimiento de hábitos, comidas, consumo 
 
 ## Funcionalidades
 
-- **Hoy**: hábitos diarios (ejercicio, leer, test autoescuela, lavarse los dientes), tareas semanales personalizables y reflexión del día.
+- **Hoy**: tareas diarias y semanales personalizables (más "lavarse los dientes", que se cuenta por veces) y reflexión del día.
 - **Comidas**: desayuno, comida y cena, con hora, descripción y una nota de salud (1-5).
 - **Consumo**: cigarros y joints del día, compra de paquetes de tabaco con gasto mensual/anual, media mensual y comparación con el mes anterior.
-- **Stats**: mapa de calor mensual de todos los hábitos (incluye tareas semanales, alimentación y gasto en tabaco), progreso de hábitos, gráfica de consumo y comparativa mes a mes.
-- **Ajustes**: tareas semanales personalizables (añadir/eliminar libremente, guardadas por dispositivo), recordatorio diario mediante notificaciones y copia de seguridad (exportar/importar datos en JSON).
+- **Stats**: mapa de calor mensual de todos los hábitos (tareas diarias/semanales, alimentación y gasto en tabaco), progreso de hábitos, gráfica de consumo y comparativa mes a mes.
+- **Ajustes**: secciones desplegables — tareas diarias y semanales personalizables (añadir/eliminar libremente, guardadas por dispositivo), recordatorio diario mediante notificaciones y copia de seguridad (exportar/importar datos en JSON).
 
 ## Uso local
 
