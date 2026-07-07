@@ -10,6 +10,7 @@
       reminderTime: '21:00',
       tracksJoints: true,
       tracksTeeth: true,
+      jointPricePer4: 4.50,
       dailyTasks: [
         { id: 'exercise', label: 'Hacer ejercicio (30 min)' },
         { id: 'read', label: 'Leer (30 min)' },
@@ -41,6 +42,9 @@
       }
       if (typeof parsed.settings.tracksTeeth !== 'boolean') {
         parsed.settings.tracksTeeth = true;
+      }
+      if (typeof parsed.settings.jointPricePer4 !== 'number' || parsed.settings.jointPricePer4 < 0) {
+        parsed.settings.jointPricePer4 = 4.50;
       }
       return parsed;
     } catch (e) {
@@ -437,7 +441,20 @@
     return sum;
   }
 
-  const JOINT_PRICE_PER_4 = 4.50;
+  function jointPricePer4() {
+    return store.settings.jointPricePer4 || 0;
+  }
+
+  function updateJointPriceHints() {
+    const priceLabel = formatEuro(jointPricePer4());
+    const jointsPriceHint = document.getElementById('jointsPriceHint');
+    if (jointsPriceHint) jointsPriceHint.textContent = `${priceLabel}/4 porros`;
+    const spendHint = `Lucky rojo 5,50 € · Lucky blanco 6,30 € por paquete · Joints ${priceLabel} cada 4 porros.`;
+    const spendHintConsumo = document.getElementById('spendHintConsumo');
+    if (spendHintConsumo) spendHintConsumo.textContent = spendHint;
+    const spendHintStats = document.getElementById('spendHintStats');
+    if (spendHintStats) spendHintStats.textContent = spendHint;
+  }
 
   function monthJointsSpend(year, monthIndex, lastDay) {
     let joints = 0;
@@ -446,7 +463,7 @@
       if (!entry) continue;
       joints += entry.joints || 0;
     }
-    return (joints / 4) * JOINT_PRICE_PER_4;
+    return (joints / 4) * jointPricePer4();
   }
 
   function yearJointsSpend(year) {
@@ -497,6 +514,7 @@
     document.getElementById('jointsAvgTile').hidden = !jointsEnabled();
     document.getElementById('mediaMensualGrid').classList.toggle('single', !jointsEnabled());
 
+    updateJointPriceHints();
     renderSpendGroups(document.getElementById('spendGroups'), y, m, monthDayRange(y, m), 'este mes', 'este año');
   }
 
@@ -849,6 +867,7 @@
   }
 
   function renderTobaccoSpendStats(year, monthIndex, lastDay) {
+    updateJointPriceHints();
     renderSpendGroups(
       document.getElementById('statsSpendGroups'),
       year, monthIndex, lastDay,
@@ -1058,6 +1077,17 @@
   tracksJointsToggle.checked = jointsEnabled();
   tracksJointsToggle.addEventListener('change', () => {
     store.settings.tracksJoints = tracksJointsToggle.checked;
+    saveStore();
+    renderConsumo();
+    if (activeTab === 'stats') renderStats();
+  });
+
+  const jointPriceInput = document.getElementById('jointPriceInput');
+  jointPriceInput.value = jointPricePer4().toFixed(2);
+  jointPriceInput.addEventListener('change', () => {
+    const value = parseFloat(jointPriceInput.value);
+    store.settings.jointPricePer4 = (!isNaN(value) && value >= 0) ? value : 0;
+    jointPriceInput.value = store.settings.jointPricePer4.toFixed(2);
     saveStore();
     renderConsumo();
     if (activeTab === 'stats') renderStats();

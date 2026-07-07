@@ -133,7 +133,7 @@
         <div class="consumo-row" id="jointsRow">
           <div class="consumo-label">
             <span class="consumo-name">Joints</span>
-            <span class="consumo-price">4,50 €/4 porros</span>
+            <span class="consumo-price" id="jointsPriceHint">4,50 €/4 porros</span>
           </div>
           <div class="stepper stepper--lg" data-stepper="joints">
             <button class="stepper-btn" data-step="-1" aria-label="Restar joint">–</button>
@@ -189,7 +189,7 @@
       <div class="card">
         <h2 class="card-title">Gasto total</h2>
         <div id="spendGroups"></div>
-        <p class="hint-text">Lucky rojo 5,50 € · Lucky blanco 6,30 € por paquete · Joints 4,50 € cada 4 porros.</p>
+        <p class="hint-text" id="spendHintConsumo">Lucky rojo 5,50 € · Lucky blanco 6,30 € por paquete · Joints 4,50 € cada 4 porros.</p>
       </div>
     </section>
 
@@ -259,7 +259,7 @@
       <div class="card">
         <h2 class="card-title">Gasto total</h2>
         <div id="statsSpendGroups"></div>
-        <p class="hint-text">Lucky rojo 5,50 € · Lucky blanco 6,30 € por paquete · Joints 4,50 € cada 4 porros.</p>
+        <p class="hint-text" id="spendHintStats">Lucky rojo 5,50 € · Lucky blanco 6,30 € por paquete · Joints 4,50 € cada 4 porros.</p>
       </div>
     </section>
 
@@ -302,6 +302,11 @@
             </label>
           </div>
           <p class="hint-text">Si solo fumas tabaco, desactívalo para que Joints desaparezca de Consumo y de Stats.</p>
+          <div class="setting-row">
+            <span>Precio de joints (€ cada 4 porros)</span>
+            <input type="number" id="jointPriceInput" min="0" step="0.01" value="4.50" inputmode="decimal" />
+          </div>
+          <p class="hint-text">Se usa para calcular el gasto en Consumo y Stats.</p>
         </div>
       </div>
 

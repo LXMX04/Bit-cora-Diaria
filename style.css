@@ -854,13 +854,18 @@ main {
 .setting-row + .setting-row {
   border-top: 1px solid var(--border);
 }
-.setting-row input[type="time"] {
+.setting-row input[type="time"],
+.setting-row input[type="number"] {
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--surface-alt);
   color: var(--text);
   padding: 6px 10px;
   font-size: 14px;
+}
+.setting-row input[type="number"] {
+  width: 72px;
+  text-align: right;
 }
 
 .switch {
