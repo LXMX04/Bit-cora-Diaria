@@ -167,7 +167,7 @@ body {
 /* ---------- Main / cards ---------- */
 main {
   flex: 1;
-  padding: 14px 14px calc(var(--tabbar-h) + 24px);
+  padding: 14px 14px calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 32px);
   display: flex;
   flex-direction: column;
   gap: 14px;
