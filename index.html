@@ -216,6 +216,46 @@
         </div>
         <p class="hint-text">La media se recalcula cada vez que añades un dato nuevo, comparada con el mes anterior.</p>
       </div>
+
+      <div class="card">
+        <h2 class="card-title">Compra de tabaco</h2>
+        <div class="consumo-row">
+          <div class="consumo-label">
+            <span class="consumo-name">Lucky rojo</span>
+            <span class="consumo-price">5,50 €/paquete</span>
+          </div>
+          <div class="stepper stepper--lg" data-stepper="packRojo">
+            <button class="stepper-btn" data-step="-1" aria-label="Restar paquete Lucky rojo">–</button>
+            <span class="stepper-value" id="packRojoValue">0</span>
+            <button class="stepper-btn" data-step="1" aria-label="Sumar paquete Lucky rojo">+</button>
+          </div>
+        </div>
+        <div class="consumo-row">
+          <div class="consumo-label">
+            <span class="consumo-name">Lucky blanco</span>
+            <span class="consumo-price">6,30 €/paquete</span>
+          </div>
+          <div class="stepper stepper--lg" data-stepper="packBlanco">
+            <button class="stepper-btn" data-step="-1" aria-label="Restar paquete Lucky blanco">–</button>
+            <span class="stepper-value" id="packBlancoValue">0</span>
+            <button class="stepper-btn" data-step="1" aria-label="Sumar paquete Lucky blanco">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">Gasto en tabaco</h2>
+        <div class="avg-grid">
+          <div class="avg-tile">
+            <span class="avg-value" id="spendMonth">0,00 €</span>
+            <span class="avg-label">este mes</span>
+          </div>
+          <div class="avg-tile">
+            <span class="avg-value" id="spendYear">0,00 €</span>
+            <span class="avg-label">este año</span>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- STATS -->
@@ -279,6 +319,21 @@
       <div class="card">
         <h2 class="card-title">Comparativa mensual</h2>
         <div class="compare-list" id="compareList"></div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">Gasto en tabaco</h2>
+        <div class="avg-grid">
+          <div class="avg-tile">
+            <span class="avg-value" id="statsSpendMonth">0,00 €</span>
+            <span class="avg-label" id="statsSpendMonthLabel">este mes</span>
+          </div>
+          <div class="avg-tile">
+            <span class="avg-value" id="statsSpendYear">0,00 €</span>
+            <span class="avg-label" id="statsSpendYearLabel">este año</span>
+          </div>
+        </div>
+        <p class="hint-text">Lucky rojo 5,50 € · Lucky blanco 6,30 € por paquete.</p>
       </div>
     </section>
 

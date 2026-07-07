@@ -37,8 +37,16 @@
         cena: { time: '', desc: '', health: 0 }
       },
       cigarettes: 0,
-      joints: 0
+      joints: 0,
+      packRojo: 0,
+      packBlanco: 0
     };
+  }
+
+  const PACK_PRICES = { packRojo: 5.50, packBlanco: 6.30 };
+
+  function formatEuro(n) {
+    return `${n.toFixed(2).replace('.', ',')} €`;
   }
 
   function getEntry(key) {
@@ -271,6 +279,8 @@
   /* ============ CONSUMO panel ============ */
   const cigarettesValueEl = document.getElementById('cigarettesValue');
   const jointsValueEl = document.getElementById('jointsValue');
+  const packRojoValueEl = document.getElementById('packRojoValue');
+  const packBlancoValueEl = document.getElementById('packBlancoValue');
 
   document.querySelectorAll('[data-stepper="cigarettes"] .stepper-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -292,6 +302,44 @@
     });
   });
 
+  document.querySelectorAll('[data-stepper="packRojo"] .stepper-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const key = dateKey(currentDate);
+      const entry = ensureEntry(key);
+      entry.packRojo = Math.max(0, (entry.packRojo || 0) + parseInt(btn.dataset.step, 10));
+      saveStore();
+      renderConsumo();
+    });
+  });
+
+  document.querySelectorAll('[data-stepper="packBlanco"] .stepper-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const key = dateKey(currentDate);
+      const entry = ensureEntry(key);
+      entry.packBlanco = Math.max(0, (entry.packBlanco || 0) + parseInt(btn.dataset.step, 10));
+      saveStore();
+      renderConsumo();
+    });
+  });
+
+  function monthPackSpend(year, monthIndex, lastDay) {
+    let sum = 0;
+    for (let d = 1; d <= lastDay; d++) {
+      const entry = getEntry(dateKey(new Date(year, monthIndex, d)));
+      if (!entry) continue;
+      sum += (entry.packRojo || 0) * PACK_PRICES.packRojo + (entry.packBlanco || 0) * PACK_PRICES.packBlanco;
+    }
+    return sum;
+  }
+
+  function yearPackSpend(year) {
+    let sum = 0;
+    for (let m = 0; m <= 11; m++) {
+      sum += monthPackSpend(year, m, monthDayRange(year, m));
+    }
+    return sum;
+  }
+
   function monthConsumoAverage(year, monthIndex, field) {
     const today = startOfDay(new Date());
     const isCurrentMonth = (year === today.getFullYear() && monthIndex === today.getMonth());
@@ -312,6 +360,8 @@
     const entry = getEntry(key) || emptyEntry();
     cigarettesValueEl.textContent = entry.cigarettes || 0;
     jointsValueEl.textContent = entry.joints || 0;
+    packRojoValueEl.textContent = entry.packRojo || 0;
+    packBlancoValueEl.textContent = entry.packBlanco || 0;
 
     const now = new Date();
     const y = now.getFullYear(), m = now.getMonth();
@@ -325,6 +375,9 @@
     document.getElementById('avgJoints').textContent = joint.avg.toFixed(1);
     setDelta('deltaCigarettes', cig.avg, cigPrev.avg, cigPrev.count > 0);
     setDelta('deltaJoints', joint.avg, jointPrev.avg, jointPrev.count > 0);
+
+    document.getElementById('spendMonth').textContent = formatEuro(monthPackSpend(y, m, monthDayRange(y, m)));
+    document.getElementById('spendYear').textContent = formatEuro(yearPackSpend(y));
   }
 
   function setDelta(elId, current, previous, hasPrevious) {
@@ -415,7 +468,9 @@
     { key: 'abuela', label: 'Abuela', type: 'weekly', color: 'var(--h-abuela)' },
     { key: 'total', label: 'Total', type: 'total', color: 'var(--h-total)', groupStart: true },
     { key: 'cigarettes', label: 'Cigarros', type: 'consumo', color: 'var(--h-cig)', groupStart: true },
-    { key: 'joints', label: 'Joints', type: 'consumo', color: 'var(--h-joint)' }
+    { key: 'joints', label: 'Joints', type: 'consumo', color: 'var(--h-joint)' },
+    { key: 'packRojo', label: 'Lucky rojo', type: 'consumo', color: 'var(--h-pack-rojo)' },
+    { key: 'packBlanco', label: 'Lucky blanco', type: 'consumo', color: 'var(--h-pack-blanco)' }
   ];
 
   toggleHeatmapBtn.addEventListener('click', () => {
@@ -469,13 +524,15 @@
         abuela: !!week.abuela,
         total,
         cigarettes: entry ? (entry.cigarettes || 0) : 0,
-        joints: entry ? (entry.joints || 0) : 0
+        joints: entry ? (entry.joints || 0) : 0,
+        packRojo: entry ? (entry.packRojo || 0) : 0,
+        packBlanco: entry ? (entry.packBlanco || 0) : 0
       });
     }
     return days;
   }
 
-  function heatmapCellStyle(row, dayInfo, maxCig, maxJoint) {
+  function heatmapCellStyle(row, dayInfo, maxByKey) {
     if (row.type === 'daily' || row.type === 'weekly') {
       return dayInfo[row.key] ? `background:${row.color}` : '';
     }
@@ -489,7 +546,7 @@
       return `background:${healthColor(dayInfo.health)}`;
     }
     // consumo
-    const max = row.key === 'cigarettes' ? maxCig : maxJoint;
+    const max = maxByKey[row.key] || 0;
     const val = dayInfo[row.key];
     if (!val || max <= 0) return '';
     const pct = 25 + (val / max) * 75;
@@ -506,8 +563,10 @@
   function renderHeatmap(year, monthIndex, lastDay) {
     const totalDays = daysInMonth(year, monthIndex);
     const days = buildDayData(year, monthIndex, totalDays);
-    const maxCig = Math.max(0, ...days.slice(0, lastDay).map((d) => d.cigarettes));
-    const maxJoint = Math.max(0, ...days.slice(0, lastDay).map((d) => d.joints));
+    const maxByKey = {};
+    HEATMAP_ROWS.filter((r) => r.type === 'consumo').forEach((r) => {
+      maxByKey[r.key] = Math.max(0, ...days.slice(0, lastDay).map((d) => d[r.key]));
+    });
 
     // Legend
     heatmapLegend.innerHTML = HEATMAP_ROWS.filter((r) => r.type !== 'total').map((r) => {
@@ -528,7 +587,7 @@
           <div class="heatmap-row${r.groupStart ? ' heatmap-row--gap' : ''}">
             ${days.map((d) => {
               const isFuture = d.day > lastDay;
-              const style = isFuture ? '' : heatmapCellStyle(r, d, maxCig, maxJoint);
+              const style = isFuture ? '' : heatmapCellStyle(r, d, maxByKey);
               return `<button type="button" class="heatmap-cell${isFuture ? ' is-future' : ''}" style="${style}" data-day="${d.day}" data-year="${year}" data-month="${monthIndex}" ${isFuture ? 'disabled' : ''} aria-label="${r.label} día ${d.day}"></button>`;
             }).join('')}
           </div>`).join('')}
@@ -638,6 +697,14 @@
 
     renderConsumoChart(year, monthIndex, lastDay);
     renderCompare(year, monthIndex);
+    renderTobaccoSpendStats(year, monthIndex, lastDay);
+  }
+
+  function renderTobaccoSpendStats(year, monthIndex, lastDay) {
+    document.getElementById('statsSpendMonth').textContent = formatEuro(monthPackSpend(year, monthIndex, lastDay));
+    document.getElementById('statsSpendMonthLabel').textContent = `en ${MONTHS_LONG[monthIndex]}`;
+    document.getElementById('statsSpendYear').textContent = formatEuro(yearPackSpend(year));
+    document.getElementById('statsSpendYearLabel').textContent = `en ${year}`;
   }
 
   function renderConsumoChart(year, monthIndex, lastDay) {
