@@ -69,6 +69,7 @@
       test: false,
       teeth: 0,
       reflection: '',
+      mood: null,
       meals: {
         desayuno: { time: '', desc: '', health: 0 },
         comida: { time: '', desc: '', health: 0 },
@@ -82,6 +83,13 @@
   }
 
   const PACK_PRICES = { packRojo: 5.50, packBlanco: 6.30 };
+
+  const MOODS = [
+    { id: 'happy', emoji: '😄', label: 'Feliz' },
+    { id: 'sad', emoji: '😢', label: 'Triste' },
+    { id: 'neutral', emoji: '😐', label: 'Serio' },
+    { id: 'angry', emoji: '😠', label: 'Enfadado' }
+  ];
 
   function formatEuro(n) {
     return `${n.toFixed(2).replace('.', ',')} €`;
@@ -254,6 +262,18 @@
   const reflectionInput = document.getElementById('reflectionInput');
   const reflectionHint = document.getElementById('reflectionHint');
   const weekRangeEl = document.getElementById('weekRange');
+  const moodRow = document.getElementById('moodRow');
+
+  moodRow.addEventListener('click', (e) => {
+    const btn = e.target.closest('.mood-btn');
+    if (!btn) return;
+    const key = dateKey(currentDate);
+    const entry = ensureEntry(key);
+    const mood = btn.dataset.mood;
+    entry.mood = entry.mood === mood ? null : mood;
+    saveStore();
+    renderHoy();
+  });
   const weeklyTaskList = document.getElementById('weeklyTaskList');
   const dailyTaskList = document.getElementById('dailyTaskList');
 
@@ -342,6 +362,12 @@
         </div>
       </li>`).join('') : '<li class="task-empty-hint">No tienes tareas semanales. Añade una en Ajustes.</li>';
     weekRangeEl.textContent = weekRangeLabel(currentDate);
+
+    document.querySelectorAll('.mood-btn').forEach((btn) => {
+      const isActive = btn.dataset.mood === entry.mood;
+      btn.classList.toggle('is-active', isActive);
+      btn.setAttribute('aria-pressed', String(isActive));
+    });
 
     reflectionInput.value = entry.reflection || '';
     reflectionHint.textContent = 'Guardado automáticamente';
@@ -832,6 +858,54 @@
     foodScaleMarker.style.left = `${((avg - 1) / 4) * 100}%`;
   }
 
+  function monthMoodCounts(year, monthIndex, lastDay) {
+    const counts = { happy: 0, sad: 0, neutral: 0, angry: 0 };
+    let total = 0;
+    for (let d = 1; d <= lastDay; d++) {
+      const entry = getEntry(dateKey(new Date(year, monthIndex, d)));
+      if (entry && entry.mood && Object.prototype.hasOwnProperty.call(counts, entry.mood)) {
+        counts[entry.mood]++;
+        total++;
+      }
+    }
+    return { counts, total };
+  }
+
+  function yearMoodCounts(year) {
+    const counts = { happy: 0, sad: 0, neutral: 0, angry: 0 };
+    let total = 0;
+    for (let m = 0; m <= 11; m++) {
+      const { counts: c, total: t } = monthMoodCounts(year, m, monthDayRange(year, m));
+      MOODS.forEach((mo) => { counts[mo.id] += c[mo.id]; });
+      total += t;
+    }
+    return { counts, total };
+  }
+
+  function renderMoodBars(container, counts, total) {
+    container.innerHTML = total === 0
+      ? '<p class="task-empty-hint">Sin datos todavía.</p>'
+      : MOODS.map((mo) => {
+          const count = counts[mo.id] || 0;
+          const pct = total > 0 ? (count / total) * 100 : 0;
+          return `
+            <div class="bar-row">
+              <div class="bar-row-top">
+                <span class="bar-name">${mo.emoji} ${mo.label}</span>
+                <span class="bar-frac">${count}/${total}</span>
+              </div>
+              <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+            </div>`;
+        }).join('');
+  }
+
+  function renderMoodStats(year, monthIndex, lastDay) {
+    const monthData = monthMoodCounts(year, monthIndex, lastDay);
+    const yearData = yearMoodCounts(year);
+    renderMoodBars(document.getElementById('moodBarsMonth'), monthData.counts, monthData.total);
+    renderMoodBars(document.getElementById('moodBarsYear'), yearData.counts, yearData.total);
+  }
+
   function renderStats() {
     const year = statsMonth.getFullYear(), monthIndex = statsMonth.getMonth();
     monthLabel.textContent = `${MONTHS_LONG[monthIndex]} ${year}`;
@@ -840,6 +914,7 @@
 
     renderHeatmap(year, monthIndex, lastDay);
     renderFoodAvg(year, monthIndex, lastDay);
+    renderMoodStats(year, monthIndex, lastDay);
 
     // Habit rings
     ringsGrid.innerHTML = '';
