@@ -736,6 +736,11 @@
     const totalDays = daysInMonth(year, monthIndex);
     const days = buildDayData(year, monthIndex, totalDays);
     const HEATMAP_ROWS = buildHeatmapRows();
+
+    const heatmapHint = document.getElementById('heatmapHint');
+    heatmapHint.textContent = consumoEnabled()
+      ? 'Toca un día para abrirlo. Las tareas semanales se marcan en toda la semana al cumplirse. Alimentación es la media de salud (1-5) de las comidas registradas ese día. En Cigarros, Joints y paquetes, cuanto más intenso el color, mayor fue el consumo ese día.'
+      : 'Toca un día para abrirlo. Las tareas semanales se marcan en toda la semana al cumplirse. Alimentación es la media de salud (1-5) de las comidas registradas ese día.';
     const maxByKey = {};
     HEATMAP_ROWS.filter((r) => r.type === 'consumo').forEach((r) => {
       maxByKey[r.key] = Math.max(0, ...days.slice(0, lastDay).map((d) => d[r.key]));
