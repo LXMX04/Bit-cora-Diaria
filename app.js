@@ -95,8 +95,10 @@
     const jointsYear = showJoints ? yearJointsSpend(year) : 0;
 
     const groups = [{ label: 'Tabaco', month: tobaccoMonth, year: tobaccoYear }];
-    if (showJoints) groups.push({ label: 'Joints', month: jointsMonth, year: jointsYear });
-    groups.push({ label: 'Total', month: tobaccoMonth + jointsMonth, year: tobaccoYear + jointsYear, isTotal: true });
+    if (showJoints) {
+      groups.push({ label: 'Joints', month: jointsMonth, year: jointsYear });
+      groups.push({ label: 'Total', month: tobaccoMonth + jointsMonth, year: tobaccoYear + jointsYear, isTotal: true });
+    }
 
     container.innerHTML = groups.map((g) => `
       <div class="spend-group${g.isTotal ? ' spend-group--total' : ''}">
