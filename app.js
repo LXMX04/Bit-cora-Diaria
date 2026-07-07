@@ -8,6 +8,7 @@
     return {
       reminderEnabled: false,
       reminderTime: '21:00',
+      tracksConsumo: true,
       tracksJoints: true,
       tracksTeeth: true,
       jointPricePer4: 4.50,
@@ -36,6 +37,9 @@
       }
       if (!Array.isArray(parsed.settings.dailyTasks)) {
         parsed.settings.dailyTasks = defaultSettings().dailyTasks;
+      }
+      if (typeof parsed.settings.tracksConsumo !== 'boolean') {
+        parsed.settings.tracksConsumo = true;
       }
       if (typeof parsed.settings.tracksJoints !== 'boolean') {
         parsed.settings.tracksJoints = true;
@@ -81,6 +85,10 @@
 
   function formatEuro(n) {
     return `${n.toFixed(2).replace('.', ',')} €`;
+  }
+
+  function consumoEnabled() {
+    return store.settings.tracksConsumo !== false;
   }
 
   function jointsEnabled() {
@@ -201,6 +209,12 @@
   }
 
   tabButtons.forEach((btn) => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+
+  const tabBtnConsumo = document.getElementById('tabBtnConsumo');
+  function updateConsumoTabVisibility() {
+    tabBtnConsumo.hidden = !consumoEnabled();
+    if (!consumoEnabled() && activeTab === 'consumo') switchTab('hoy');
+  }
 
   /* ============ AJUSTES accordion ============ */
   document.getElementById('panel-ajustes').addEventListener('click', (e) => {
@@ -624,10 +638,12 @@
       { key: 'health', label: 'Alimentación', type: 'health', groupStart: true },
       ...weeklyRows,
       { key: 'total', label: 'Total', type: 'total', color: 'var(--h-total)', groupStart: true },
-      { key: 'cigarettes', label: 'Cigarros', type: 'consumo', color: 'var(--h-cig)', groupStart: true },
-      ...(jointsEnabled() ? [{ key: 'joints', label: 'Joints', type: 'consumo', color: 'var(--h-joint)' }] : []),
-      { key: 'packRojo', label: 'Lucky rojo', type: 'consumo', color: 'var(--h-pack-rojo)' },
-      { key: 'packBlanco', label: 'Lucky blanco', type: 'consumo', color: 'var(--h-pack-blanco)' }
+      ...(consumoEnabled() ? [
+        { key: 'cigarettes', label: 'Cigarros', type: 'consumo', color: 'var(--h-cig)', groupStart: true },
+        ...(jointsEnabled() ? [{ key: 'joints', label: 'Joints', type: 'consumo', color: 'var(--h-joint)' }] : []),
+        { key: 'packRojo', label: 'Lucky rojo', type: 'consumo', color: 'var(--h-pack-rojo)' },
+        { key: 'packBlanco', label: 'Lucky blanco', type: 'consumo', color: 'var(--h-pack-blanco)' }
+      ] : [])
     ];
   }
 
@@ -861,9 +877,15 @@
       weeklyBars.appendChild(row);
     });
 
-    renderConsumoChart(year, monthIndex, lastDay);
-    renderCompare(year, monthIndex);
-    renderTobaccoSpendStats(year, monthIndex, lastDay);
+    const showConsumo = consumoEnabled();
+    document.getElementById('consumoChartCard').hidden = !showConsumo;
+    document.getElementById('compareCard').hidden = !showConsumo;
+    document.getElementById('statsSpendCard').hidden = !showConsumo;
+    if (showConsumo) {
+      renderConsumoChart(year, monthIndex, lastDay);
+      renderCompare(year, monthIndex);
+      renderTobaccoSpendStats(year, monthIndex, lastDay);
+    }
   }
 
   function renderTobaccoSpendStats(year, monthIndex, lastDay) {
@@ -1073,6 +1095,18 @@
   renderWeeklyTaskManageList();
 
   /* ============ AJUSTES panel / Consumption preferences ============ */
+  const tracksConsumoToggle = document.getElementById('tracksConsumoToggle');
+  const jointsPrefsGroup = document.getElementById('jointsPrefsGroup');
+  tracksConsumoToggle.checked = consumoEnabled();
+  jointsPrefsGroup.hidden = !consumoEnabled();
+  tracksConsumoToggle.addEventListener('change', () => {
+    store.settings.tracksConsumo = tracksConsumoToggle.checked;
+    saveStore();
+    jointsPrefsGroup.hidden = !consumoEnabled();
+    updateConsumoTabVisibility();
+    if (activeTab === 'stats') renderStats();
+  });
+
   const tracksJointsToggle = document.getElementById('tracksJointsToggle');
   tracksJointsToggle.checked = jointsEnabled();
   tracksJointsToggle.addEventListener('change', () => {
@@ -1199,6 +1233,7 @@
 
   /* ============ Init ============ */
   function renderAll() {
+    updateConsumoTabVisibility();
     updateDayLabel();
     renderHoy();
     renderComidas();

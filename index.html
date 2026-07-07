@@ -241,7 +241,7 @@
         <div class="bars-list" id="weeklyBars"></div>
       </div>
 
-      <div class="card">
+      <div class="card" id="consumoChartCard">
         <h2 class="card-title" id="consumoChartTitle">Cigarros y Joints</h2>
         <div class="chart-wrap" id="consumoChart"></div>
         <div class="legend">
@@ -251,12 +251,12 @@
         </div>
       </div>
 
-      <div class="card">
+      <div class="card" id="compareCard">
         <h2 class="card-title">Comparativa mensual</h2>
         <div class="compare-list" id="compareList"></div>
       </div>
 
-      <div class="card">
+      <div class="card" id="statsSpendCard">
         <h2 class="card-title">Gasto total</h2>
         <div id="statsSpendGroups"></div>
         <p class="hint-text" id="spendHintStats">Lucky rojo 5,50 € · Lucky blanco 6,30 € por paquete · Joints 4,50 € cada 4 porros.</p>
@@ -290,23 +290,33 @@
 
       <div class="card accordion-card">
         <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
-          <h2 class="card-title">Preferencias de consumo</h2>
+          <h2 class="card-title">Consumo</h2>
           <span class="accordion-chevron">›</span>
         </button>
         <div class="accordion-body" hidden>
           <div class="setting-row">
-            <span>Registrar joints</span>
+            <span>Activar pestaña de Consumo</span>
             <label class="switch">
-              <input type="checkbox" id="tracksJointsToggle" checked />
+              <input type="checkbox" id="tracksConsumoToggle" checked />
               <span class="switch-slider"></span>
             </label>
           </div>
-          <p class="hint-text">Si solo fumas tabaco, desactívalo para que Joints desaparezca de Consumo y de Stats.</p>
-          <div class="setting-row">
-            <span>Precio de joints (€ cada 4 porros)</span>
-            <input type="number" id="jointPriceInput" min="0" step="0.01" value="4.50" inputmode="decimal" />
+          <p class="hint-text">Si no fumas ni consumes nada, desactívala para ocultar la pestaña Consumo y sus estadísticas.</p>
+          <div id="jointsPrefsGroup">
+            <div class="setting-row">
+              <span>Registrar joints</span>
+              <label class="switch">
+                <input type="checkbox" id="tracksJointsToggle" checked />
+                <span class="switch-slider"></span>
+              </label>
+            </div>
+            <p class="hint-text">Si solo fumas tabaco, desactívalo para que Joints desaparezca de Consumo y de Stats.</p>
+            <div class="setting-row">
+              <span>Precio de joints (€ cada 4 porros)</span>
+              <input type="number" id="jointPriceInput" min="0" step="0.01" value="4.50" inputmode="decimal" />
+            </div>
+            <p class="hint-text">Se usa para calcular el gasto en Consumo y Stats.</p>
           </div>
-          <p class="hint-text">Se usa para calcular el gasto en Consumo y Stats.</p>
         </div>
       </div>
 
@@ -375,7 +385,7 @@
       <span class="tab-icon">🍽️</span>
       <span class="tab-label">Comidas</span>
     </button>
-    <button class="tab-btn" data-tab="consumo">
+    <button class="tab-btn" data-tab="consumo" id="tabBtnConsumo">
       <span class="tab-icon">🚬</span>
       <span class="tab-label">Consumo</span>
     </button>
