@@ -9,6 +9,7 @@
       reminderEnabled: false,
       reminderTime: '21:00',
       tracksJoints: true,
+      tracksTeeth: true,
       dailyTasks: [
         { id: 'exercise', label: 'Hacer ejercicio (30 min)' },
         { id: 'read', label: 'Leer (30 min)' },
@@ -37,6 +38,9 @@
       }
       if (typeof parsed.settings.tracksJoints !== 'boolean') {
         parsed.settings.tracksJoints = true;
+      }
+      if (typeof parsed.settings.tracksTeeth !== 'boolean') {
+        parsed.settings.tracksTeeth = true;
       }
       return parsed;
     } catch (e) {
@@ -77,6 +81,10 @@
 
   function jointsEnabled() {
     return store.settings.tracksJoints !== false;
+  }
+
+  function teethEnabled() {
+    return store.settings.tracksTeeth !== false;
   }
 
   function renderSpendGroups(container, year, monthIndex, lastDay, monthLabel, yearLabel) {
@@ -286,7 +294,7 @@
           <span class="habit-name">${t.label}</span>
         </div>
       </li>`).join('');
-    const teethHtml = `
+    const teethHtml = teethEnabled() ? `
       <li class="habit-row habit-row--stepper" data-habit="teeth">
         <div class="habit-text">
           <span class="habit-name">Lavarme los dientes</span>
@@ -297,7 +305,7 @@
           <span class="stepper-value" id="teethValue">${entry.teeth || 0}</span>
           <button class="stepper-btn" data-step="1" aria-label="Sumar">+</button>
         </div>
-      </li>`;
+      </li>` : '';
     dailyTaskList.innerHTML = dailyItemsHtml + teethHtml;
 
     const wk = isoWeekKey(currentDate);
@@ -526,7 +534,7 @@
     const list = store.settings.dailyTasks.map((t) => ({
       field: t.id, icon: DAILY_TASK_ICONS[t.id] || '✅', name: t.label
     }));
-    list.push({ field: 'teeth', icon: '🦷', name: 'Dientes' });
+    if (teethEnabled()) list.push({ field: 'teeth', icon: '🦷', name: 'Dientes' });
     return list;
   }
 
@@ -592,7 +600,7 @@
     }));
     return [
       ...dailyRows,
-      { key: 'teeth', label: 'Dientes', type: 'daily', color: 'var(--h-teeth)' },
+      ...(teethEnabled() ? [{ key: 'teeth', label: 'Dientes', type: 'daily', color: 'var(--h-teeth)' }] : []),
       { key: 'health', label: 'Alimentación', type: 'health', groupStart: true },
       ...weeklyRows,
       { key: 'total', label: 'Total', type: 'total', color: 'var(--h-total)', groupStart: true },
@@ -629,7 +637,7 @@
       const wk = isoWeekKey(date);
       const week = getWeek(wk);
       const teethDone = !!(entry && entry.teeth > 0);
-      let total = teethDone ? 1 : 0;
+      let total = (teethEnabled() && teethDone) ? 1 : 0;
       const healthVals = [];
       if (entry && entry.meals) {
         ['desayuno', 'comida', 'cena'].forEach((meal) => {
@@ -665,7 +673,7 @@
     }
     if (row.type === 'total') {
       if (dayInfo.total === 0) return '';
-      const totalMax = store.settings.dailyTasks.length + 1;
+      const totalMax = store.settings.dailyTasks.length + (teethEnabled() ? 1 : 0);
       const pct = 25 + (dayInfo.total / totalMax) * 75;
       return `background:color-mix(in srgb, ${row.color} ${pct.toFixed(0)}%, var(--surface-alt))`;
     }
@@ -698,14 +706,23 @@
     });
 
     // Legend
-    heatmapLegend.innerHTML = HEATMAP_ROWS.filter((r) => r.type !== 'total').map((r) => {
+    const legendRows = HEATMAP_ROWS.filter((r) => r.type !== 'total');
+    let legendHtml = '';
+    legendRows.forEach((r, i) => {
+      let itemHtml;
       if (r.type === 'health') {
         const gradient = `linear-gradient(to right, ${healthColor(1)}, ${healthColor(3)}, ${healthColor(5)})`;
-        return `<span class="legend-item"><span class="legend-gradient" style="background:${gradient}"></span>${r.label} (nada → muy saludable)</span>`;
+        itemHtml = `<span class="legend-item"><span class="legend-gradient" style="background:${gradient}"></span>${r.label} (nada → muy saludable)</span>`;
+      } else {
+        const suffix = r.type === 'weekly' ? ' (semanal)' : '';
+        itemHtml = `<span class="legend-item"><span class="dot" style="background:${r.color}"></span>${r.label}${suffix}</span>`;
       }
-      const suffix = r.type === 'weekly' ? ' (semanal)' : '';
-      return `<span class="legend-item"><span class="dot" style="background:${r.color}"></span>${r.label}${suffix}</span>`;
-    }).join('');
+      if (i === 0) legendHtml += '<div class="legend-group">';
+      else if (r.groupStart) legendHtml += '</div><div class="legend-group legend-group--gap">';
+      legendHtml += itemHtml;
+    });
+    legendHtml += '</div>';
+    heatmapLegend.innerHTML = legendHtml;
 
     // Grid
     const labelsHtml = HEATMAP_ROWS.map((r) => `<div class="heatmap-label${r.groupStart ? ' heatmap-label--gap' : ''}" title="${r.label}">${r.label}</div>`).join('');
@@ -967,6 +984,15 @@
     renderHoy();
   }
 
+  const tracksTeethToggle = document.getElementById('tracksTeethToggle');
+  tracksTeethToggle.checked = teethEnabled();
+  tracksTeethToggle.addEventListener('change', () => {
+    store.settings.tracksTeeth = tracksTeethToggle.checked;
+    saveStore();
+    renderHoy();
+    if (activeTab === 'stats') renderStats();
+  });
+
   addDailyTaskBtn.addEventListener('click', addDailyTask);
   newDailyTaskInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') addDailyTask();
@@ -1075,7 +1101,7 @@
   function isTodayComplete() {
     const entry = getEntry(dateKey(startOfDay(new Date())));
     if (!entry) return false;
-    return store.settings.dailyTasks.every((t) => entry[t.id]) && entry.teeth > 0;
+    return store.settings.dailyTasks.every((t) => entry[t.id]) && (!teethEnabled() || entry.teeth > 0);
   }
 
   function checkReminder() {

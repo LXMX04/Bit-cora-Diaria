@@ -311,12 +311,20 @@
           <span class="accordion-chevron">›</span>
         </button>
         <div class="accordion-body" hidden>
+          <div class="setting-row">
+            <span>Registrar lavado de dientes</span>
+            <label class="switch">
+              <input type="checkbox" id="tracksTeethToggle" checked />
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+          <p class="hint-text">"Lavarme los dientes" se cuenta por veces y va aparte de la lista de abajo. Desactívalo si no quieres registrarlo.</p>
           <ul class="task-manage-list" id="dailyTaskManageList"></ul>
           <div class="task-add-row">
             <input type="text" id="newDailyTaskInput" class="task-add-input" placeholder="Nueva tarea diaria…" maxlength="40" />
             <button class="secondary-btn task-add-btn" id="addDailyTaskBtn">Añadir</button>
           </div>
-          <p class="hint-text">Se guardan solo en este dispositivo. "Lavarme los dientes" es aparte porque se cuenta por veces, no se puede eliminar.</p>
+          <p class="hint-text">Se guardan solo en este dispositivo.</p>
         </div>
       </div>
 
