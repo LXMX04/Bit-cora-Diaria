@@ -228,8 +228,6 @@
 
     reflectionInput.value = entry.reflection || '';
     reflectionHint.textContent = 'Guardado automáticamente';
-
-    renderReminderPreview();
   }
 
   /* ============ COMIDAS panel ============ */
@@ -840,80 +838,10 @@
     Notification.requestPermission().then(() => updateNotifStatus());
   });
 
-  const DAILY_TASK_NOUNS = {
-    exercise: 'hacer ejercicio',
-    read: 'leer un rato',
-    test: 'el test de autoescuela',
-    teeth: 'lavarte los dientes'
-  };
-
-  const WEEKLY_REMINDERS = {
-    abuelos: [
-      'Félix y Carmina te echan de menos. Ve a verlos esta semana.',
-      'Aún no has visto a Félix y Carmina esta semana.'
-    ],
-    abuela: [
-      'Luchi te echa de menos esta semana.',
-      'Aún no has visto a Luchi esta semana — ¿te pasas por allí?'
-    ]
-  };
-
-  function pickRandom(arr) {
-    return arr[Math.floor(Math.random() * arr.length)];
-  }
-
-  function joinSpanishList(items) {
-    if (items.length <= 1) return items[0] || '';
-    return items.slice(0, -1).join(', ') + ' y ' + items[items.length - 1];
-  }
-
-  function missingDailyTasks(entry) {
-    return Object.keys(DAILY_TASK_NOUNS).filter((key) => {
-      if (key === 'teeth') return !(entry && entry.teeth > 0);
-      return !(entry && entry[key]);
-    }).map((key) => DAILY_TASK_NOUNS[key]);
-  }
-
-  function buildDailyReminderMessage(missing) {
-    if (missing.length === 0) return null;
-    if (missing.length === 1) {
-      const noun = missing[0];
-      return pickRandom([
-        `¡Vamos! Solo te queda ${noun} y completas tus tareas de hoy.`,
-        `Estás a un paso: únicamente falta ${noun}.`,
-        `Casi lo tienes — solo ${noun} y listo.`
-      ]);
-    }
-    const list = joinSpanishList(missing);
-    return pickRandom([
-      `Aún no has completado tus tareas diarias. Te faltan: ${list}.`,
-      `Hoy todavía tienes pendiente: ${list}. ¡A por ello!`,
-      `Se acaba el día y aún tienes pendiente: ${list}.`
-    ]);
-  }
-
-  function missingWeeklyMessages(week) {
-    return Object.keys(WEEKLY_REMINDERS)
-      .filter((key) => !week[key])
-      .map((key) => pickRandom(WEEKLY_REMINDERS[key]));
-  }
-
-  function buildReminderBody() {
-    const today = startOfDay(new Date());
-    const entry = getEntry(dateKey(today));
-    const dailyMsg = buildDailyReminderMessage(missingDailyTasks(entry));
-    const week = getWeek(isoWeekKey(today));
-    const weeklyLines = missingWeeklyMessages(week);
-    const parts = [dailyMsg, ...weeklyLines].filter(Boolean);
-    return parts.length ? parts.join('\n') : null;
-  }
-
-  const reminderPreview = document.getElementById('reminderPreview');
-
-  function renderReminderPreview() {
-    if (!reminderPreview) return;
-    const body = buildReminderBody();
-    reminderPreview.textContent = body || 'Todo listo por hoy — no hay recordatorios pendientes.';
+  function isTodayComplete() {
+    const entry = getEntry(dateKey(startOfDay(new Date())));
+    if (!entry) return false;
+    return entry.exercise && entry.read && entry.test && entry.teeth > 0;
   }
 
   function checkReminder() {
@@ -923,10 +851,9 @@
     const [h, m] = (store.settings.reminderTime || '21:00').split(':').map(Number);
     const target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
     const todayKey = dateKey(now);
-    if (now < target || store.lastNotifiedDate === todayKey) return;
-    const body = buildReminderBody();
-    if (!body) return;
+    if (now < target || store.lastNotifiedDate === todayKey || isTodayComplete()) return;
     const title = 'Bitácora Diaria';
+    const body = 'No olvides rellenar tu bitácora de hoy.';
     if (navigator.serviceWorker && navigator.serviceWorker.ready) {
       navigator.serviceWorker.ready.then((reg) => reg.showNotification(title, { body, icon: 'icons/icon-192.png' }));
     } else {
