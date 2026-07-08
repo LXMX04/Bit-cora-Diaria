@@ -245,11 +245,12 @@
   }
 
   function updateConsumoTabIcon() {
-    const icon = document.getElementById('tabIconConsumo');
-    if (!icon) return;
-    icon.innerHTML = jointsEnabled()
-      ? '<rect x="2.5" y="14.2" width="14" height="4.2" rx="1.3"/><rect x="14.3" y="14.2" width="4" height="4.2" rx="1.3"/><path d="M18.5 8.2c1 1 1 2.3 0 3.3M16.6 6.3c1.7 1.7 1.7 4.1 0 5.8" stroke-linecap="round"/>'
-      : '<path d="M4.5 9h15l-1.4 9.4a1.6 1.6 0 0 1-1.6 1.4H7.5a1.6 1.6 0 0 1-1.6-1.4L4.5 9Z" stroke-linejoin="round"/><path d="M8 9V7a4 4 0 0 1 8 0v2" stroke-linecap="round"/><path d="M9 12.5v4.5M12 12.5v4.5M15 12.5v4.5" stroke-linecap="round"/>';
+    const basket = document.getElementById('tabIconBasket');
+    const cigarette = document.getElementById('tabIconCigarette');
+    if (!basket || !cigarette) return;
+    const showCigarette = jointsEnabled();
+    basket.style.display = showCigarette ? 'none' : '';
+    cigarette.style.display = showCigarette ? '' : 'none';
   }
 
   /* ============ AJUSTES accordion ============ */
