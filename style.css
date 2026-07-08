@@ -291,6 +291,11 @@ main {
   border-color: var(--accent);
   color: #fff;
 }
+.check-btn--bad[aria-pressed="true"] {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
 .habit-text {
   flex: 1;
   display: flex;

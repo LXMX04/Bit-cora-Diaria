@@ -49,6 +49,12 @@
       </div>
 
       <div class="card">
+        <h2 class="card-title">Malos hábitos</h2>
+        <ul class="habit-list" id="badHabitList"></ul>
+        <p class="hint-text">Márcalo si hoy has hecho esto que quieres evitar. Resta puntos del Total y se refleja en Stats.</p>
+      </div>
+
+      <div class="card">
         <h2 class="card-title">Reflexión del día</h2>
         <textarea id="reflectionInput" class="reflection-box" rows="5" placeholder="¿Cómo ha ido el día? ¿Qué destacarías?"></textarea>
         <div class="save-hint" id="reflectionHint">Guardado automáticamente</div>
@@ -355,6 +361,21 @@
             <button class="secondary-btn task-add-btn" id="addWeeklyTaskBtn">Añadir</button>
           </div>
           <p class="hint-text">Se guardan solo en este dispositivo — cada persona que use la app puede tener sus propias tareas semanales.</p>
+        </div>
+      </div>
+
+      <div class="card accordion-card">
+        <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
+          <h2 class="card-title">Malos hábitos</h2>
+          <span class="accordion-chevron">›</span>
+        </button>
+        <div class="accordion-body" hidden>
+          <ul class="task-manage-list" id="badHabitManageList"></ul>
+          <div class="task-add-row">
+            <input type="text" id="newBadHabitInput" class="task-add-input" placeholder="Nuevo mal hábito…" maxlength="40" />
+            <button class="secondary-btn task-add-btn" id="addBadHabitBtn">Añadir</button>
+          </div>
+          <p class="hint-text">Ej. "Beber alcohol", "Más de 30 min de Instagram". Marcarlos en Hoy resta puntos del Total y baja su color en el mapa de Stats.</p>
         </div>
       </div>
 

@@ -20,7 +20,8 @@
       weeklyTasks: [
         { id: 'abuelos', label: 'Ver a mis abuelos' },
         { id: 'abuela', label: 'Ver a mi abuela' }
-      ]
+      ],
+      badHabits: []
     };
   }
 
@@ -37,6 +38,9 @@
       }
       if (!Array.isArray(parsed.settings.dailyTasks)) {
         parsed.settings.dailyTasks = defaultSettings().dailyTasks;
+      }
+      if (!Array.isArray(parsed.settings.badHabits)) {
+        parsed.settings.badHabits = [];
       }
       if (typeof parsed.settings.tracksConsumo !== 'boolean') {
         parsed.settings.tracksConsumo = true;
@@ -69,6 +73,7 @@
       test: false,
       teeth: 0,
       reflection: '',
+      badHabits: {},
       meals: {
         desayuno: { time: '', desc: '', health: 0 },
         comida: { time: '', desc: '', health: 0 },
@@ -288,6 +293,19 @@
     renderHoy();
   });
 
+  const badHabitList = document.getElementById('badHabitList');
+  badHabitList.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-check-bad]');
+    if (!btn) return;
+    const key = dateKey(currentDate);
+    const entry = ensureEntry(key);
+    entry.badHabits = entry.badHabits || {};
+    const habitId = btn.dataset.checkBad;
+    entry.badHabits[habitId] = !entry.badHabits[habitId];
+    saveStore();
+    renderHoy();
+  });
+
   let reflectionTimer = null;
   reflectionInput.addEventListener('input', () => {
     const key = dateKey(currentDate);
@@ -342,6 +360,18 @@
         </div>
       </li>`).join('') : '<li class="task-empty-hint">No tienes tareas semanales. Añade una en Ajustes.</li>';
     weekRangeEl.textContent = weekRangeLabel(currentDate);
+
+    const badHabits = store.settings.badHabits;
+    const entryBadHabits = entry.badHabits || {};
+    badHabitList.innerHTML = badHabits.length ? badHabits.map((b) => `
+      <li class="habit-row" data-habit="${b.id}">
+        <button class="check-btn check-btn--bad" data-check-bad="${b.id}" aria-pressed="${!!entryBadHabits[b.id]}">
+          <span class="check-icon">✗</span>
+        </button>
+        <div class="habit-text">
+          <span class="habit-name">${b.label}</span>
+        </div>
+      </li>`).join('') : '<li class="task-empty-hint">No tienes malos hábitos registrados. Añade uno en Ajustes.</li>';
 
     reflectionInput.value = entry.reflection || '';
     reflectionHint.textContent = 'Guardado automáticamente';
@@ -569,6 +599,9 @@
       field: t.id, icon: DAILY_TASK_ICONS[t.id] || '✅', name: t.label
     }));
     if (teethEnabled()) list.push({ field: 'teeth', icon: '🦷', name: 'Dientes' });
+    store.settings.badHabits.forEach((b) => {
+      list.push({ field: b.id, icon: '🚫', name: b.label, invert: true });
+    });
     return list;
   }
 
@@ -632,11 +665,15 @@
     const weeklyRows = store.settings.weeklyTasks.map((t, i) => ({
       key: t.id, label: t.label, type: 'weekly', color: weeklyTaskColor(i), groupStart: i === 0
     }));
+    const badHabitRows = store.settings.badHabits.map((b, i) => ({
+      key: b.id, label: b.label, type: 'badHabit', color: 'var(--danger)', groupStart: i === 0
+    }));
     return [
       ...dailyRows,
       ...(teethEnabled() ? [{ key: 'teeth', label: 'Dientes', type: 'daily', color: 'var(--h-teeth)' }] : []),
       { key: 'health', label: 'Alimentación', type: 'health', groupStart: true },
       ...weeklyRows,
+      ...badHabitRows,
       { key: 'total', label: 'Total', type: 'total', color: 'var(--h-total)', groupStart: true },
       ...(consumoEnabled() ? [
         { key: 'cigarettes', label: 'Cigarros', type: 'consumo', color: 'var(--h-cig)', groupStart: true },
@@ -696,7 +733,13 @@
         dayEntry[t.id] = done;
         if (done) total++;
       });
-      dayEntry.total = total;
+      let badCount = 0;
+      store.settings.badHabits.forEach((b) => {
+        const triggered = !!(entry && entry.badHabits && entry.badHabits[b.id]);
+        dayEntry[b.id] = triggered;
+        if (triggered) badCount++;
+      });
+      dayEntry.total = Math.max(0, total - badCount);
       store.settings.weeklyTasks.forEach((t) => { dayEntry[t.id] = !!week[t.id]; });
       days.push(dayEntry);
     }
@@ -704,7 +747,7 @@
   }
 
   function heatmapCellStyle(row, dayInfo, maxByKey) {
-    if (row.type === 'daily' || row.type === 'weekly') {
+    if (row.type === 'daily' || row.type === 'weekly' || row.type === 'badHabit') {
       return dayInfo[row.key] ? `background:${row.color}` : '';
     }
     if (row.type === 'total') {
@@ -726,6 +769,7 @@
   }
 
   function heatmapCellText(row, dayInfo) {
+    if (row.type === 'badHabit') return dayInfo[row.key] ? '✗' : '';
     if (row.type === 'daily' || row.type === 'weekly') return dayInfo[row.key] ? '✓' : '';
     if (row.type === 'total') return dayInfo.total > 0 ? String(dayInfo.total) : '';
     if (row.type === 'health') return dayInfo.health > 0 ? dayInfo.health.toFixed(1) : '';
@@ -849,7 +893,11 @@
         const key = dateKey(new Date(year, monthIndex, d));
         const entry = getEntry(key);
         if (!entry) continue;
-        if (h.field === 'teeth' ? entry.teeth > 0 : entry[h.field]) done++;
+        let ok;
+        if (h.field === 'teeth') ok = entry.teeth > 0;
+        else if (h.invert) ok = !(entry.badHabits && entry.badHabits[h.field]);
+        else ok = !!entry[h.field];
+        if (ok) done++;
       }
       const pct = lastDay > 0 ? (done / lastDay) * 100 : 0;
       const tile = document.createElement('div');
@@ -930,10 +978,19 @@
     const avg = countLogged > 0 ? sumTotal / countLogged : 0;
     const maxVal = Math.max(1, ...data.map((x) => (x ? x.cig + x.joint : 0)));
 
-    const W = 340, H = 150, padL = 22, padR = 8, padT = 10, padB = 20;
+    const W = 340, H = 150, padL = 26, padR = 8, padT = 10, padB = 20;
     const plotW = W - padL - padR, plotH = H - padT - padB;
     const barGap = 2;
     const barW = Math.max(2, plotW / totalDays - barGap);
+
+    let yAxis = '';
+    const yStepCount = maxVal >= 4 ? 4 : maxVal;
+    for (let i = 0; i <= yStepCount; i++) {
+      const val = Math.round((maxVal / yStepCount) * i);
+      const y = padT + plotH - (val / maxVal) * plotH;
+      yAxis += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="var(--border)" stroke-width="1"/>`;
+      yAxis += `<text x="${(padL - 5).toFixed(1)}" y="${(y + 3).toFixed(1)}" font-size="8" text-anchor="end" fill="var(--text-muted)">${val}</text>`;
+    }
 
     let bars = '';
     data.forEach((v, i) => {
@@ -965,7 +1022,7 @@
       ticks += `<text x="${x.toFixed(1)}" y="${H - 5}" font-size="8" text-anchor="middle" fill="var(--text-muted)">${d}</text>`;
     }
 
-    consumoChart.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${bars}${avgLine}${ticks}</svg>`;
+    consumoChart.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${yAxis}${bars}${avgLine}${ticks}</svg>`;
   }
 
   function renderCompare(year, monthIndex) {
@@ -1098,6 +1155,49 @@
   });
 
   renderWeeklyTaskManageList();
+
+  /* ============ AJUSTES panel / Bad habit management ============ */
+  const badHabitManageList = document.getElementById('badHabitManageList');
+  const newBadHabitInput = document.getElementById('newBadHabitInput');
+  const addBadHabitBtn = document.getElementById('addBadHabitBtn');
+
+  function renderBadHabitManageList() {
+    const habits = store.settings.badHabits;
+    badHabitManageList.innerHTML = habits.length ? habits.map((h) => `
+      <li class="task-manage-item" data-task-id="${h.id}">
+        <span class="task-manage-label">${h.label}</span>
+        <button type="button" class="task-remove-btn" data-remove-task="${h.id}" aria-label="Eliminar ${h.label}">×</button>
+      </li>`).join('') : '<li class="task-empty-hint">No tienes malos hábitos todavía.</li>';
+  }
+
+  function addBadHabit() {
+    const label = newBadHabitInput.value.trim();
+    if (!label) return;
+    store.settings.badHabits.push({ id: generateTaskId(), label });
+    saveStore();
+    newBadHabitInput.value = '';
+    renderBadHabitManageList();
+    renderHoy();
+    if (activeTab === 'stats') renderStats();
+  }
+
+  addBadHabitBtn.addEventListener('click', addBadHabit);
+  newBadHabitInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') addBadHabit();
+  });
+
+  badHabitManageList.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-remove-task]');
+    if (!btn) return;
+    const taskId = btn.dataset.removeTask;
+    store.settings.badHabits = store.settings.badHabits.filter((h) => h.id !== taskId);
+    saveStore();
+    renderBadHabitManageList();
+    renderHoy();
+    if (activeTab === 'stats') renderStats();
+  });
+
+  renderBadHabitManageList();
 
   /* ============ AJUSTES panel / Consumption preferences ============ */
   const tracksConsumoToggle = document.getElementById('tracksConsumoToggle');
