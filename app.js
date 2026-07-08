@@ -714,11 +714,6 @@
       field: t.id, icon: ICONS[t.id] || ICONS.default, name: t.label
     }));
     if (teethEnabled()) list.push({ field: 'teeth', icon: ICONS.teeth, name: 'Dientes' });
-    if (supplementsEnabled()) {
-      store.settings.supplements.forEach((s) => {
-        list.push({ field: s.id, icon: ICONS.pill, name: s.label, nested: 'supplements' });
-      });
-    }
     store.settings.badHabits.forEach((b) => {
       list.push({ field: b.id, icon: ICONS.ban, name: b.label, invert: true });
     });
@@ -743,6 +738,49 @@
           stroke-linecap="round" stroke-dasharray="${filled} ${c}"
           transform="rotate(-90 32 32)"/>
       </svg>`;
+  }
+
+  function ringSVGLarge(pct) {
+    const r = 38, c = 2 * Math.PI * r;
+    const filled = (Math.max(0, Math.min(100, pct)) / 100) * c;
+    return `
+      <svg width="92" height="92" viewBox="0 0 92 92">
+        <circle cx="46" cy="46" r="${r}" fill="none" stroke="var(--border)" stroke-width="8"/>
+        <circle cx="46" cy="46" r="${r}" fill="none" stroke="var(--accent)" stroke-width="8"
+          stroke-linecap="round" stroke-dasharray="${filled} ${c}"
+          transform="rotate(-90 46 46)"/>
+      </svg>`;
+  }
+
+  function renderSupplementRings(year, monthIndex, lastDay) {
+    const card = document.getElementById('supplementsStatsCard');
+    const grid = document.getElementById('supplementRingsGrid');
+    if (!card || !grid) return;
+    if (!supplementsEnabled()) {
+      card.hidden = true;
+      return;
+    }
+    card.hidden = false;
+    const supplements = store.settings.supplements;
+    if (supplements.length === 0) {
+      grid.innerHTML = '<p class="task-empty-hint">No tienes suplementos registrados. Añade uno en Ajustes.</p>';
+      return;
+    }
+    grid.innerHTML = '';
+    supplements.forEach((s) => {
+      let done = 0;
+      for (let d = 1; d <= lastDay; d++) {
+        const key = dateKey(new Date(year, monthIndex, d));
+        const entry = getEntry(key);
+        if (!entry) continue;
+        if (entry.supplements && entry.supplements[s.id]) done++;
+      }
+      const pct = lastDay > 0 ? (done / lastDay) * 100 : 0;
+      const tile = document.createElement('div');
+      tile.className = 'ring-tile ring-tile--lg';
+      tile.innerHTML = `${ringSVGLarge(pct)}<span class="ring-pct ring-pct--lg">${Math.round(pct)}%</span><span class="ring-name"><span class="ring-icon">${ICONS.pill}</span>${s.label}</span>`;
+      grid.appendChild(tile);
+    });
   }
 
   /* ---- Health color gradient (nada saludable -> muy saludable) ---- */
@@ -1051,6 +1089,8 @@
       tile.innerHTML = `${ringSVG(pct)}<span class="ring-pct">${Math.round(pct)}%</span><span class="ring-name"><span class="ring-icon">${h.icon}</span>${h.name}</span>`;
       ringsGrid.appendChild(tile);
     });
+
+    renderSupplementRings(year, monthIndex, lastDay);
 
     // Weekly tasks bars
     const weekKeys = new Set();
