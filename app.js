@@ -249,8 +249,8 @@
     const cigarette = document.getElementById('tabIconCigarette');
     if (!basket || !cigarette) return;
     const showCigarette = jointsEnabled();
-    basket.style.display = showCigarette ? 'none' : '';
-    cigarette.style.display = showCigarette ? '' : 'none';
+    basket.style.display = showCigarette ? 'none' : 'inline-block';
+    cigarette.style.display = showCigarette ? 'inline-block' : 'none';
   }
 
   /* ============ AJUSTES accordion ============ */
