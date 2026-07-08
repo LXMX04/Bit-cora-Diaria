@@ -56,6 +56,11 @@
         <ul class="habit-list" id="weeklyTaskList"></ul>
       </div>
 
+      <div class="card" id="supplementsCard">
+        <h2 class="card-title">Suplementos</h2>
+        <ul class="habit-list" id="supplementList"></ul>
+      </div>
+
       <div class="card">
         <h2 class="card-title">Malos hábitos</h2>
         <ul class="habit-list" id="badHabitList"></ul>
@@ -372,6 +377,29 @@
             <button class="secondary-btn task-add-btn" id="addBadHabitBtn">Añadir</button>
           </div>
           <p class="hint-text">Ej. "Beber alcohol", "Más de 30 min de Instagram". Marcarlos en Hoy resta puntos del Total y baja su color en el mapa de Stats.</p>
+        </div>
+      </div>
+
+      <div class="card accordion-card">
+        <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
+          <h2 class="card-title">Suplementos</h2>
+          <span class="accordion-chevron">›</span>
+        </button>
+        <div class="accordion-body" hidden>
+          <div class="setting-row">
+            <span>Activar suplementos en Hoy</span>
+            <label class="switch">
+              <input type="checkbox" id="tracksSupplementsToggle" />
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+          <p class="hint-text">Añade tus pastillas o vitaminas (ej. "ZZEN Focus", "ZZEN Calm", "ZZEN Sleep") para marcar los días que las tomas.</p>
+          <ul class="task-manage-list" id="supplementManageList"></ul>
+          <div class="task-add-row">
+            <input type="text" id="newSupplementInput" class="task-add-input" placeholder="Nuevo suplemento…" maxlength="30" />
+            <button class="secondary-btn task-add-btn" id="addSupplementBtn">Añadir</button>
+          </div>
+          <p class="hint-text">Se guardan solo en este dispositivo. Se reflejan en Stats.</p>
         </div>
       </div>
 

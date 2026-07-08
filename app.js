@@ -11,11 +11,13 @@
       tracksConsumo: true,
       tracksJoints: false,
       tracksTeeth: false,
+      tracksSupplements: false,
       jointPricePer4: 4.50,
       dailyTasks: [],
       weeklyTasks: [],
       badHabits: [],
-      purchaseItems: []
+      purchaseItems: [],
+      supplements: []
     };
   }
 
@@ -35,6 +37,9 @@
       }
       if (!Array.isArray(parsed.settings.badHabits)) {
         parsed.settings.badHabits = [];
+      }
+      if (!Array.isArray(parsed.settings.supplements)) {
+        parsed.settings.supplements = [];
       }
       if (!Array.isArray(parsed.settings.purchaseItems)) {
         parsed.settings.purchaseItems = [
@@ -56,6 +61,9 @@
       }
       if (typeof parsed.settings.tracksTeeth !== 'boolean') {
         parsed.settings.tracksTeeth = true;
+      }
+      if (typeof parsed.settings.tracksSupplements !== 'boolean') {
+        parsed.settings.tracksSupplements = false;
       }
       if (typeof parsed.settings.jointPricePer4 !== 'number' || parsed.settings.jointPricePer4 < 0) {
         parsed.settings.jointPricePer4 = 4.50;
@@ -80,6 +88,7 @@
       teeth: 0,
       reflection: '',
       badHabits: {},
+      supplements: {},
       meals: {
         desayuno: { time: '', desc: '', health: 0 },
         comida: { time: '', desc: '', health: 0 },
@@ -105,6 +114,10 @@
 
   function teethEnabled() {
     return store.settings.tracksTeeth !== false;
+  }
+
+  function supplementsEnabled() {
+    return store.settings.tracksSupplements === true;
   }
 
   function renderSpendGroups(container, year, monthIndex, lastDay, monthLabel, yearLabel) {
@@ -331,6 +344,20 @@
     renderHoy();
   });
 
+  const supplementList = document.getElementById('supplementList');
+  const supplementsCard = document.getElementById('supplementsCard');
+  supplementList.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-check-supplement]');
+    if (!btn) return;
+    const key = dateKey(currentDate);
+    const entry = ensureEntry(key);
+    entry.supplements = entry.supplements || {};
+    const supId = btn.dataset.checkSupplement;
+    entry.supplements[supId] = !entry.supplements[supId];
+    saveStore();
+    renderHoy();
+  });
+
   let reflectionTimer = null;
   reflectionInput.addEventListener('input', () => {
     const key = dateKey(currentDate);
@@ -424,6 +451,19 @@
           <span class="habit-name">${b.label}</span>
         </div>
       </li>`).join('') : '<li class="task-empty-hint">No tienes malos hábitos registrados. Añade uno en Ajustes.</li>';
+
+    supplementsCard.hidden = !supplementsEnabled();
+    const supplements = store.settings.supplements;
+    const entrySupplements = entry.supplements || {};
+    supplementList.innerHTML = supplements.length ? supplements.map((s) => `
+      <li class="habit-row" data-habit="${s.id}">
+        <button class="check-btn" data-check-supplement="${s.id}" aria-pressed="${!!entrySupplements[s.id]}">
+          <span class="check-icon">✓</span>
+        </button>
+        <div class="habit-text">
+          <span class="habit-name">${s.label}</span>
+        </div>
+      </li>`).join('') : '<li class="task-empty-hint">No tienes suplementos registrados. Añade uno en Ajustes.</li>';
 
     reflectionInput.value = entry.reflection || '';
     reflectionHint.textContent = 'Guardado automáticamente';
@@ -665,6 +705,7 @@
     test: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><path d="M12 6v4M6.8 15.2 9.6 13M17.2 15.2 14.4 13" stroke-linecap="round"/></svg>',
     teeth: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3C9.2 3 7 5 7 7.8C7 9.7 7.8 10.8 8.1 12.8C8.5 15.3 9.3 18.6 10.3 20.2C10.7 20.8 11.3 20.6 11.4 19.8L11.7 17.2C11.8 16.3 12.2 16.3 12.3 17.2L12.6 19.8C12.7 20.6 13.3 20.8 13.7 20.2C14.7 18.6 15.5 15.3 15.9 12.8C16.2 10.8 17 9.7 17 7.8C17 5 14.8 3 12 3Z" stroke-linejoin="round" stroke-linecap="round"/></svg>',
     ban: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8.5"/><path d="M6.5 6.5l11 11" stroke-linecap="round"/></svg>',
+    pill: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="9" width="18" height="6.5" rx="3.25"/><line x1="12" y1="9" x2="12" y2="15.5"/></svg>',
     default: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8.5"/><path d="M8 12.3l2.6 2.6L16.2 9" stroke-linecap="round" stroke-linejoin="round"/></svg>'
   };
 
@@ -673,6 +714,11 @@
       field: t.id, icon: ICONS[t.id] || ICONS.default, name: t.label
     }));
     if (teethEnabled()) list.push({ field: 'teeth', icon: ICONS.teeth, name: 'Dientes' });
+    if (supplementsEnabled()) {
+      store.settings.supplements.forEach((s) => {
+        list.push({ field: s.id, icon: ICONS.pill, name: s.label, nested: 'supplements' });
+      });
+    }
     store.settings.badHabits.forEach((b) => {
       list.push({ field: b.id, icon: ICONS.ban, name: b.label, invert: true });
     });
@@ -738,6 +784,12 @@
     return `hsl(${hue}, ${dark ? 55 : 50}%, ${dark ? 62 : 45}%)`;
   }
 
+  function supplementColor(index) {
+    const hue = (index * 41 + 265) % 360;
+    const dark = currentTheme() === 'dark';
+    return `hsl(${hue}, ${dark ? 55 : 50}%, ${dark ? 62 : 45}%)`;
+  }
+
   function buildHeatmapRows() {
     const dailyRows = store.settings.dailyTasks.map((t, i) => ({
       key: t.id, label: t.label, type: 'daily', color: dailyTaskColor(i)
@@ -748,9 +800,13 @@
     const badHabitRows = store.settings.badHabits.map((b, i) => ({
       key: b.id, label: b.label, type: 'badHabit', color: 'var(--danger)', groupStart: i === 0
     }));
+    const supplementRows = supplementsEnabled() ? store.settings.supplements.map((s, i) => ({
+      key: s.id, label: s.label, type: 'daily', color: supplementColor(i), groupStart: i === 0
+    })) : [];
     return [
       ...dailyRows,
       ...(teethEnabled() ? [{ key: 'teeth', label: 'Dientes', type: 'daily', color: 'var(--h-teeth)' }] : []),
+      ...supplementRows,
       { key: 'health', label: 'Alimentación', type: 'health', groupStart: true },
       ...weeklyRows,
       ...badHabitRows,
@@ -809,6 +865,9 @@
       };
       store.settings.purchaseItems.forEach((item) => {
         dayEntry[item.id] = entry && entry.purchases ? (entry.purchases[item.id] || 0) : 0;
+      });
+      store.settings.supplements.forEach((s) => {
+        dayEntry[s.id] = !!(entry && entry.supplements && entry.supplements[s.id]);
       });
       store.settings.dailyTasks.forEach((t) => {
         const done = !!(entry && entry[t.id]);
@@ -982,6 +1041,7 @@
         let ok;
         if (h.field === 'teeth') ok = entry.teeth > 0;
         else if (h.invert) ok = !(entry.badHabits && entry.badHabits[h.field]);
+        else if (h.nested) ok = !!(entry[h.nested] && entry[h.nested][h.field]);
         else ok = !!entry[h.field];
         if (ok) done++;
       }
@@ -1284,6 +1344,58 @@
   });
 
   renderBadHabitManageList();
+
+  /* ============ AJUSTES panel / Supplement management ============ */
+  const tracksSupplementsToggle = document.getElementById('tracksSupplementsToggle');
+  const supplementManageList = document.getElementById('supplementManageList');
+  const newSupplementInput = document.getElementById('newSupplementInput');
+  const addSupplementBtn = document.getElementById('addSupplementBtn');
+
+  tracksSupplementsToggle.checked = supplementsEnabled();
+  tracksSupplementsToggle.addEventListener('change', () => {
+    store.settings.tracksSupplements = tracksSupplementsToggle.checked;
+    saveStore();
+    renderHoy();
+    if (activeTab === 'stats') renderStats();
+  });
+
+  function renderSupplementManageList() {
+    const supplements = store.settings.supplements;
+    supplementManageList.innerHTML = supplements.length ? supplements.map((s) => `
+      <li class="task-manage-item" data-task-id="${s.id}">
+        <span class="task-manage-label">${s.label}</span>
+        <button type="button" class="task-remove-btn" data-remove-task="${s.id}" aria-label="Eliminar ${s.label}">×</button>
+      </li>`).join('') : '<li class="task-empty-hint">No tienes suplementos todavía.</li>';
+  }
+
+  function addSupplement() {
+    const label = newSupplementInput.value.trim();
+    if (!label) return;
+    store.settings.supplements.push({ id: generateTaskId(), label });
+    saveStore();
+    newSupplementInput.value = '';
+    renderSupplementManageList();
+    renderHoy();
+    if (activeTab === 'stats') renderStats();
+  }
+
+  addSupplementBtn.addEventListener('click', addSupplement);
+  newSupplementInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') addSupplement();
+  });
+
+  supplementManageList.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-remove-task]');
+    if (!btn) return;
+    const supId = btn.dataset.removeTask;
+    store.settings.supplements = store.settings.supplements.filter((s) => s.id !== supId);
+    saveStore();
+    renderSupplementManageList();
+    renderHoy();
+    if (activeTab === 'stats') renderStats();
+  });
+
+  renderSupplementManageList();
 
   /* ============ AJUSTES panel / Consumption preferences ============ */
   const tracksConsumoToggle = document.getElementById('tracksConsumoToggle');
