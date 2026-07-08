@@ -12,20 +12,10 @@
       tracksJoints: false,
       tracksTeeth: true,
       jointPricePer4: 4.50,
-      dailyTasks: [
-        { id: 'exercise', label: 'Hacer ejercicio (30 min)' },
-        { id: 'read', label: 'Leer (30 min)' },
-        { id: 'test', label: 'Test Autoescuela (30 min)' }
-      ],
-      weeklyTasks: [
-        { id: 'abuelos', label: 'Ver a mis abuelos' },
-        { id: 'abuela', label: 'Ver a mi abuela' }
-      ],
+      dailyTasks: [],
+      weeklyTasks: [],
       badHabits: [],
-      purchaseItems: [
-        { id: 'packRojo', label: 'Lucky rojo', price: 5.50 },
-        { id: 'packBlanco', label: 'Lucky blanco', price: 6.30 }
-      ]
+      purchaseItems: []
     };
   }
 
@@ -47,7 +37,10 @@
         parsed.settings.badHabits = [];
       }
       if (!Array.isArray(parsed.settings.purchaseItems)) {
-        parsed.settings.purchaseItems = defaultSettings().purchaseItems;
+        parsed.settings.purchaseItems = [
+          { id: 'packRojo', label: 'Lucky rojo', price: 5.50 },
+          { id: 'packBlanco', label: 'Lucky blanco', price: 6.30 }
+        ];
         Object.keys(parsed.entries).forEach((key) => {
           const entry = parsed.entries[key];
           entry.purchases = entry.purchases || {};
@@ -402,7 +395,8 @@
           <button class="stepper-btn" data-step="1" aria-label="Sumar">+</button>
         </div>
       </li>` : '';
-    dailyTaskList.innerHTML = dailyItemsHtml + teethHtml;
+    const dailyEmptyHtml = (!dailyItemsHtml && !teethHtml) ? '<li class="task-empty-hint">No tienes tareas diarias. Añade una en Ajustes.</li>' : '';
+    dailyTaskList.innerHTML = dailyItemsHtml + teethHtml + dailyEmptyHtml;
 
     const wk = isoWeekKey(currentDate);
     const week = getWeek(wk);
@@ -975,7 +969,11 @@
 
     // Habit rings
     ringsGrid.innerHTML = '';
-    buildHabitsList().forEach((h) => {
+    const habitsList = buildHabitsList();
+    if (habitsList.length === 0) {
+      ringsGrid.innerHTML = '<p class="task-empty-hint">No tienes tareas diarias. Añade una en Ajustes.</p>';
+    }
+    habitsList.forEach((h) => {
       let done = 0;
       for (let d = 1; d <= lastDay; d++) {
         const key = dateKey(new Date(year, monthIndex, d));
