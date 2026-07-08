@@ -183,6 +183,17 @@ body {
   color: var(--text-muted);
 }
 
+.day-greeting {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: -4px 2px 0;
+}
+.day-greeting:empty { display: none; }
+.day-greeting strong {
+  color: var(--accent-2);
+  font-weight: 700;
+}
+
 /* ---------- Main / cards ---------- */
 main {
   flex: 1;
@@ -370,21 +381,42 @@ main {
 }
 
 /* ---------- Reflection ---------- */
+.reflection-card {
+  position: relative;
+  overflow: hidden;
+}
+.reflection-quote-mark {
+  position: absolute;
+  top: 6px;
+  right: 16px;
+  font-family: var(--font-serif);
+  font-size: 56px;
+  line-height: 1;
+  color: var(--accent-soft);
+  pointer-events: none;
+  user-select: none;
+}
 .reflection-box {
+  position: relative;
   width: 100%;
   resize: vertical;
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  border: none;
+  border-left: 3px solid var(--accent);
+  border-radius: 4px 12px 12px 4px;
   background: var(--surface-alt);
   color: var(--text);
-  padding: 10px 12px;
-  font-size: 14px;
-  font-family: inherit;
-  line-height: 1.4;
+  padding: 12px 14px;
+  font-size: 15.5px;
+  font-family: var(--font-serif);
+  line-height: 1.65;
 }
 .reflection-box:focus {
   outline: none;
-  border-color: var(--accent);
+  border-left-color: var(--accent-strong);
+}
+.reflection-box::placeholder {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
 }
 .save-hint {
   margin-top: 8px;
@@ -488,6 +520,26 @@ main {
 .consumo-price {
   font-size: 11.5px;
   color: var(--text-muted);
+}
+
+.consumo-row--item {
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+}
+.consumo-row--item:last-child { margin-bottom: 0; }
+.consumo-row--item + .consumo-row--item {
+  border-top: none;
+  padding-top: 12px;
+  margin-top: 0;
+}
+.consumo-swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 6px;
+  flex: none;
 }
 
 .avg-grid {

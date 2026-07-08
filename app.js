@@ -115,10 +115,11 @@
   }
 
   function renderSpendGroups(container, year, monthIndex, lastDay, monthLabel, yearLabel) {
-    const groups = store.settings.purchaseItems.map((item) => ({
+    const groups = store.settings.purchaseItems.map((item, i) => ({
       label: item.label,
       month: monthPurchaseSpend(item.id, item.price, year, monthIndex, lastDay),
-      year: yearPurchaseSpend(item.id, item.price, year)
+      year: yearPurchaseSpend(item.id, item.price, year),
+      color: purchaseColor(i)
     }));
     const showJoints = jointsEnabled();
     if (showJoints) {
@@ -135,20 +136,24 @@
       return;
     }
 
-    container.innerHTML = groups.map((g) => `
+    container.innerHTML = groups.map((g) => {
+      const tileStyle = g.color ? ` style="background:color-mix(in srgb, ${g.color} 14%, var(--surface-alt))"` : '';
+      const labelStyle = g.color ? ` style="color:${g.color}"` : '';
+      return `
       <div class="spend-group${g.isTotal ? ' spend-group--total' : ''}">
-        <div class="spend-group-label">${g.label}</div>
+        <div class="spend-group-label"${labelStyle}>${g.label}</div>
         <div class="avg-grid">
-          <div class="avg-tile">
+          <div class="avg-tile"${tileStyle}>
             <span class="avg-value">${formatEuro(g.month)}</span>
             <span class="avg-label">${monthLabel}</span>
           </div>
-          <div class="avg-tile">
+          <div class="avg-tile"${tileStyle}>
             <span class="avg-value">${formatEuro(g.year)}</span>
             <span class="avg-label">${yearLabel}</span>
           </div>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   }
 
   function getEntry(key) {
@@ -337,9 +342,35 @@
     }, 400);
   });
 
+  function updateGreeting(entry) {
+    const greetingEl = document.getElementById('dayGreeting');
+    const today = startOfDay(new Date());
+    if (currentDate.getTime() !== today.getTime()) {
+      greetingEl.textContent = '';
+      return;
+    }
+    const hour = new Date().getHours();
+    const salute = hour < 6 ? 'Buenas noches' : hour < 13 ? 'Buenos días' : hour < 20 ? 'Buenas tardes' : 'Buenas noches';
+    const dailyTotal = store.settings.dailyTasks.length + (teethEnabled() ? 1 : 0);
+    if (dailyTotal === 0) {
+      greetingEl.textContent = `${salute}.`;
+      return;
+    }
+    let done = 0;
+    store.settings.dailyTasks.forEach((t) => { if (entry[t.id]) done++; });
+    if (teethEnabled() && entry.teeth > 0) done++;
+    if (done >= dailyTotal) {
+      greetingEl.innerHTML = `${salute} — <strong>ya has completado tu día</strong>.`;
+    } else {
+      const remaining = dailyTotal - done;
+      greetingEl.innerHTML = `${salute} — te ${remaining === 1 ? 'falta' : 'faltan'} <strong>${remaining}</strong> ${remaining === 1 ? 'tarea' : 'tareas'} hoy.`;
+    }
+  }
+
   function renderHoy() {
     const key = dateKey(currentDate);
     const entry = getEntry(key) || emptyEntry();
+    updateGreeting(entry);
 
     const dailyItemsHtml = store.settings.dailyTasks.map((t) => `
       <li class="habit-row" data-habit="${t.id}">
@@ -482,10 +513,12 @@
     const entry = getEntry(key) || emptyEntry();
     const items = store.settings.purchaseItems;
     purchaseEmptyHint.hidden = items.length > 0;
-    purchaseRows.innerHTML = items.map((item) => `
-      <div class="consumo-row">
+    purchaseRows.innerHTML = items.map((item, i) => {
+      const color = purchaseColor(i);
+      return `
+      <div class="consumo-row consumo-row--item" style="background:color-mix(in srgb, ${color} 13%, var(--surface))">
         <div class="consumo-label">
-          <span class="consumo-name">${item.label}</span>
+          <span class="consumo-name"><span class="consumo-swatch" style="background:${color}"></span>${item.label}</span>
           <span class="consumo-price">${formatEuro(item.price)}/unidad</span>
         </div>
         <div class="stepper stepper--lg" data-stepper="${item.id}">
@@ -493,7 +526,8 @@
           <span class="stepper-value">${(entry.purchases && entry.purchases[item.id]) || 0}</span>
           <button class="stepper-btn" data-step="1" aria-label="Sumar ${item.label}">+</button>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   }
 
   function monthPurchaseSpend(itemId, price, year, monthIndex, lastDay) {

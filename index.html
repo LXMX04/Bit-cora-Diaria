@@ -41,6 +41,8 @@
     <!-- HOY -->
     <section class="tab-panel" id="panel-hoy" data-panel="hoy">
 
+      <p class="day-greeting" id="dayGreeting"></p>
+
       <div class="card">
         <h2 class="card-title">Hábitos diarios</h2>
         <ul class="habit-list" id="dailyTaskList"></ul>
@@ -60,8 +62,9 @@
         <p class="hint-text">Márcalo si hoy has hecho esto que quieres evitar. Resta puntos del Total y se refleja en Stats.</p>
       </div>
 
-      <div class="card">
+      <div class="card reflection-card">
         <h2 class="card-title">Reflexión del día</h2>
+        <div class="reflection-quote-mark" aria-hidden="true">&#8220;</div>
         <textarea id="reflectionInput" class="reflection-box" rows="5" placeholder="¿Cómo ha ido el día? ¿Qué destacarías?"></textarea>
         <div class="save-hint" id="reflectionHint">Guardado automáticamente</div>
       </div>
