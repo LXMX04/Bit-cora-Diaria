@@ -2,6 +2,8 @@
   --accent: #2f6f5e;
   --accent-strong: #245648;
   --accent-soft: rgba(47, 111, 94, 0.14);
+  --accent-2: #b07a24;
+  --accent-2-soft: rgba(176, 122, 36, 0.14);
   --bg: #f4f6f5;
   --surface: #ffffff;
   --surface-alt: #eef1f0;
@@ -16,6 +18,8 @@
   --tabbar-h: 64px;
   --dayselector-h: 52px;
   --topbar-h: 52px;
+  --font-display: ui-rounded, "SF Pro Rounded", "Segoe UI Rounded", -apple-system, sans-serif;
+  --font-serif: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
 
   --h-teeth: #8f6bc2;
   --h-total: #2f6f5e;
@@ -36,6 +40,8 @@
   --accent: #4fae93;
   --accent-strong: #6cc2a8;
   --accent-soft: rgba(79, 174, 147, 0.18);
+  --accent-2: #e0ac54;
+  --accent-2-soft: rgba(224, 172, 84, 0.18);
   --danger: #e08683;
   --danger-soft: rgba(224, 134, 131, 0.16);
   --good: #4fae93;
@@ -61,6 +67,8 @@
     --accent: #4fae93;
     --accent-strong: #6cc2a8;
     --accent-soft: rgba(79, 174, 147, 0.18);
+    --accent-2: #e0ac54;
+    --accent-2-soft: rgba(224, 172, 84, 0.18);
     --danger: #e08683;
     --danger-soft: rgba(224, 134, 131, 0.16);
     --good: #4fae93;
@@ -115,8 +123,19 @@ body {
   top: 0;
   z-index: 5;
 }
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.brand-mark {
+  width: 24px;
+  height: 24px;
+  flex: none;
+}
 .topbar h1 {
-  font-size: 17px;
+  font-family: var(--font-serif);
+  font-size: 19px;
   font-weight: 700;
   margin: 0;
   letter-spacing: -0.01em;
@@ -338,6 +357,7 @@ main {
   font-size: 16px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  font-family: var(--font-display);
 }
 .stepper--lg .stepper-btn {
   width: 38px;
@@ -499,6 +519,8 @@ main {
   font-size: 24px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
+  font-family: var(--font-display);
+  color: var(--accent-2);
 }
 .avg-label {
   font-size: 11.5px;
@@ -708,6 +730,7 @@ main {
   font-size: 26px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
+  font-family: var(--font-display);
 }
 .food-avg-label {
   font-size: 11.5px;
@@ -760,12 +783,22 @@ main {
 .ring-pct {
   font-size: 12.5px;
   font-weight: 800;
+  font-family: var(--font-display);
+  color: var(--accent-2);
 }
 .ring-name {
   font-size: 10.5px;
   color: var(--text-muted);
   text-align: center;
   line-height: 1.2;
+}
+.ring-icon {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  vertical-align: -2.5px;
+  margin-right: 3px;
+  color: var(--accent);
 }
 
 .bars-list {
@@ -1024,7 +1057,7 @@ main {
   color: var(--text-muted);
   padding: 6px 0 0;
 }
-.tab-icon { font-size: 20px; line-height: 1; }
+.tab-icon { width: 22px; height: 22px; }
 .tab-label { font-size: 10px; font-weight: 600; }
 .tab-btn.is-active { color: var(--accent); }
 .tab-btn[hidden] { display: none; }

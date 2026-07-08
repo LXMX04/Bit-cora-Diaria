@@ -592,15 +592,22 @@
     renderStats();
   });
 
-  const DAILY_TASK_ICONS = { exercise: '🏋️', read: '📖', test: '🚗' };
+  const ICONS = {
+    exercise: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 9v6M2 8v8M20 9v6M22 8v8M6 12h12" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    read: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 5c2-1 5-1 8 0v14c-3-1-6-1-8 0V5ZM20 5c-2-1-5-1-8 0v14c3-1 6-1 8 0V5Z" stroke-linejoin="round"/></svg>',
+    test: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><path d="M12 6v4M6.8 15.2 9.6 13M17.2 15.2 14.4 13" stroke-linecap="round"/></svg>',
+    teeth: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3C9.2 3 7 5 7 7.8C7 9.7 7.8 10.8 8.1 12.8C8.5 15.3 9.3 18.6 10.3 20.2C10.7 20.8 11.3 20.6 11.4 19.8L11.7 17.2C11.8 16.3 12.2 16.3 12.3 17.2L12.6 19.8C12.7 20.6 13.3 20.8 13.7 20.2C14.7 18.6 15.5 15.3 15.9 12.8C16.2 10.8 17 9.7 17 7.8C17 5 14.8 3 12 3Z" stroke-linejoin="round" stroke-linecap="round"/></svg>',
+    ban: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8.5"/><path d="M6.5 6.5l11 11" stroke-linecap="round"/></svg>',
+    default: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8.5"/><path d="M8 12.3l2.6 2.6L16.2 9" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  };
 
   function buildHabitsList() {
     const list = store.settings.dailyTasks.map((t) => ({
-      field: t.id, icon: DAILY_TASK_ICONS[t.id] || '✅', name: t.label
+      field: t.id, icon: ICONS[t.id] || ICONS.default, name: t.label
     }));
-    if (teethEnabled()) list.push({ field: 'teeth', icon: '🦷', name: 'Dientes' });
+    if (teethEnabled()) list.push({ field: 'teeth', icon: ICONS.teeth, name: 'Dientes' });
     store.settings.badHabits.forEach((b) => {
-      list.push({ field: b.id, icon: '🚫', name: b.label, invert: true });
+      list.push({ field: b.id, icon: ICONS.ban, name: b.label, invert: true });
     });
     return list;
   }
@@ -902,7 +909,7 @@
       const pct = lastDay > 0 ? (done / lastDay) * 100 : 0;
       const tile = document.createElement('div');
       tile.className = 'ring-tile';
-      tile.innerHTML = `${ringSVG(pct)}<span class="ring-pct">${Math.round(pct)}%</span><span class="ring-name">${h.icon} ${h.name}</span>`;
+      tile.innerHTML = `${ringSVG(pct)}<span class="ring-pct">${Math.round(pct)}%</span><span class="ring-name"><span class="ring-icon">${h.icon}</span>${h.name}</span>`;
       ringsGrid.appendChild(tile);
     });
 
