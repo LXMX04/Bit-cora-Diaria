@@ -186,7 +186,8 @@ body {
 .day-greeting {
   font-size: 14px;
   color: var(--text-muted);
-  margin: -4px 2px 0;
+  margin: -4px 0 0;
+  text-align: center;
 }
 .day-greeting:empty { display: none; }
 .day-greeting strong {
