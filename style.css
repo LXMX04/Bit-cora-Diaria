@@ -104,7 +104,7 @@ body {
 
 /* ---------- Topbar ---------- */
 .topbar {
-  height: var(--topbar-h);
+  height: calc(var(--topbar-h) + env(safe-area-inset-top));
   padding-top: env(safe-area-inset-top);
   display: flex;
   align-items: center;
@@ -132,7 +132,7 @@ body {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   position: sticky;
-  top: var(--topbar-h);
+  top: calc(var(--topbar-h) + env(safe-area-inset-top));
   z-index: 4;
 }
 .day-nav {
