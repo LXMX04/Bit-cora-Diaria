@@ -946,7 +946,7 @@ main {
 .task-manage-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 10px;
   padding: 10px 0;
 }
@@ -954,10 +954,22 @@ main {
   border-top: 1px solid var(--border);
 }
 .task-manage-label {
+  flex: 1;
   font-size: 14.5px;
   font-weight: 600;
   min-width: 0;
   overflow-wrap: break-word;
+}
+.purchase-price-input {
+  flex: none;
+  width: 64px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-alt);
+  color: var(--text);
+  padding: 6px 8px;
+  font-size: 13px;
+  text-align: right;
 }
 .task-remove-btn {
   flex: none;

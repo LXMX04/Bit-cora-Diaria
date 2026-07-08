@@ -172,30 +172,10 @@
         <p class="hint-text">La media se recalcula cada vez que añades un dato nuevo, comparada con el mes anterior.</p>
       </div>
 
-      <div class="card">
-        <h2 class="card-title">Compra de tabaco</h2>
-        <div class="consumo-row">
-          <div class="consumo-label">
-            <span class="consumo-name">Lucky rojo</span>
-            <span class="consumo-price">5,50 €/paquete</span>
-          </div>
-          <div class="stepper stepper--lg" data-stepper="packRojo">
-            <button class="stepper-btn" data-step="-1" aria-label="Restar paquete Lucky rojo">–</button>
-            <span class="stepper-value" id="packRojoValue">0</span>
-            <button class="stepper-btn" data-step="1" aria-label="Sumar paquete Lucky rojo">+</button>
-          </div>
-        </div>
-        <div class="consumo-row">
-          <div class="consumo-label">
-            <span class="consumo-name">Lucky blanco</span>
-            <span class="consumo-price">6,30 €/paquete</span>
-          </div>
-          <div class="stepper stepper--lg" data-stepper="packBlanco">
-            <button class="stepper-btn" data-step="-1" aria-label="Restar paquete Lucky blanco">–</button>
-            <span class="stepper-value" id="packBlancoValue">0</span>
-            <button class="stepper-btn" data-step="1" aria-label="Sumar paquete Lucky blanco">+</button>
-          </div>
-        </div>
+      <div class="card" id="purchasesCard">
+        <h2 class="card-title">Compras</h2>
+        <div id="purchaseRows"></div>
+        <p class="hint-text" id="purchaseEmptyHint" hidden>No tienes artículos de compra. Añade uno en Ajustes.</p>
       </div>
 
       <div class="card">
@@ -329,6 +309,13 @@
             </div>
             <p class="hint-text">Se usa para calcular el gasto en Consumo y Stats.</p>
           </div>
+          <ul class="task-manage-list" id="purchaseManageList"></ul>
+          <div class="task-add-row">
+            <input type="text" id="newPurchaseLabelInput" class="task-add-input" placeholder="Nuevo artículo…" maxlength="30" />
+            <input type="number" id="newPurchasePriceInput" class="purchase-price-input" placeholder="€" min="0" step="0.01" />
+            <button class="secondary-btn task-add-btn" id="addPurchaseBtn">Añadir</button>
+          </div>
+          <p class="hint-text">Cada artículo aparece en Consumo con su propio contador y en Gasto total con su propia categoría.</p>
         </div>
       </div>
 

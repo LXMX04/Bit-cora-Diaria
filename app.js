@@ -21,7 +21,11 @@
         { id: 'abuelos', label: 'Ver a mis abuelos' },
         { id: 'abuela', label: 'Ver a mi abuela' }
       ],
-      badHabits: []
+      badHabits: [],
+      purchaseItems: [
+        { id: 'packRojo', label: 'Lucky rojo', price: 5.50 },
+        { id: 'packBlanco', label: 'Lucky blanco', price: 6.30 }
+      ]
     };
   }
 
@@ -41,6 +45,15 @@
       }
       if (!Array.isArray(parsed.settings.badHabits)) {
         parsed.settings.badHabits = [];
+      }
+      if (!Array.isArray(parsed.settings.purchaseItems)) {
+        parsed.settings.purchaseItems = defaultSettings().purchaseItems;
+        Object.keys(parsed.entries).forEach((key) => {
+          const entry = parsed.entries[key];
+          entry.purchases = entry.purchases || {};
+          if (entry.packRojo) entry.purchases.packRojo = entry.packRojo;
+          if (entry.packBlanco) entry.purchases.packBlanco = entry.packBlanco;
+        });
       }
       if (typeof parsed.settings.tracksConsumo !== 'boolean') {
         parsed.settings.tracksConsumo = true;
@@ -81,12 +94,9 @@
       },
       cigarettes: 0,
       joints: 0,
-      packRojo: 0,
-      packBlanco: 0
+      purchases: {}
     };
   }
-
-  const PACK_PRICES = { packRojo: 5.50, packBlanco: 6.30 };
 
   function formatEuro(n) {
     return `${n.toFixed(2).replace('.', ',')} €`;
@@ -105,16 +115,24 @@
   }
 
   function renderSpendGroups(container, year, monthIndex, lastDay, monthLabel, yearLabel) {
-    const tobaccoMonth = monthPackSpend(year, monthIndex, lastDay);
-    const tobaccoYear = yearPackSpend(year);
+    const groups = store.settings.purchaseItems.map((item) => ({
+      label: item.label,
+      month: monthPurchaseSpend(item.id, item.price, year, monthIndex, lastDay),
+      year: yearPurchaseSpend(item.id, item.price, year)
+    }));
     const showJoints = jointsEnabled();
-    const jointsMonth = showJoints ? monthJointsSpend(year, monthIndex, lastDay) : 0;
-    const jointsYear = showJoints ? yearJointsSpend(year) : 0;
-
-    const groups = [{ label: 'Tabaco', month: tobaccoMonth, year: tobaccoYear }];
     if (showJoints) {
-      groups.push({ label: 'Joints', month: jointsMonth, year: jointsYear });
-      groups.push({ label: 'Total', month: tobaccoMonth + jointsMonth, year: tobaccoYear + jointsYear, isTotal: true });
+      groups.push({ label: 'Joints', month: monthJointsSpend(year, monthIndex, lastDay), year: yearJointsSpend(year) });
+    }
+    if (groups.length > 1) {
+      const totalMonth = groups.reduce((s, g) => s + g.month, 0);
+      const totalYear = groups.reduce((s, g) => s + g.year, 0);
+      groups.push({ label: 'Total', month: totalMonth, year: totalYear, isTotal: true });
+    }
+
+    if (groups.length === 0) {
+      container.innerHTML = '<p class="task-empty-hint">Sin gastos configurados todavía.</p>';
+      return;
     }
 
     container.innerHTML = groups.map((g) => `
@@ -424,8 +442,8 @@
   /* ============ CONSUMO panel ============ */
   const cigarettesValueEl = document.getElementById('cigarettesValue');
   const jointsValueEl = document.getElementById('jointsValue');
-  const packRojoValueEl = document.getElementById('packRojoValue');
-  const packBlancoValueEl = document.getElementById('packBlancoValue');
+  const purchaseRows = document.getElementById('purchaseRows');
+  const purchaseEmptyHint = document.getElementById('purchaseEmptyHint');
 
   document.querySelectorAll('[data-stepper="cigarettes"] .stepper-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -447,40 +465,51 @@
     });
   });
 
-  document.querySelectorAll('[data-stepper="packRojo"] .stepper-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const key = dateKey(currentDate);
-      const entry = ensureEntry(key);
-      entry.packRojo = Math.max(0, (entry.packRojo || 0) + parseInt(btn.dataset.step, 10));
-      saveStore();
-      renderConsumo();
-    });
+  purchaseRows.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-step]');
+    if (!btn) return;
+    const itemId = btn.closest('[data-stepper]').dataset.stepper;
+    const key = dateKey(currentDate);
+    const entry = ensureEntry(key);
+    entry.purchases = entry.purchases || {};
+    entry.purchases[itemId] = Math.max(0, (entry.purchases[itemId] || 0) + parseInt(btn.dataset.step, 10));
+    saveStore();
+    renderConsumo();
   });
 
-  document.querySelectorAll('[data-stepper="packBlanco"] .stepper-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const key = dateKey(currentDate);
-      const entry = ensureEntry(key);
-      entry.packBlanco = Math.max(0, (entry.packBlanco || 0) + parseInt(btn.dataset.step, 10));
-      saveStore();
-      renderConsumo();
-    });
-  });
+  function renderPurchaseRows() {
+    const key = dateKey(currentDate);
+    const entry = getEntry(key) || emptyEntry();
+    const items = store.settings.purchaseItems;
+    purchaseEmptyHint.hidden = items.length > 0;
+    purchaseRows.innerHTML = items.map((item) => `
+      <div class="consumo-row">
+        <div class="consumo-label">
+          <span class="consumo-name">${item.label}</span>
+          <span class="consumo-price">${formatEuro(item.price)}/unidad</span>
+        </div>
+        <div class="stepper stepper--lg" data-stepper="${item.id}">
+          <button class="stepper-btn" data-step="-1" aria-label="Restar ${item.label}">–</button>
+          <span class="stepper-value">${(entry.purchases && entry.purchases[item.id]) || 0}</span>
+          <button class="stepper-btn" data-step="1" aria-label="Sumar ${item.label}">+</button>
+        </div>
+      </div>`).join('');
+  }
 
-  function monthPackSpend(year, monthIndex, lastDay) {
+  function monthPurchaseSpend(itemId, price, year, monthIndex, lastDay) {
     let sum = 0;
     for (let d = 1; d <= lastDay; d++) {
       const entry = getEntry(dateKey(new Date(year, monthIndex, d)));
       if (!entry) continue;
-      sum += (entry.packRojo || 0) * PACK_PRICES.packRojo + (entry.packBlanco || 0) * PACK_PRICES.packBlanco;
+      sum += ((entry.purchases && entry.purchases[itemId]) || 0) * price;
     }
     return sum;
   }
 
-  function yearPackSpend(year) {
+  function yearPurchaseSpend(itemId, price, year) {
     let sum = 0;
     for (let m = 0; m <= 11; m++) {
-      sum += monthPackSpend(year, m, monthDayRange(year, m));
+      sum += monthPurchaseSpend(itemId, price, year, m, monthDayRange(year, m));
     }
     return sum;
   }
@@ -493,7 +522,9 @@
     const priceLabel = formatEuro(jointPricePer4());
     const jointsPriceHint = document.getElementById('jointsPriceHint');
     if (jointsPriceHint) jointsPriceHint.textContent = `${priceLabel}/4 porros`;
-    const spendHint = `Lucky rojo 5,50 € · Lucky blanco 6,30 € por paquete · Joints ${priceLabel} cada 4 porros.`;
+    const parts = store.settings.purchaseItems.map((item) => `${item.label} ${formatEuro(item.price)} por unidad`);
+    if (jointsEnabled()) parts.push(`Joints ${priceLabel} cada 4 porros`);
+    const spendHint = parts.length ? parts.join(' · ') + '.' : 'Añade artículos de compra en Ajustes para ver su gasto aquí.';
     const spendHintConsumo = document.getElementById('spendHintConsumo');
     if (spendHintConsumo) spendHintConsumo.textContent = spendHint;
     const spendHintStats = document.getElementById('spendHintStats');
@@ -538,8 +569,7 @@
     const entry = getEntry(key) || emptyEntry();
     cigarettesValueEl.textContent = entry.cigarettes || 0;
     jointsValueEl.textContent = entry.joints || 0;
-    packRojoValueEl.textContent = entry.packRojo || 0;
-    packBlancoValueEl.textContent = entry.packBlanco || 0;
+    renderPurchaseRows();
 
     const now = new Date();
     const y = now.getFullYear(), m = now.getMonth();
@@ -665,6 +695,12 @@
     return `hsl(${hue}, ${dark ? 55 : 50}%, ${dark ? 62 : 45}%)`;
   }
 
+  function purchaseColor(index) {
+    const hue = (index * 53 + 340) % 360;
+    const dark = currentTheme() === 'dark';
+    return `hsl(${hue}, ${dark ? 55 : 50}%, ${dark ? 62 : 45}%)`;
+  }
+
   function buildHeatmapRows() {
     const dailyRows = store.settings.dailyTasks.map((t, i) => ({
       key: t.id, label: t.label, type: 'daily', color: dailyTaskColor(i)
@@ -685,8 +721,9 @@
       ...(consumoEnabled() ? [
         { key: 'cigarettes', label: 'Cigarros', type: 'consumo', color: 'var(--h-cig)', groupStart: true },
         ...(jointsEnabled() ? [{ key: 'joints', label: 'Joints', type: 'consumo', color: 'var(--h-joint)' }] : []),
-        { key: 'packRojo', label: 'Lucky rojo', type: 'consumo', color: 'var(--h-pack-rojo)' },
-        { key: 'packBlanco', label: 'Lucky blanco', type: 'consumo', color: 'var(--h-pack-blanco)' }
+        ...store.settings.purchaseItems.map((item, i) => ({
+          key: item.id, label: item.label, type: 'consumo', color: purchaseColor(i)
+        }))
       ] : [])
     ];
   }
@@ -731,10 +768,11 @@
         teeth: teethDone,
         health,
         cigarettes: entry ? (entry.cigarettes || 0) : 0,
-        joints: entry ? (entry.joints || 0) : 0,
-        packRojo: entry ? (entry.packRojo || 0) : 0,
-        packBlanco: entry ? (entry.packBlanco || 0) : 0
+        joints: entry ? (entry.joints || 0) : 0
       };
+      store.settings.purchaseItems.forEach((item) => {
+        dayEntry[item.id] = entry && entry.purchases ? (entry.purchases[item.id] || 0) : 0;
+      });
       store.settings.dailyTasks.forEach((t) => {
         const done = !!(entry && entry[t.id]);
         dayEntry[t.id] = done;
@@ -1238,6 +1276,72 @@
     renderConsumo();
     if (activeTab === 'stats') renderStats();
   });
+
+  const purchaseManageList = document.getElementById('purchaseManageList');
+  const newPurchaseLabelInput = document.getElementById('newPurchaseLabelInput');
+  const newPurchasePriceInput = document.getElementById('newPurchasePriceInput');
+  const addPurchaseBtn = document.getElementById('addPurchaseBtn');
+
+  function renderPurchaseManageList() {
+    const items = store.settings.purchaseItems;
+    purchaseManageList.innerHTML = items.length ? items.map((p) => `
+      <li class="task-manage-item" data-task-id="${p.id}">
+        <span class="task-manage-label">${p.label}</span>
+        <input type="number" class="purchase-price-input" data-price-item="${p.id}" value="${p.price.toFixed(2)}" min="0" step="0.01" />
+        <button type="button" class="task-remove-btn" data-remove-task="${p.id}" aria-label="Eliminar ${p.label}">×</button>
+      </li>`).join('') : '<li class="task-empty-hint">No tienes artículos de compra todavía.</li>';
+  }
+
+  function addPurchaseItem() {
+    const label = newPurchaseLabelInput.value.trim();
+    if (!label) return;
+    const price = parseFloat(newPurchasePriceInput.value);
+    store.settings.purchaseItems.push({ id: generateTaskId(), label, price: (!isNaN(price) && price >= 0) ? price : 0 });
+    saveStore();
+    newPurchaseLabelInput.value = '';
+    newPurchasePriceInput.value = '';
+    renderPurchaseManageList();
+    updateJointPriceHints();
+    renderConsumo();
+    if (activeTab === 'stats') renderStats();
+  }
+
+  addPurchaseBtn.addEventListener('click', addPurchaseItem);
+  newPurchaseLabelInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') addPurchaseItem();
+  });
+  newPurchasePriceInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') addPurchaseItem();
+  });
+
+  purchaseManageList.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-remove-task]');
+    if (!btn) return;
+    const itemId = btn.dataset.removeTask;
+    store.settings.purchaseItems = store.settings.purchaseItems.filter((p) => p.id !== itemId);
+    saveStore();
+    renderPurchaseManageList();
+    updateJointPriceHints();
+    renderConsumo();
+    if (activeTab === 'stats') renderStats();
+  });
+
+  purchaseManageList.addEventListener('change', (e) => {
+    const input = e.target.closest('[data-price-item]');
+    if (!input) return;
+    const itemId = input.dataset.priceItem;
+    const item = store.settings.purchaseItems.find((p) => p.id === itemId);
+    if (!item) return;
+    const value = parseFloat(input.value);
+    item.price = (!isNaN(value) && value >= 0) ? value : 0;
+    input.value = item.price.toFixed(2);
+    saveStore();
+    updateJointPriceHints();
+    renderConsumo();
+    if (activeTab === 'stats') renderStats();
+  });
+
+  renderPurchaseManageList();
 
   /* ============ AJUSTES panel / Notifications ============ */
   const reminderToggle = document.getElementById('reminderToggle');
