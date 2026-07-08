@@ -10,7 +10,7 @@
       reminderTime: '21:00',
       tracksConsumo: true,
       tracksJoints: false,
-      tracksTeeth: true,
+      tracksTeeth: false,
       jointPricePer4: 4.50,
       dailyTasks: [],
       weeklyTasks: [],
