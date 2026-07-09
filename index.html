@@ -272,6 +272,41 @@
     <section class="tab-panel" id="panel-ajustes" data-panel="ajustes" hidden>
       <div class="card accordion-card">
         <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
+          <h2 class="card-title">Perfil</h2>
+          <span class="accordion-chevron">›</span>
+        </button>
+        <div class="accordion-body" hidden>
+          <div class="setting-row">
+            <span>Nombre</span>
+            <input type="text" id="profileNameInput" class="profile-input" placeholder="Tu nombre" maxlength="30" />
+          </div>
+          <div class="setting-row">
+            <span>Sexo</span>
+            <select id="profileSexInput" class="profile-input">
+              <option value="">Prefiero no decirlo</option>
+              <option value="hombre">Hombre</option>
+              <option value="mujer">Mujer</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <span>Edad</span>
+            <input type="number" id="profileAgeInput" class="profile-input" min="0" max="120" placeholder="años" />
+          </div>
+          <div class="setting-row">
+            <span>Altura</span>
+            <input type="number" id="profileHeightInput" class="profile-input" min="0" max="260" placeholder="cm" />
+          </div>
+          <div class="setting-row">
+            <span>Peso</span>
+            <input type="number" id="profileWeightInput" class="profile-input" min="0" max="400" step="0.1" placeholder="kg" />
+          </div>
+          <p class="hint-text">Se guarda solo en este dispositivo. Tu nombre se usa en el saludo de la pestaña Hoy.</p>
+        </div>
+      </div>
+
+      <div class="card accordion-card">
+        <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
           <h2 class="card-title">Recordatorio diario</h2>
           <span class="accordion-chevron">›</span>
         </button>

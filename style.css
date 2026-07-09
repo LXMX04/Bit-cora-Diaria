@@ -974,6 +974,26 @@ main {
   width: 72px;
   text-align: right;
 }
+.profile-input {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-alt);
+  color: var(--text);
+  padding: 6px 10px;
+  font-size: 14px;
+  font-family: inherit;
+}
+input.profile-input[type="text"] {
+  width: 140px;
+  text-align: right;
+}
+input.profile-input[type="number"] {
+  width: 72px;
+  text-align: right;
+}
+select.profile-input {
+  max-width: 160px;
+}
 
 .switch {
   position: relative;

@@ -17,7 +17,8 @@
       weeklyTasks: [],
       badHabits: [],
       purchaseItems: [],
-      supplements: []
+      supplements: [],
+      profile: { name: '', sex: '', age: null, height: null, weight: null }
     };
   }
 
@@ -64,6 +65,9 @@
       }
       if (typeof parsed.settings.tracksSupplements !== 'boolean') {
         parsed.settings.tracksSupplements = false;
+      }
+      if (!parsed.settings.profile || typeof parsed.settings.profile !== 'object') {
+        parsed.settings.profile = defaultSettings().profile;
       }
       if (typeof parsed.settings.jointPricePer4 !== 'number' || parsed.settings.jointPricePer4 < 0) {
         parsed.settings.jointPricePer4 = 4.50;
@@ -380,19 +384,22 @@
     }
     const hour = new Date().getHours();
     const salute = hour < 6 ? 'Buenas noches' : hour < 13 ? 'Buenos días' : hour < 20 ? 'Buenas tardes' : 'Buenas noches';
+    const name = (store.settings.profile && store.settings.profile.name || '').trim();
+    const lead = name ? `${salute} ${name}` : salute;
+    const sep = name ? ',' : ' —';
     const dailyTotal = store.settings.dailyTasks.length + (teethEnabled() ? 1 : 0);
     if (dailyTotal === 0) {
-      greetingEl.textContent = `${salute}.`;
+      greetingEl.textContent = `${lead}.`;
       return;
     }
     let done = 0;
     store.settings.dailyTasks.forEach((t) => { if (entry[t.id]) done++; });
     if (teethEnabled() && entry.teeth > 0) done++;
     if (done >= dailyTotal) {
-      greetingEl.innerHTML = `${salute} — <strong>ya has completado tu día</strong>.`;
+      greetingEl.innerHTML = `${lead}${sep} <strong>ya has completado tu día</strong>.`;
     } else {
       const remaining = dailyTotal - done;
-      greetingEl.innerHTML = `${salute} — te ${remaining === 1 ? 'falta' : 'faltan'} <strong>${remaining}</strong> ${remaining === 1 ? 'tarea' : 'tareas'} hoy.`;
+      greetingEl.innerHTML = `${lead}${sep} te ${remaining === 1 ? 'falta' : 'faltan'} <strong>${remaining}</strong> ${remaining === 1 ? 'tarea' : 'tareas'} hoy.`;
     }
   }
 
@@ -1536,6 +1543,44 @@
   });
 
   renderPurchaseManageList();
+
+  /* ============ AJUSTES panel / Profile ============ */
+  const profileNameInput = document.getElementById('profileNameInput');
+  const profileSexInput = document.getElementById('profileSexInput');
+  const profileAgeInput = document.getElementById('profileAgeInput');
+  const profileHeightInput = document.getElementById('profileHeightInput');
+  const profileWeightInput = document.getElementById('profileWeightInput');
+
+  profileNameInput.value = store.settings.profile.name || '';
+  profileSexInput.value = store.settings.profile.sex || '';
+  profileAgeInput.value = store.settings.profile.age != null ? store.settings.profile.age : '';
+  profileHeightInput.value = store.settings.profile.height != null ? store.settings.profile.height : '';
+  profileWeightInput.value = store.settings.profile.weight != null ? store.settings.profile.weight : '';
+
+  profileNameInput.addEventListener('change', () => {
+    store.settings.profile.name = profileNameInput.value.trim();
+    saveStore();
+    renderHoy();
+  });
+  profileSexInput.addEventListener('change', () => {
+    store.settings.profile.sex = profileSexInput.value;
+    saveStore();
+  });
+  profileAgeInput.addEventListener('change', () => {
+    const value = parseInt(profileAgeInput.value, 10);
+    store.settings.profile.age = !isNaN(value) && value >= 0 ? value : null;
+    saveStore();
+  });
+  profileHeightInput.addEventListener('change', () => {
+    const value = parseFloat(profileHeightInput.value);
+    store.settings.profile.height = !isNaN(value) && value >= 0 ? value : null;
+    saveStore();
+  });
+  profileWeightInput.addEventListener('change', () => {
+    const value = parseFloat(profileWeightInput.value);
+    store.settings.profile.weight = !isNaN(value) && value >= 0 ? value : null;
+    saveStore();
+  });
 
   /* ============ AJUSTES panel / Notifications ============ */
   const reminderToggle = document.getElementById('reminderToggle');
