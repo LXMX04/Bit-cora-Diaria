@@ -133,7 +133,7 @@ body {
   height: 34px;
   flex: none;
 }
-.topbar-settings-btn {
+.topbar .topbar-settings-btn {
   flex: none;
   width: 34px;
   height: 34px;
@@ -141,13 +141,13 @@ body {
   border-radius: 50%;
   color: var(--text-muted);
 }
-.topbar-settings-btn:active {
+.topbar .topbar-settings-btn:active {
   background: var(--surface-alt);
 }
-.topbar-settings-btn.is-active {
+.topbar .topbar-settings-btn.is-active {
   color: var(--accent);
 }
-.topbar-settings-btn .tab-icon {
+.topbar .topbar-settings-btn .tab-icon {
   width: 21px;
   height: 21px;
 }
