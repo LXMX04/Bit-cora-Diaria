@@ -28,6 +28,7 @@
   --h-food: #3b8f5e;
   --h-pack-rojo: #8f2f3a;
   --h-pack-blanco: #7a8189;
+  --h-ciclo: #c25490;
 }
 
 :root[data-theme="dark"] {
@@ -54,6 +55,7 @@
   --h-food: #5bc287;
   --h-pack-rojo: #c76270;
   --h-pack-blanco: #9aa1a9;
+  --h-ciclo: #e08fc0;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -81,6 +83,7 @@
     --h-food: #5bc287;
     --h-pack-rojo: #c76270;
     --h-pack-blanco: #9aa1a9;
+    --h-ciclo: #e08fc0;
   }
 }
 
@@ -196,6 +199,17 @@ body {
   color: var(--accent-2);
   font-weight: 700;
 }
+
+.streak-badge {
+  display: block;
+  width: 100%;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-2);
+  margin: 2px 0 0;
+}
+.streak-badge[hidden] { display: none; }
 
 /* ---------- Main / cards ---------- */
 main {
@@ -447,6 +461,10 @@ main {
   color: var(--text);
   padding: 6px 10px;
   font-size: 14px;
+}
+.weight-input {
+  width: 90px;
+  text-align: right;
 }
 .meal-desc {
   width: 100%;

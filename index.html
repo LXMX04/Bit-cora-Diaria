@@ -42,6 +42,7 @@
     <section class="tab-panel" id="panel-hoy" data-panel="hoy">
 
       <p class="day-greeting" id="dayGreeting"></p>
+      <p class="streak-badge" id="streakBadge" hidden></p>
 
       <div class="card">
         <h2 class="card-title">Hábitos diarios</h2>
@@ -59,6 +60,105 @@
       <div class="card" id="supplementsCard">
         <h2 class="card-title">Suplementos</h2>
         <ul class="habit-list" id="supplementList"></ul>
+      </div>
+
+      <div class="card" id="aguaCard" hidden>
+        <h2 class="card-title">Agua</h2>
+        <div class="consumo-row">
+          <div class="consumo-label">
+            <span class="consumo-name">Vasos de agua</span>
+            <span class="consumo-price" id="aguaGoalHint">Objetivo: 8 vasos</span>
+          </div>
+          <div class="stepper stepper--lg" data-stepper="agua">
+            <button class="stepper-btn" data-step="-1" aria-label="Restar vaso">–</button>
+            <span class="stepper-value" id="aguaValue">0</span>
+            <button class="stepper-btn" data-step="1" aria-label="Sumar vaso">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="suenoCard" hidden>
+        <h2 class="card-title">Sueño</h2>
+        <div class="consumo-row">
+          <div class="consumo-label">
+            <span class="consumo-name">Horas dormidas</span>
+          </div>
+          <div class="stepper stepper--lg" data-stepper="sleepHours">
+            <button class="stepper-btn" data-step="-0.5" aria-label="Restar media hora">–</button>
+            <span class="stepper-value" id="sleepHoursValue">0</span>
+            <button class="stepper-btn" data-step="0.5" aria-label="Sumar media hora">+</button>
+          </div>
+        </div>
+        <div class="health-row">
+          <span class="health-label">Calidad</span>
+          <div class="health-scale" data-health-sleep="1">
+            <button type="button" class="health-btn" data-value="1">1</button>
+            <button type="button" class="health-btn" data-value="2">2</button>
+            <button type="button" class="health-btn" data-value="3">3</button>
+            <button type="button" class="health-btn" data-value="4">4</button>
+            <button type="button" class="health-btn" data-value="5">5</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="pesoCard" hidden>
+        <h2 class="card-title">Peso</h2>
+        <div class="meal-row">
+          <label class="meal-label" for="weightInput">Peso de hoy</label>
+          <input type="number" id="weightInput" class="meal-time weight-input" min="0" max="400" step="0.1" placeholder="kg" />
+        </div>
+        <p class="hint-text" id="weightTrendHint"></p>
+      </div>
+
+      <div class="card" id="ayunoCard" hidden>
+        <h2 class="card-title">Ayuno intermitente</h2>
+        <div class="meal-row">
+          <label class="meal-label" for="fastStartInput">Inicio del ayuno</label>
+          <input type="time" id="fastStartInput" class="meal-time" />
+        </div>
+        <div class="meal-row">
+          <label class="meal-label" for="fastEndInput">Fin del ayuno</label>
+          <input type="time" id="fastEndInput" class="meal-time" />
+        </div>
+        <p class="hint-text" id="fastingHoursHint"></p>
+      </div>
+
+      <div class="card" id="menteCard" hidden>
+        <h2 class="card-title">Mente</h2>
+        <div class="consumo-row" id="meditationRow">
+          <div class="consumo-label"><span class="consumo-name">Meditación</span></div>
+          <div class="stepper" data-stepper="meditationMin">
+            <button class="stepper-btn" data-step="-5" aria-label="Restar 5 min">–</button>
+            <span class="stepper-value" id="meditationMinValue">0</span>
+            <button class="stepper-btn" data-step="5" aria-label="Sumar 5 min">+</button>
+          </div>
+        </div>
+        <div class="consumo-row" id="lecturaRow">
+          <div class="consumo-label"><span class="consumo-name">Lectura</span></div>
+          <div class="stepper" data-stepper="readingMin">
+            <button class="stepper-btn" data-step="-5" aria-label="Restar 5 min">–</button>
+            <span class="stepper-value" id="readingMinValue">0</span>
+            <button class="stepper-btn" data-step="5" aria-label="Sumar 5 min">+</button>
+          </div>
+        </div>
+        <p class="hint-text">Minutos de hoy.</p>
+      </div>
+
+      <div class="card" id="cicloCard" hidden>
+        <h2 class="card-title">Ciclo</h2>
+        <ul class="habit-list">
+          <li class="habit-row">
+            <button class="check-btn" id="periodDayBtn" aria-pressed="false">
+              <span class="check-icon">✓</span>
+            </button>
+            <div class="habit-text"><span class="habit-name">Día de regla</span></div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="card" id="goalsCard">
+        <h2 class="card-title">Metas</h2>
+        <ul class="habit-list" id="goalsList"></ul>
       </div>
 
       <div class="card">
@@ -222,6 +322,71 @@
       <div class="card" id="supplementsStatsCard" hidden>
         <h2 class="card-title">Suplementos</h2>
         <div class="rings-grid rings-grid--lg" id="supplementRingsGrid"></div>
+      </div>
+
+      <div class="card" id="aguaStatsCard" hidden>
+        <h2 class="card-title">Agua</h2>
+        <div class="rings-grid rings-grid--lg" id="aguaRingGrid"></div>
+        <p class="hint-text" id="aguaAvgHint"></p>
+      </div>
+
+      <div class="card" id="suenoStatsCard" hidden>
+        <h2 class="card-title">Sueño</h2>
+        <div class="avg-grid">
+          <div class="avg-tile">
+            <span class="avg-value" id="avgSleepHours">0.0</span>
+            <span class="avg-label">horas/noche</span>
+          </div>
+          <div class="avg-tile">
+            <span class="avg-value" id="avgSleepQuality">–</span>
+            <span class="avg-label">calidad media</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="pesoStatsCard" hidden>
+        <h2 class="card-title">Peso corporal</h2>
+        <div class="chart-wrap" id="weightChart"></div>
+        <p class="hint-text" id="weightChangeHint"></p>
+      </div>
+
+      <div class="card" id="ayunoStatsCard" hidden>
+        <h2 class="card-title">Ayuno intermitente</h2>
+        <div class="avg-grid single">
+          <div class="avg-tile">
+            <span class="avg-value" id="avgFastingHours">0.0</span>
+            <span class="avg-label">horas de ayuno/día</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="menteStatsCard" hidden>
+        <h2 class="card-title">Mente</h2>
+        <div class="avg-grid">
+          <div class="avg-tile" id="meditationAvgTile">
+            <span class="avg-value" id="avgMeditationMin">0</span>
+            <span class="avg-label">min meditación/día</span>
+          </div>
+          <div class="avg-tile" id="lecturaAvgTile">
+            <span class="avg-value" id="avgReadingMin">0</span>
+            <span class="avg-label">min lectura/día</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="cicloStatsCard" hidden>
+        <h2 class="card-title">Ciclo</h2>
+        <div class="avg-grid single">
+          <div class="avg-tile">
+            <span class="avg-value" id="periodDaysCount">0</span>
+            <span class="avg-label">días de regla este mes</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="goalsStatsCard" hidden>
+        <h2 class="card-title">Metas</h2>
+        <div class="bars-list" id="goalsBars"></div>
       </div>
 
       <div class="card">
@@ -441,6 +606,136 @@
             <button class="secondary-btn task-add-btn" id="addSupplementBtn">Añadir</button>
           </div>
           <p class="hint-text">Se guardan solo en este dispositivo. Se reflejan en Stats.</p>
+        </div>
+      </div>
+
+      <div class="card accordion-card">
+        <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
+          <h2 class="card-title">Agua</h2>
+          <span class="accordion-chevron">›</span>
+        </button>
+        <div class="accordion-body" hidden>
+          <div class="setting-row">
+            <span>Activar en Hoy</span>
+            <label class="switch">
+              <input type="checkbox" id="tracksAguaToggle" />
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <span>Objetivo diario (vasos)</span>
+            <input type="number" id="aguaGoalInput" min="1" max="20" step="1" value="8" />
+          </div>
+          <p class="hint-text">Se guarda solo en este dispositivo. Se refleja en Stats.</p>
+        </div>
+      </div>
+
+      <div class="card accordion-card">
+        <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
+          <h2 class="card-title">Sueño</h2>
+          <span class="accordion-chevron">›</span>
+        </button>
+        <div class="accordion-body" hidden>
+          <div class="setting-row">
+            <span>Activar en Hoy</span>
+            <label class="switch">
+              <input type="checkbox" id="tracksSuenoToggle" />
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+          <p class="hint-text">Registra horas dormidas y calidad del sueño (1-5). Se refleja en Stats.</p>
+        </div>
+      </div>
+
+      <div class="card accordion-card">
+        <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
+          <h2 class="card-title">Peso corporal</h2>
+          <span class="accordion-chevron">›</span>
+        </button>
+        <div class="accordion-body" hidden>
+          <div class="setting-row">
+            <span>Activar en Hoy</span>
+            <label class="switch">
+              <input type="checkbox" id="tracksPesoToggle" />
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+          <p class="hint-text">Registro diario de peso, distinto del peso fijo de Perfil. Verás su evolución en Stats.</p>
+        </div>
+      </div>
+
+      <div class="card accordion-card">
+        <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
+          <h2 class="card-title">Ayuno intermitente</h2>
+          <span class="accordion-chevron">›</span>
+        </button>
+        <div class="accordion-body" hidden>
+          <div class="setting-row">
+            <span>Activar en Hoy</span>
+            <label class="switch">
+              <input type="checkbox" id="tracksAyunoToggle" />
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+          <p class="hint-text">Marca hora de inicio y fin del ayuno para calcular las horas ayunadas cada día.</p>
+        </div>
+      </div>
+
+      <div class="card accordion-card">
+        <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
+          <h2 class="card-title">Mente</h2>
+          <span class="accordion-chevron">›</span>
+        </button>
+        <div class="accordion-body" hidden>
+          <div class="setting-row">
+            <span>Meditación</span>
+            <label class="switch">
+              <input type="checkbox" id="tracksMeditacionToggle" />
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <span>Lectura</span>
+            <label class="switch">
+              <input type="checkbox" id="tracksLecturaToggle" />
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+          <p class="hint-text">Registra minutos de meditación y/o lectura cada día. Se reflejan en Stats.</p>
+        </div>
+      </div>
+
+      <div class="card accordion-card">
+        <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
+          <h2 class="card-title">Ciclo menstrual</h2>
+          <span class="accordion-chevron">›</span>
+        </button>
+        <div class="accordion-body" hidden>
+          <div class="setting-row">
+            <span>Activar en Hoy</span>
+            <label class="switch">
+              <input type="checkbox" id="tracksCicloToggle" />
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+          <p class="hint-text">Marca los días de regla. Se reflejan en el mapa de Stats.</p>
+        </div>
+      </div>
+
+      <div class="card accordion-card">
+        <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
+          <h2 class="card-title">Metas</h2>
+          <span class="accordion-chevron">›</span>
+        </button>
+        <div class="accordion-body" hidden>
+          <p class="hint-text">Ej. "Hacer ejercicio 20 días este mes". Márcala en Hoy cada día que la cumplas.</p>
+          <ul class="task-manage-list" id="goalManageList"></ul>
+          <div class="task-add-row">
+            <input type="text" id="newGoalLabelInput" class="task-add-input" placeholder="Nueva meta…" maxlength="40" />
+            <input type="number" id="newGoalTargetInput" class="purchase-price-input" placeholder="n°/mes" min="1" step="1" />
+            <button class="secondary-btn task-add-btn" id="addGoalBtn">Añadir</button>
+          </div>
+          <p class="hint-text">El progreso se muestra en Stats comparado con el objetivo mensual.</p>
         </div>
       </div>
 

@@ -12,12 +12,21 @@
       tracksJoints: false,
       tracksTeeth: false,
       tracksSupplements: false,
+      tracksAgua: false,
+      aguaGoal: 8,
+      tracksSueno: false,
+      tracksPeso: false,
+      tracksAyuno: false,
+      tracksMeditacion: false,
+      tracksLectura: false,
+      tracksCiclo: false,
       jointPricePer4: 4.50,
       dailyTasks: [],
       weeklyTasks: [],
       badHabits: [],
       purchaseItems: [],
       supplements: [],
+      goals: [],
       profile: { name: '', sex: '', birthdate: '', height: null, weight: null }
     };
   }
@@ -42,6 +51,9 @@
       if (!Array.isArray(parsed.settings.supplements)) {
         parsed.settings.supplements = [];
       }
+      if (!Array.isArray(parsed.settings.goals)) {
+        parsed.settings.goals = [];
+      }
       if (!Array.isArray(parsed.settings.purchaseItems)) {
         parsed.settings.purchaseItems = [
           { id: 'packRojo', label: 'Lucky rojo', price: 5.50 },
@@ -65,6 +77,30 @@
       }
       if (typeof parsed.settings.tracksSupplements !== 'boolean') {
         parsed.settings.tracksSupplements = false;
+      }
+      if (typeof parsed.settings.tracksAgua !== 'boolean') {
+        parsed.settings.tracksAgua = false;
+      }
+      if (typeof parsed.settings.aguaGoal !== 'number' || parsed.settings.aguaGoal <= 0) {
+        parsed.settings.aguaGoal = 8;
+      }
+      if (typeof parsed.settings.tracksSueno !== 'boolean') {
+        parsed.settings.tracksSueno = false;
+      }
+      if (typeof parsed.settings.tracksPeso !== 'boolean') {
+        parsed.settings.tracksPeso = false;
+      }
+      if (typeof parsed.settings.tracksAyuno !== 'boolean') {
+        parsed.settings.tracksAyuno = false;
+      }
+      if (typeof parsed.settings.tracksMeditacion !== 'boolean') {
+        parsed.settings.tracksMeditacion = false;
+      }
+      if (typeof parsed.settings.tracksLectura !== 'boolean') {
+        parsed.settings.tracksLectura = false;
+      }
+      if (typeof parsed.settings.tracksCiclo !== 'boolean') {
+        parsed.settings.tracksCiclo = false;
       }
       if (!parsed.settings.profile || typeof parsed.settings.profile !== 'object') {
         parsed.settings.profile = defaultSettings().profile;
@@ -93,6 +129,7 @@
       reflection: '',
       badHabits: {},
       supplements: {},
+      goals: {},
       meals: {
         desayuno: { time: '', desc: '', health: 0 },
         comida: { time: '', desc: '', health: 0 },
@@ -100,7 +137,16 @@
       },
       cigarettes: 0,
       joints: 0,
-      purchases: {}
+      purchases: {},
+      agua: 0,
+      sleepHours: 0,
+      sleepQuality: 0,
+      weight: null,
+      fastStart: '',
+      fastEnd: '',
+      meditationMin: 0,
+      readingMin: 0,
+      periodDay: false
     };
   }
 
@@ -122,6 +168,38 @@
 
   function supplementsEnabled() {
     return store.settings.tracksSupplements === true;
+  }
+
+  function aguaEnabled() {
+    return store.settings.tracksAgua === true;
+  }
+
+  function suenoEnabled() {
+    return store.settings.tracksSueno === true;
+  }
+
+  function pesoEnabled() {
+    return store.settings.tracksPeso === true;
+  }
+
+  function ayunoEnabled() {
+    return store.settings.tracksAyuno === true;
+  }
+
+  function meditacionEnabled() {
+    return store.settings.tracksMeditacion === true;
+  }
+
+  function lecturaEnabled() {
+    return store.settings.tracksLectura === true;
+  }
+
+  function cicloEnabled() {
+    return store.settings.tracksCiclo === true;
+  }
+
+  function aguaGoal() {
+    return store.settings.aguaGoal || 8;
   }
 
   function renderSpendGroups(container, year, monthIndex, lastDay, monthLabel, yearLabel) {
@@ -362,6 +440,158 @@
     renderHoy();
   });
 
+  const aguaCard = document.getElementById('aguaCard');
+  document.querySelectorAll('[data-stepper="agua"] .stepper-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const key = dateKey(currentDate);
+      const entry = ensureEntry(key);
+      entry.agua = Math.max(0, (entry.agua || 0) + parseInt(btn.dataset.step, 10));
+      saveStore();
+      renderHoy();
+    });
+  });
+
+  const suenoCard = document.getElementById('suenoCard');
+  document.querySelectorAll('[data-stepper="sleepHours"] .stepper-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const key = dateKey(currentDate);
+      const entry = ensureEntry(key);
+      entry.sleepHours = Math.max(0, Math.round(((entry.sleepHours || 0) + parseFloat(btn.dataset.step)) * 2) / 2);
+      saveStore();
+      renderHoy();
+    });
+  });
+  document.querySelectorAll('.health-scale[data-health-sleep]').forEach((scale) => {
+    scale.addEventListener('click', (e) => {
+      const btn = e.target.closest('.health-btn');
+      if (!btn) return;
+      const value = parseInt(btn.dataset.value, 10);
+      const key = dateKey(currentDate);
+      const entry = ensureEntry(key);
+      entry.sleepQuality = entry.sleepQuality === value ? 0 : value;
+      saveStore();
+      renderHoy();
+    });
+  });
+
+  const pesoCard = document.getElementById('pesoCard');
+  const weightInput = document.getElementById('weightInput');
+  weightInput.addEventListener('change', () => {
+    const key = dateKey(currentDate);
+    const entry = ensureEntry(key);
+    const value = parseFloat(weightInput.value);
+    entry.weight = (!isNaN(value) && value >= 0) ? value : null;
+    saveStore();
+    renderHoy();
+  });
+
+  const ayunoCard = document.getElementById('ayunoCard');
+  const fastStartInput = document.getElementById('fastStartInput');
+  const fastEndInput = document.getElementById('fastEndInput');
+  function fastingHours(entry) {
+    if (!entry.fastStart || !entry.fastEnd) return 0;
+    const [sh, sm] = entry.fastStart.split(':').map(Number);
+    const [eh, em] = entry.fastEnd.split(':').map(Number);
+    const start = sh * 60 + sm;
+    let end = eh * 60 + em;
+    if (end <= start) end += 24 * 60;
+    return (end - start) / 60;
+  }
+  fastStartInput.addEventListener('change', () => {
+    const key = dateKey(currentDate);
+    const entry = ensureEntry(key);
+    entry.fastStart = fastStartInput.value;
+    saveStore();
+    renderHoy();
+  });
+  fastEndInput.addEventListener('change', () => {
+    const key = dateKey(currentDate);
+    const entry = ensureEntry(key);
+    entry.fastEnd = fastEndInput.value;
+    saveStore();
+    renderHoy();
+  });
+
+  const menteCard = document.getElementById('menteCard');
+  document.querySelectorAll('[data-stepper="meditationMin"] .stepper-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const key = dateKey(currentDate);
+      const entry = ensureEntry(key);
+      entry.meditationMin = Math.max(0, (entry.meditationMin || 0) + parseInt(btn.dataset.step, 10));
+      saveStore();
+      renderHoy();
+    });
+  });
+  document.querySelectorAll('[data-stepper="readingMin"] .stepper-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const key = dateKey(currentDate);
+      const entry = ensureEntry(key);
+      entry.readingMin = Math.max(0, (entry.readingMin || 0) + parseInt(btn.dataset.step, 10));
+      saveStore();
+      renderHoy();
+    });
+  });
+
+  const cicloCard = document.getElementById('cicloCard');
+  const periodDayBtn = document.getElementById('periodDayBtn');
+  periodDayBtn.addEventListener('click', () => {
+    const key = dateKey(currentDate);
+    const entry = ensureEntry(key);
+    entry.periodDay = !entry.periodDay;
+    saveStore();
+    renderHoy();
+  });
+
+  const goalsCard = document.getElementById('goalsCard');
+  const goalsList = document.getElementById('goalsList');
+  goalsList.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-check-goal]');
+    if (!btn) return;
+    const key = dateKey(currentDate);
+    const entry = ensureEntry(key);
+    entry.goals = entry.goals || {};
+    const goalId = btn.dataset.checkGoal;
+    entry.goals[goalId] = !entry.goals[goalId];
+    saveStore();
+    renderHoy();
+  });
+
+  function isDayComplete(entry) {
+    if (!entry) return false;
+    return store.settings.dailyTasks.every((t) => entry[t.id]) && (!teethEnabled() || entry.teeth > 0);
+  }
+
+  function currentStreak() {
+    const totalTasks = store.settings.dailyTasks.length + (teethEnabled() ? 1 : 0);
+    if (totalTasks === 0) return 0;
+    let cursor = startOfDay(new Date());
+    if (!isDayComplete(getEntry(dateKey(cursor)))) {
+      cursor = new Date(cursor.getTime() - DAY_MS);
+    }
+    let streak = 0;
+    while (isDayComplete(getEntry(dateKey(cursor)))) {
+      streak++;
+      cursor = new Date(cursor.getTime() - DAY_MS);
+    }
+    return streak;
+  }
+
+  function updateStreakBadge() {
+    const badge = document.getElementById('streakBadge');
+    const today = startOfDay(new Date());
+    if (currentDate.getTime() !== today.getTime()) {
+      badge.hidden = true;
+      return;
+    }
+    const streak = currentStreak();
+    if (streak < 1) {
+      badge.hidden = true;
+      return;
+    }
+    badge.hidden = false;
+    badge.textContent = `🔥 ${streak} ${streak === 1 ? 'día seguido' : 'días seguidos'} completando tu día`;
+  }
+
   let reflectionTimer = null;
   reflectionInput.addEventListener('input', () => {
     const key = dateKey(currentDate);
@@ -472,6 +702,50 @@
         </div>
       </li>`).join('') : '<li class="task-empty-hint">No tienes suplementos registrados. Añade uno en Ajustes.</li>';
 
+    aguaCard.hidden = !aguaEnabled();
+    document.getElementById('aguaValue').textContent = entry.agua || 0;
+    document.getElementById('aguaGoalHint').textContent = `Objetivo: ${aguaGoal()} vasos`;
+
+    suenoCard.hidden = !suenoEnabled();
+    document.getElementById('sleepHoursValue').textContent = entry.sleepHours || 0;
+    document.querySelectorAll('.health-scale[data-health-sleep] .health-btn').forEach((btn) => {
+      btn.classList.toggle('is-active', parseInt(btn.dataset.value, 10) === (entry.sleepQuality || 0));
+    });
+
+    pesoCard.hidden = !pesoEnabled();
+    weightInput.value = entry.weight != null ? entry.weight : '';
+
+    ayunoCard.hidden = !ayunoEnabled();
+    fastStartInput.value = entry.fastStart || '';
+    fastEndInput.value = entry.fastEnd || '';
+    const fh = fastingHours(entry);
+    document.getElementById('fastingHoursHint').textContent = fh > 0 ? `Ayuno de ${fh.toFixed(1)} horas.` : '';
+
+    menteCard.hidden = !(meditacionEnabled() || lecturaEnabled());
+    document.getElementById('meditationRow').hidden = !meditacionEnabled();
+    document.getElementById('lecturaRow').hidden = !lecturaEnabled();
+    document.getElementById('meditationMinValue').textContent = entry.meditationMin || 0;
+    document.getElementById('readingMinValue').textContent = entry.readingMin || 0;
+
+    cicloCard.hidden = !cicloEnabled();
+    periodDayBtn.setAttribute('aria-pressed', String(!!entry.periodDay));
+
+    const goals = store.settings.goals;
+    const entryGoals = entry.goals || {};
+    goalsCard.hidden = goals.length === 0;
+    goalsList.innerHTML = goals.map((g) => `
+      <li class="habit-row" data-habit="${g.id}">
+        <button class="check-btn" data-check-goal="${g.id}" aria-pressed="${!!entryGoals[g.id]}">
+          <span class="check-icon">✓</span>
+        </button>
+        <div class="habit-text">
+          <span class="habit-name">${g.label}</span>
+          <span class="habit-meta">objetivo: ${g.target}/mes</span>
+        </div>
+      </li>`).join('');
+
+    updateStreakBadge();
+
     reflectionInput.value = entry.reflection || '';
     reflectionHint.textContent = 'Guardado automáticamente';
   }
@@ -491,7 +765,7 @@
     });
   });
 
-  const healthScales = document.querySelectorAll('.health-scale');
+  const healthScales = document.querySelectorAll('.health-scale[data-health]');
 
   healthScales.forEach((scale) => {
     scale.addEventListener('click', (e) => {
@@ -790,6 +1064,156 @@
     });
   }
 
+  function renderAguaStats(year, monthIndex, lastDay) {
+    const card = document.getElementById('aguaStatsCard');
+    if (!aguaEnabled()) { card.hidden = true; return; }
+    card.hidden = false;
+    const grid = document.getElementById('aguaRingGrid');
+    const goal = aguaGoal();
+    let daysMet = 0, sum = 0, count = 0;
+    for (let d = 1; d <= lastDay; d++) {
+      const entry = getEntry(dateKey(new Date(year, monthIndex, d)));
+      if (!entry) continue;
+      const v = entry.agua || 0;
+      if (v > 0) { sum += v; count++; }
+      if (v >= goal) daysMet++;
+    }
+    const pct = lastDay > 0 ? (daysMet / lastDay) * 100 : 0;
+    grid.innerHTML = `<div class="ring-tile ring-tile--lg">${ringSVGLarge(pct)}<span class="ring-pct ring-pct--lg">${Math.round(pct)}%</span><span class="ring-name">días con objetivo cumplido</span></div>`;
+    document.getElementById('aguaAvgHint').textContent = count > 0 ? `Media: ${(sum / count).toFixed(1)} vasos/día registrado.` : 'Sin datos todavía este mes.';
+  }
+
+  function renderSuenoStats(year, monthIndex, lastDay) {
+    const card = document.getElementById('suenoStatsCard');
+    if (!suenoEnabled()) { card.hidden = true; return; }
+    card.hidden = false;
+    let sumHours = 0, countHours = 0, sumQuality = 0, countQuality = 0;
+    for (let d = 1; d <= lastDay; d++) {
+      const entry = getEntry(dateKey(new Date(year, monthIndex, d)));
+      if (!entry) continue;
+      if (entry.sleepHours) { sumHours += entry.sleepHours; countHours++; }
+      if (entry.sleepQuality) { sumQuality += entry.sleepQuality; countQuality++; }
+    }
+    document.getElementById('avgSleepHours').textContent = countHours > 0 ? (sumHours / countHours).toFixed(1) : '0.0';
+    document.getElementById('avgSleepQuality').textContent = countQuality > 0 ? (sumQuality / countQuality).toFixed(1) : '–';
+  }
+
+  function renderPesoStats(year, monthIndex, lastDay) {
+    const card = document.getElementById('pesoStatsCard');
+    if (!pesoEnabled()) { card.hidden = true; return; }
+    card.hidden = false;
+    const chart = document.getElementById('weightChart');
+    const hint = document.getElementById('weightChangeHint');
+    const points = [];
+    for (let d = 1; d <= lastDay; d++) {
+      const entry = getEntry(dateKey(new Date(year, monthIndex, d)));
+      if (entry && entry.weight != null) points.push({ d, w: entry.weight });
+    }
+    if (points.length === 0) {
+      chart.innerHTML = '<p class="hint-text" style="margin-top:0">Sin datos de peso todavía este mes.</p>';
+      hint.textContent = '';
+      return;
+    }
+    const totalDays = daysInMonth(year, monthIndex);
+    const W = 340, H = 150, padL = 32, padR = 8, padT = 10, padB = 20;
+    const plotW = W - padL - padR, plotH = H - padT - padB;
+    const weights = points.map((p) => p.w);
+    const minW = Math.min(...weights), maxW = Math.max(...weights);
+    const range = Math.max(0.5, maxW - minW);
+    const yFor = (w) => padT + plotH - ((w - minW) / range) * plotH;
+    const xFor = (d) => padL + ((d - 0.5) / totalDays) * plotW;
+
+    let yAxis = '';
+    [minW, (minW + maxW) / 2, maxW].forEach((val) => {
+      const y = yFor(val);
+      yAxis += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="var(--border)" stroke-width="1"/>`;
+      yAxis += `<text x="${(padL - 5).toFixed(1)}" y="${(y + 3).toFixed(1)}" font-size="8" text-anchor="end" fill="var(--text-muted)">${val.toFixed(1)}</text>`;
+    });
+
+    const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${xFor(p.d).toFixed(1)},${yFor(p.w).toFixed(1)}`).join(' ');
+    const dots = points.map((p) => `<circle cx="${xFor(p.d).toFixed(1)}" cy="${yFor(p.w).toFixed(1)}" r="2.5" fill="var(--accent)"/>`).join('');
+
+    chart.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${yAxis}<path d="${linePath}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${dots}</svg>`;
+
+    const first = points[0].w, last = points[points.length - 1].w;
+    const diff = last - first;
+    if (Math.abs(diff) < 0.05) {
+      hint.textContent = `Peso actual: ${last.toFixed(1)} kg. Sin cambios este mes.`;
+    } else {
+      hint.textContent = `Peso actual: ${last.toFixed(1)} kg (${diff > 0 ? '+' : ''}${diff.toFixed(1)} kg este mes).`;
+    }
+  }
+
+  function renderAyunoStats(year, monthIndex, lastDay) {
+    const card = document.getElementById('ayunoStatsCard');
+    if (!ayunoEnabled()) { card.hidden = true; return; }
+    card.hidden = false;
+    let sum = 0, count = 0;
+    for (let d = 1; d <= lastDay; d++) {
+      const entry = getEntry(dateKey(new Date(year, monthIndex, d)));
+      if (!entry) continue;
+      const fh = fastingHours(entry);
+      if (fh > 0) { sum += fh; count++; }
+    }
+    document.getElementById('avgFastingHours').textContent = count > 0 ? (sum / count).toFixed(1) : '0.0';
+  }
+
+  function renderMenteStats(year, monthIndex, lastDay) {
+    const card = document.getElementById('menteStatsCard');
+    const showMed = meditacionEnabled(), showRead = lecturaEnabled();
+    if (!showMed && !showRead) { card.hidden = true; return; }
+    card.hidden = false;
+    document.getElementById('meditationAvgTile').hidden = !showMed;
+    document.getElementById('lecturaAvgTile').hidden = !showRead;
+    let sumMed = 0, countMed = 0, sumRead = 0, countRead = 0;
+    for (let d = 1; d <= lastDay; d++) {
+      const entry = getEntry(dateKey(new Date(year, monthIndex, d)));
+      if (!entry) continue;
+      if (entry.meditationMin) { sumMed += entry.meditationMin; countMed++; }
+      if (entry.readingMin) { sumRead += entry.readingMin; countRead++; }
+    }
+    document.getElementById('avgMeditationMin').textContent = countMed > 0 ? Math.round(sumMed / countMed) : 0;
+    document.getElementById('avgReadingMin').textContent = countRead > 0 ? Math.round(sumRead / countRead) : 0;
+  }
+
+  function renderCicloStats(year, monthIndex, lastDay) {
+    const card = document.getElementById('cicloStatsCard');
+    if (!cicloEnabled()) { card.hidden = true; return; }
+    card.hidden = false;
+    let count = 0;
+    for (let d = 1; d <= lastDay; d++) {
+      const entry = getEntry(dateKey(new Date(year, monthIndex, d)));
+      if (entry && entry.periodDay) count++;
+    }
+    document.getElementById('periodDaysCount').textContent = count;
+  }
+
+  function renderGoalsStats(year, monthIndex, lastDay) {
+    const card = document.getElementById('goalsStatsCard');
+    const goals = store.settings.goals;
+    if (goals.length === 0) { card.hidden = true; return; }
+    card.hidden = false;
+    const bars = document.getElementById('goalsBars');
+    bars.innerHTML = '';
+    goals.forEach((g) => {
+      let done = 0;
+      for (let d = 1; d <= lastDay; d++) {
+        const entry = getEntry(dateKey(new Date(year, monthIndex, d)));
+        if (entry && entry.goals && entry.goals[g.id]) done++;
+      }
+      const pct = Math.min(100, (done / g.target) * 100);
+      const row = document.createElement('div');
+      row.className = 'bar-row';
+      row.innerHTML = `
+        <div class="bar-row-top">
+          <span class="bar-name">${g.label}</span>
+          <span class="bar-frac">${done}/${g.target}</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>`;
+      bars.appendChild(row);
+    });
+  }
+
   /* ---- Health color gradient (nada saludable -> muy saludable) ---- */
   function currentTheme() {
     const override = document.documentElement.dataset.theme;
@@ -852,6 +1276,7 @@
       ...dailyRows,
       ...(teethEnabled() ? [{ key: 'teeth', label: 'Dientes', type: 'daily', color: 'var(--h-teeth)' }] : []),
       ...supplementRows,
+      ...(cicloEnabled() ? [{ key: 'periodDay', label: 'Ciclo', type: 'daily', color: 'var(--h-ciclo)', groupStart: true }] : []),
       { key: 'health', label: 'Alimentación', type: 'health', groupStart: true },
       ...weeklyRows,
       ...badHabitRows,
@@ -914,6 +1339,7 @@
       store.settings.supplements.forEach((s) => {
         dayEntry[s.id] = !!(entry && entry.supplements && entry.supplements[s.id]);
       });
+      dayEntry.periodDay = !!(entry && entry.periodDay);
       store.settings.dailyTasks.forEach((t) => {
         const done = !!(entry && entry[t.id]);
         dayEntry[t.id] = done;
@@ -1098,6 +1524,13 @@
     });
 
     renderSupplementRings(year, monthIndex, lastDay);
+    renderAguaStats(year, monthIndex, lastDay);
+    renderSuenoStats(year, monthIndex, lastDay);
+    renderPesoStats(year, monthIndex, lastDay);
+    renderAyunoStats(year, monthIndex, lastDay);
+    renderMenteStats(year, monthIndex, lastDay);
+    renderCicloStats(year, monthIndex, lastDay);
+    renderGoalsStats(year, monthIndex, lastDay);
 
     // Weekly tasks bars
     const weekKeys = new Set();
@@ -1604,6 +2037,143 @@
     store.settings.profile.weight = !isNaN(value) && value >= 0 ? value : null;
     saveStore();
   });
+
+  /* ============ AJUSTES panel / Agua ============ */
+  const tracksAguaToggle = document.getElementById('tracksAguaToggle');
+  const aguaGoalInput = document.getElementById('aguaGoalInput');
+  tracksAguaToggle.checked = aguaEnabled();
+  aguaGoalInput.value = aguaGoal();
+  tracksAguaToggle.addEventListener('change', () => {
+    store.settings.tracksAgua = tracksAguaToggle.checked;
+    saveStore();
+    renderHoy();
+    if (activeTab === 'stats') renderStats();
+  });
+  aguaGoalInput.addEventListener('change', () => {
+    const value = parseInt(aguaGoalInput.value, 10);
+    store.settings.aguaGoal = (!isNaN(value) && value > 0) ? value : 8;
+    aguaGoalInput.value = store.settings.aguaGoal;
+    saveStore();
+    renderHoy();
+    if (activeTab === 'stats') renderStats();
+  });
+
+  /* ============ AJUSTES panel / Sueño ============ */
+  const tracksSuenoToggle = document.getElementById('tracksSuenoToggle');
+  tracksSuenoToggle.checked = suenoEnabled();
+  tracksSuenoToggle.addEventListener('change', () => {
+    store.settings.tracksSueno = tracksSuenoToggle.checked;
+    saveStore();
+    renderHoy();
+    if (activeTab === 'stats') renderStats();
+  });
+
+  /* ============ AJUSTES panel / Peso corporal ============ */
+  const tracksPesoToggle = document.getElementById('tracksPesoToggle');
+  tracksPesoToggle.checked = pesoEnabled();
+  tracksPesoToggle.addEventListener('change', () => {
+    store.settings.tracksPeso = tracksPesoToggle.checked;
+    saveStore();
+    renderHoy();
+    if (activeTab === 'stats') renderStats();
+  });
+
+  /* ============ AJUSTES panel / Ayuno intermitente ============ */
+  const tracksAyunoToggle = document.getElementById('tracksAyunoToggle');
+  tracksAyunoToggle.checked = ayunoEnabled();
+  tracksAyunoToggle.addEventListener('change', () => {
+    store.settings.tracksAyuno = tracksAyunoToggle.checked;
+    saveStore();
+    renderHoy();
+    if (activeTab === 'stats') renderStats();
+  });
+
+  /* ============ AJUSTES panel / Mente ============ */
+  const tracksMeditacionToggle = document.getElementById('tracksMeditacionToggle');
+  const tracksLecturaToggle = document.getElementById('tracksLecturaToggle');
+  tracksMeditacionToggle.checked = meditacionEnabled();
+  tracksLecturaToggle.checked = lecturaEnabled();
+  tracksMeditacionToggle.addEventListener('change', () => {
+    store.settings.tracksMeditacion = tracksMeditacionToggle.checked;
+    saveStore();
+    renderHoy();
+    if (activeTab === 'stats') renderStats();
+  });
+  tracksLecturaToggle.addEventListener('change', () => {
+    store.settings.tracksLectura = tracksLecturaToggle.checked;
+    saveStore();
+    renderHoy();
+    if (activeTab === 'stats') renderStats();
+  });
+
+  /* ============ AJUSTES panel / Ciclo menstrual ============ */
+  const tracksCicloToggle = document.getElementById('tracksCicloToggle');
+  tracksCicloToggle.checked = cicloEnabled();
+  tracksCicloToggle.addEventListener('change', () => {
+    store.settings.tracksCiclo = tracksCicloToggle.checked;
+    saveStore();
+    renderHoy();
+    if (activeTab === 'stats') renderStats();
+  });
+
+  /* ============ AJUSTES panel / Metas ============ */
+  const goalManageList = document.getElementById('goalManageList');
+  const newGoalLabelInput = document.getElementById('newGoalLabelInput');
+  const newGoalTargetInput = document.getElementById('newGoalTargetInput');
+  const addGoalBtn = document.getElementById('addGoalBtn');
+
+  function renderGoalManageList() {
+    const goals = store.settings.goals;
+    goalManageList.innerHTML = goals.length ? goals.map((g) => `
+      <li class="task-manage-item" data-task-id="${g.id}">
+        <span class="task-manage-label">${g.label}</span>
+        <input type="number" class="purchase-price-input" data-target-goal="${g.id}" value="${g.target}" min="1" step="1" />
+        <button type="button" class="task-remove-btn" data-remove-task="${g.id}" aria-label="Eliminar ${g.label}">×</button>
+      </li>`).join('') : '<li class="task-empty-hint">No tienes metas todavía.</li>';
+  }
+
+  function addGoal() {
+    const label = newGoalLabelInput.value.trim();
+    if (!label) return;
+    const target = parseInt(newGoalTargetInput.value, 10);
+    store.settings.goals.push({ id: generateTaskId(), label, target: (!isNaN(target) && target > 0) ? target : 20 });
+    saveStore();
+    newGoalLabelInput.value = '';
+    newGoalTargetInput.value = '';
+    renderGoalManageList();
+    renderHoy();
+    if (activeTab === 'stats') renderStats();
+  }
+
+  addGoalBtn.addEventListener('click', addGoal);
+  newGoalLabelInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addGoal(); });
+  newGoalTargetInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addGoal(); });
+
+  goalManageList.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-remove-task]');
+    if (!btn) return;
+    const goalId = btn.dataset.removeTask;
+    store.settings.goals = store.settings.goals.filter((g) => g.id !== goalId);
+    saveStore();
+    renderGoalManageList();
+    renderHoy();
+    if (activeTab === 'stats') renderStats();
+  });
+
+  goalManageList.addEventListener('change', (e) => {
+    const input = e.target.closest('[data-target-goal]');
+    if (!input) return;
+    const goalId = input.dataset.targetGoal;
+    const goal = store.settings.goals.find((g) => g.id === goalId);
+    if (!goal) return;
+    const value = parseInt(input.value, 10);
+    goal.target = (!isNaN(value) && value > 0) ? value : 1;
+    input.value = goal.target;
+    saveStore();
+    if (activeTab === 'stats') renderStats();
+  });
+
+  renderGoalManageList();
 
   /* ============ AJUSTES panel / Notifications ============ */
   const reminderToggle = document.getElementById('reminderToggle');
