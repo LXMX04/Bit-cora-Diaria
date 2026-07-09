@@ -117,14 +117,39 @@ body {
 .topbar {
   height: calc(var(--topbar-h) + env(safe-area-inset-top));
   padding-top: env(safe-area-inset-top);
+  padding-left: 10px;
+  padding-right: 10px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
   position: sticky;
   top: 0;
   z-index: 5;
+}
+.topbar-spacer {
+  width: 34px;
+  height: 34px;
+  flex: none;
+}
+.topbar-settings-btn {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 50%;
+  color: var(--text-muted);
+}
+.topbar-settings-btn:active {
+  background: var(--surface-alt);
+}
+.topbar-settings-btn.is-active {
+  color: var(--accent);
+}
+.topbar-settings-btn .tab-icon {
+  width: 21px;
+  height: 21px;
 }
 .brand {
   display: flex;

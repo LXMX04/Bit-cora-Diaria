@@ -18,6 +18,7 @@
 <div id="app">
 
   <header class="topbar">
+    <div class="topbar-spacer" aria-hidden="true"></div>
     <div class="brand">
       <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
         <circle cx="12" cy="12" r="9.5" fill="none" stroke="var(--accent)" stroke-width="1.6" />
@@ -25,6 +26,14 @@
       </svg>
       <h1>Bitácora Diaria</h1>
     </div>
+    <button class="tab-btn topbar-settings-btn" data-tab="ajustes" aria-label="Ajustes">
+      <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+        <path d="M4 6.5h9M17.5 6.5H20M4 12h3M11.5 12H20M4 17.5h11.5M19.5 17.5H20" stroke-linecap="round" />
+        <circle cx="13" cy="6.5" r="2.1" fill="currentColor" stroke="none" />
+        <circle cx="7" cy="12" r="2.1" fill="currentColor" stroke="none" />
+        <circle cx="17.5" cy="17.5" r="2.1" fill="currentColor" stroke="none" />
+      </svg>
+    </button>
   </header>
 
   <div class="day-selector" id="daySelector">
@@ -803,15 +812,6 @@
         <path d="M3 20h18" stroke-linecap="round" />
       </svg>
       <span class="tab-label">Stats</span>
-    </button>
-    <button class="tab-btn" data-tab="ajustes">
-      <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
-        <path d="M4 6.5h9M17.5 6.5H20M4 12h3M11.5 12H20M4 17.5h11.5M19.5 17.5H20" stroke-linecap="round" />
-        <circle cx="13" cy="6.5" r="2.1" fill="currentColor" stroke="none" />
-        <circle cx="7" cy="12" r="2.1" fill="currentColor" stroke="none" />
-        <circle cx="17.5" cy="17.5" r="2.1" fill="currentColor" stroke="none" />
-      </svg>
-      <span class="tab-label">Ajustes</span>
     </button>
   </nav>
 
