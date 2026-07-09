@@ -18,7 +18,7 @@
       badHabits: [],
       purchaseItems: [],
       supplements: [],
-      profile: { name: '', sex: '', age: null, height: null, weight: null }
+      profile: { name: '', sex: '', birthdate: '', height: null, weight: null }
     };
   }
 
@@ -1547,15 +1547,38 @@
   /* ============ AJUSTES panel / Profile ============ */
   const profileNameInput = document.getElementById('profileNameInput');
   const profileSexInput = document.getElementById('profileSexInput');
-  const profileAgeInput = document.getElementById('profileAgeInput');
+  const profileBirthdateInput = document.getElementById('profileBirthdateInput');
+  const profileAgeHint = document.getElementById('profileAgeHint');
   const profileHeightInput = document.getElementById('profileHeightInput');
   const profileWeightInput = document.getElementById('profileWeightInput');
 
+  function calcAge(birthdateStr) {
+    if (!birthdateStr) return null;
+    const b = new Date(birthdateStr);
+    if (isNaN(b.getTime())) return null;
+    const today = new Date();
+    let age = today.getFullYear() - b.getFullYear();
+    const m = today.getMonth() - b.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < b.getDate())) age--;
+    return age >= 0 ? age : null;
+  }
+
+  function updateProfileAgeHint() {
+    const age = calcAge(store.settings.profile.birthdate);
+    if (age === null) {
+      profileAgeHint.hidden = true;
+      return;
+    }
+    profileAgeHint.hidden = false;
+    profileAgeHint.textContent = `Edad actual: ${age} ${age === 1 ? 'año' : 'años'}.`;
+  }
+
   profileNameInput.value = store.settings.profile.name || '';
   profileSexInput.value = store.settings.profile.sex || '';
-  profileAgeInput.value = store.settings.profile.age != null ? store.settings.profile.age : '';
+  profileBirthdateInput.value = store.settings.profile.birthdate || '';
   profileHeightInput.value = store.settings.profile.height != null ? store.settings.profile.height : '';
   profileWeightInput.value = store.settings.profile.weight != null ? store.settings.profile.weight : '';
+  updateProfileAgeHint();
 
   profileNameInput.addEventListener('change', () => {
     store.settings.profile.name = profileNameInput.value.trim();
@@ -1566,10 +1589,10 @@
     store.settings.profile.sex = profileSexInput.value;
     saveStore();
   });
-  profileAgeInput.addEventListener('change', () => {
-    const value = parseInt(profileAgeInput.value, 10);
-    store.settings.profile.age = !isNaN(value) && value >= 0 ? value : null;
+  profileBirthdateInput.addEventListener('change', () => {
+    store.settings.profile.birthdate = profileBirthdateInput.value;
     saveStore();
+    updateProfileAgeHint();
   });
   profileHeightInput.addEventListener('change', () => {
     const value = parseFloat(profileHeightInput.value);

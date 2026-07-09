@@ -991,6 +991,9 @@ input.profile-input[type="number"] {
   width: 72px;
   text-align: right;
 }
+input.profile-input[type="date"] {
+  width: 150px;
+}
 select.profile-input {
   max-width: 160px;
 }
