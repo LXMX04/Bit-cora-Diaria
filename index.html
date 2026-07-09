@@ -62,6 +62,36 @@
         <ul class="habit-list" id="supplementList"></ul>
       </div>
 
+      <div class="card" id="cicloCard" hidden>
+        <h2 class="card-title">Ciclo</h2>
+        <ul class="habit-list">
+          <li class="habit-row">
+            <button class="check-btn" id="periodDayBtn" aria-pressed="false">
+              <span class="check-icon">✓</span>
+            </button>
+            <div class="habit-text"><span class="habit-name">Día de regla</span></div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">Malos hábitos</h2>
+        <ul class="habit-list" id="badHabitList"></ul>
+        <p class="hint-text">Márcalo si hoy has hecho esto que quieres evitar. Resta puntos del Total y se refleja en Stats.</p>
+      </div>
+
+      <div class="card reflection-card">
+        <h2 class="card-title">Reflexión del día</h2>
+        <div class="reflection-quote-mark" aria-hidden="true">&#8220;</div>
+        <textarea id="reflectionInput" class="reflection-box" rows="5" placeholder="¿Cómo ha ido el día? ¿Qué destacarías?"></textarea>
+        <div class="save-hint" id="reflectionHint">Guardado automáticamente</div>
+      </div>
+
+    </section>
+
+    <!-- OBJETIVOS -->
+    <section class="tab-panel" id="panel-objetivos" data-panel="objetivos" hidden>
+
       <div class="card" id="aguaCard" hidden>
         <h2 class="card-title">Agua</h2>
         <div class="consumo-row">
@@ -144,34 +174,9 @@
         <p class="hint-text">Minutos de hoy.</p>
       </div>
 
-      <div class="card" id="cicloCard" hidden>
-        <h2 class="card-title">Ciclo</h2>
-        <ul class="habit-list">
-          <li class="habit-row">
-            <button class="check-btn" id="periodDayBtn" aria-pressed="false">
-              <span class="check-icon">✓</span>
-            </button>
-            <div class="habit-text"><span class="habit-name">Día de regla</span></div>
-          </li>
-        </ul>
-      </div>
-
       <div class="card" id="goalsCard">
         <h2 class="card-title">Metas</h2>
         <ul class="habit-list" id="goalsList"></ul>
-      </div>
-
-      <div class="card">
-        <h2 class="card-title">Malos hábitos</h2>
-        <ul class="habit-list" id="badHabitList"></ul>
-        <p class="hint-text">Márcalo si hoy has hecho esto que quieres evitar. Resta puntos del Total y se refleja en Stats.</p>
-      </div>
-
-      <div class="card reflection-card">
-        <h2 class="card-title">Reflexión del día</h2>
-        <div class="reflection-quote-mark" aria-hidden="true">&#8220;</div>
-        <textarea id="reflectionInput" class="reflection-box" rows="5" placeholder="¿Cómo ha ido el día? ¿Qué destacarías?"></textarea>
-        <div class="save-hint" id="reflectionHint">Guardado automáticamente</div>
       </div>
 
     </section>
@@ -764,6 +769,14 @@
         <path d="M5.5 10v8.5a1 1 0 0 0 1 1H9.5v-5.5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v5.5h3a1 1 0 0 0 1-1V10" stroke-linecap="round" stroke-linejoin="round" />
       </svg>
       <span class="tab-label">Hoy</span>
+    </button>
+    <button class="tab-btn" data-tab="objetivos" id="tabBtnObjetivos">
+      <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+        <circle cx="12" cy="12" r="8.5" />
+        <circle cx="12" cy="12" r="5" />
+        <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+      </svg>
+      <span class="tab-label">Objetivos</span>
     </button>
     <button class="tab-btn" data-tab="comidas">
       <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">

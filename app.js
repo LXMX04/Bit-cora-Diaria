@@ -332,6 +332,16 @@
     if (!consumoEnabled() && activeTab === 'consumo') switchTab('hoy');
   }
 
+  const tabBtnObjetivos = document.getElementById('tabBtnObjetivos');
+  function objetivosEnabled() {
+    return aguaEnabled() || suenoEnabled() || pesoEnabled() || ayunoEnabled() ||
+      meditacionEnabled() || lecturaEnabled() || store.settings.goals.length > 0;
+  }
+  function updateObjetivosTabVisibility() {
+    tabBtnObjetivos.hidden = !objetivosEnabled();
+    if (!objetivosEnabled() && activeTab === 'objetivos') switchTab('hoy');
+  }
+
   function updateConsumoTabIcon() {
     const basket = document.getElementById('tabIconBasket');
     const cigarette = document.getElementById('tabIconCigarette');
@@ -702,6 +712,17 @@
         </div>
       </li>`).join('') : '<li class="task-empty-hint">No tienes suplementos registrados. Añade uno en Ajustes.</li>';
 
+    cicloCard.hidden = !cicloEnabled();
+    periodDayBtn.setAttribute('aria-pressed', String(!!entry.periodDay));
+
+    updateStreakBadge();
+    renderObjetivos(entry);
+
+    reflectionInput.value = entry.reflection || '';
+    reflectionHint.textContent = 'Guardado automáticamente';
+  }
+
+  function renderObjetivos(entry) {
     aguaCard.hidden = !aguaEnabled();
     document.getElementById('aguaValue').textContent = entry.agua || 0;
     document.getElementById('aguaGoalHint').textContent = `Objetivo: ${aguaGoal()} vasos`;
@@ -727,9 +748,6 @@
     document.getElementById('meditationMinValue').textContent = entry.meditationMin || 0;
     document.getElementById('readingMinValue').textContent = entry.readingMin || 0;
 
-    cicloCard.hidden = !cicloEnabled();
-    periodDayBtn.setAttribute('aria-pressed', String(!!entry.periodDay));
-
     const goals = store.settings.goals;
     const entryGoals = entry.goals || {};
     goalsCard.hidden = goals.length === 0;
@@ -744,10 +762,7 @@
         </div>
       </li>`).join('');
 
-    updateStreakBadge();
-
-    reflectionInput.value = entry.reflection || '';
-    reflectionHint.textContent = 'Guardado automáticamente';
+    updateObjetivosTabVisibility();
   }
 
   /* ============ COMIDAS panel ============ */
@@ -1564,6 +1579,12 @@
       renderConsumoChart(year, monthIndex, lastDay);
       renderCompare(year, monthIndex);
       renderTobaccoSpendStats(year, monthIndex, lastDay);
+    } else {
+      document.getElementById('consumoChartTitle').textContent = '';
+      consumoChart.innerHTML = '';
+      compareList.innerHTML = '';
+      document.getElementById('statsSpendGroups').innerHTML = '';
+      document.getElementById('spendHintStats').textContent = '';
     }
   }
 
