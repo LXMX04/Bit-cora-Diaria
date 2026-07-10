@@ -1213,3 +1213,42 @@ select.profile-input {
 @media (max-width: 340px) {
   .rings-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ---------- Landscape ---------- */
+@media (orientation: landscape) and (min-width: 560px) {
+  :root {
+    --topbar-h: 42px;
+    --dayselector-h: 38px;
+    --tabbar-h: 50px;
+  }
+  #app, .tabbar {
+    max-width: 920px;
+  }
+  main {
+    padding: 10px 20px calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 12px);
+    gap: 16px;
+  }
+  .tab-panel {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    align-content: start;
+    gap: 16px;
+  }
+  .tab-panel > .day-greeting,
+  .tab-panel > .streak-badge {
+    grid-column: 1 / -1;
+  }
+  .tab-panel > .card {
+    min-width: 0;
+    padding: 14px 16px;
+  }
+}
+
+@media (orientation: landscape) and (min-width: 900px) {
+  .tab-panel {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  #app, .tabbar {
+    max-width: 1180px;
+  }
+}
