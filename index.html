@@ -252,7 +252,7 @@
 
     <!-- CONSUMO -->
     <section class="tab-panel" id="panel-consumo" data-panel="consumo" hidden>
-      <div class="card">
+      <div class="card" id="consumoTodayCard" hidden>
         <h2 class="card-title">Consumo de hoy</h2>
         <div class="consumo-row">
           <div class="consumo-label">
@@ -277,7 +277,7 @@
         </div>
       </div>
 
-      <div class="card">
+      <div class="card" id="mediaMensualCard" hidden>
         <h2 class="card-title">Media mensual</h2>
         <div class="avg-grid" id="mediaMensualGrid">
           <div class="avg-tile">
@@ -524,13 +524,13 @@
           <p class="hint-text">Si no fumas ni consumes nada, desactívala para ocultar la pestaña Consumo y sus estadísticas.</p>
           <div id="jointsPrefsGroup">
             <div class="setting-row">
-              <span>Registrar joints</span>
+              <span>Registrar cigarros y joints</span>
               <label class="switch">
                 <input type="checkbox" id="tracksJointsToggle" />
                 <span class="switch-slider"></span>
               </label>
             </div>
-            <p class="hint-text">Si solo fumas tabaco, desactívalo para que Joints desaparezca de Consumo y de Stats.</p>
+            <p class="hint-text">Actívalo si fumas tabaco y/o joints, para que aparezcan en Consumo y en Stats. Si lo desactivas, ambos desaparecen.</p>
             <div class="setting-row">
               <span>Precio de joints (€ cada 4 porros)</span>
               <input type="number" id="jointPriceInput" min="0" step="0.01" value="4.50" inputmode="decimal" />

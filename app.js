@@ -957,6 +957,8 @@
     setDelta('deltaCigarettes', cig.avg, cigPrev.avg, cigPrev.count > 0);
     setDelta('deltaJoints', joint.avg, jointPrev.avg, jointPrev.count > 0);
 
+    document.getElementById('consumoTodayCard').hidden = !jointsEnabled();
+    document.getElementById('mediaMensualCard').hidden = !jointsEnabled();
     document.getElementById('jointsRow').hidden = !jointsEnabled();
     document.getElementById('jointsAvgTile').hidden = !jointsEnabled();
     document.getElementById('mediaMensualGrid').classList.toggle('single', !jointsEnabled());
@@ -1297,10 +1299,12 @@
       ...badHabitRows,
       { key: 'total', label: 'Total', type: 'total', color: 'var(--h-total)', groupStart: true },
       ...(consumoEnabled() ? [
-        { key: 'cigarettes', label: 'Cigarros', type: 'consumo', color: 'var(--h-cig)', groupStart: true },
-        ...(jointsEnabled() ? [{ key: 'joints', label: 'Joints', type: 'consumo', color: 'var(--h-joint)' }] : []),
+        ...(jointsEnabled() ? [
+          { key: 'cigarettes', label: 'Cigarros', type: 'consumo', color: 'var(--h-cig)', groupStart: true },
+          { key: 'joints', label: 'Joints', type: 'consumo', color: 'var(--h-joint)' }
+        ] : []),
         ...store.settings.purchaseItems.map((item, i) => ({
-          key: item.id, label: item.label, type: 'consumo', color: purchaseColor(i)
+          key: item.id, label: item.label, type: 'consumo', color: purchaseColor(i), groupStart: (!jointsEnabled() && i === 0)
         }))
       ] : [])
     ];
@@ -1572,17 +1576,21 @@
     });
 
     const showConsumo = consumoEnabled();
-    document.getElementById('consumoChartCard').hidden = !showConsumo;
-    document.getElementById('compareCard').hidden = !showConsumo;
+    const showSmoking = showConsumo && jointsEnabled();
+    document.getElementById('consumoChartCard').hidden = !showSmoking;
+    document.getElementById('compareCard').hidden = !showSmoking;
     document.getElementById('statsSpendCard').hidden = !showConsumo;
-    if (showConsumo) {
+    if (showSmoking) {
       renderConsumoChart(year, monthIndex, lastDay);
       renderCompare(year, monthIndex);
-      renderTobaccoSpendStats(year, monthIndex, lastDay);
     } else {
       document.getElementById('consumoChartTitle').textContent = '';
       consumoChart.innerHTML = '';
       compareList.innerHTML = '';
+    }
+    if (showConsumo) {
+      renderTobaccoSpendStats(year, monthIndex, lastDay);
+    } else {
       document.getElementById('statsSpendGroups').innerHTML = '';
       document.getElementById('spendHintStats').textContent = '';
     }
