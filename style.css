@@ -636,6 +636,63 @@ main {
   color: #fff;
 }
 
+/* ---------- Ciclo ---------- */
+.cycle-info-line {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin: -4px 0 12px;
+}
+.cycle-info-line strong {
+  color: var(--text);
+}
+.cycle-flow-row {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.cycle-flow-row[hidden] {
+  display: none;
+}
+.cycle-flow-label,
+.cycle-symptoms-label {
+  display: block;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.cycle-flow-scale,
+.cycle-symptom-list {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.flow-btn,
+.symptom-chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.flow-btn[aria-pressed="true"] {
+  background: var(--h-ciclo);
+  border-color: var(--h-ciclo);
+  color: #fff;
+}
+.symptom-chip[aria-pressed="true"] {
+  background: var(--claret-soft);
+  border-color: var(--claret);
+  color: var(--claret);
+}
+.cycle-symptoms {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
 /* ---------- Consumo ---------- */
 .consumo-row {
   display: flex;

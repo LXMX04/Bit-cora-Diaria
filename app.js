@@ -20,6 +20,8 @@
       tracksMeditacion: false,
       tracksLectura: false,
       tracksCiclo: false,
+      cicloAvgLength: 28,
+      cicloAvgPeriodLength: 5,
       tracksWorkouts: false,
       jointPricePer4: 4.50,
       dailyTasks: [],
@@ -107,6 +109,12 @@
       if (typeof parsed.settings.tracksCiclo !== 'boolean') {
         parsed.settings.tracksCiclo = false;
       }
+      if (typeof parsed.settings.cicloAvgLength !== 'number' || parsed.settings.cicloAvgLength < 15) {
+        parsed.settings.cicloAvgLength = 28;
+      }
+      if (typeof parsed.settings.cicloAvgPeriodLength !== 'number' || parsed.settings.cicloAvgPeriodLength < 1) {
+        parsed.settings.cicloAvgPeriodLength = 5;
+      }
       if (typeof parsed.settings.tracksWorkouts !== 'boolean') {
         parsed.settings.tracksWorkouts = false;
       }
@@ -155,6 +163,8 @@
       meditationMin: 0,
       readingMin: 0,
       periodDay: false,
+      periodFlow: null,
+      cycleSymptoms: [],
       workout: { durationMin: 0, exercises: {} }
     };
   }
@@ -205,6 +215,110 @@
 
   function cicloEnabled() {
     return store.settings.tracksCiclo === true;
+  }
+
+  const CYCLE_SYMPTOMS = [
+    { id: 'cramps', label: 'Cólicos' },
+    { id: 'headache', label: 'Dolor de cabeza' },
+    { id: 'bloating', label: 'Hinchazón' },
+    { id: 'fatigue', label: 'Cansancio' },
+    { id: 'moodSwings', label: 'Cambios de humor' },
+    { id: 'acne', label: 'Acné' },
+    { id: 'tenderBreasts', label: 'Sensibilidad' },
+    { id: 'nausea', label: 'Náuseas' }
+  ];
+
+  const PERIOD_FLOW_LEVELS = [
+    { id: 'spotting', label: 'Manchado' },
+    { id: 'light', label: 'Ligero' },
+    { id: 'medium', label: 'Medio' },
+    { id: 'heavy', label: 'Abundante' }
+  ];
+
+  const CYCLE_PHASE_LABELS = {
+    menstrual: 'Menstruación',
+    folicular: 'Fase folicular',
+    ovulacion: 'Ventana fértil',
+    lutea: 'Fase lútea'
+  };
+
+  function getPeriodStartDates() {
+    const keys = Object.keys(store.entries).filter((k) => store.entries[k].periodDay).sort();
+    const starts = [];
+    let prevDate = null;
+    keys.forEach((k) => {
+      const d = new Date(`${k}T00:00:00`);
+      if (!prevDate || (d - prevDate) > DAY_MS) starts.push(d);
+      prevDate = d;
+    });
+    return starts;
+  }
+
+  function getPeriodRunLengths() {
+    const keys = Object.keys(store.entries).filter((k) => store.entries[k].periodDay).sort();
+    const runs = [];
+    let runStart = null, prevDate = null;
+    keys.forEach((k) => {
+      const d = new Date(`${k}T00:00:00`);
+      if (!prevDate || (d - prevDate) > DAY_MS) {
+        if (runStart) runs.push(Math.round((prevDate - runStart) / DAY_MS) + 1);
+        runStart = d;
+      }
+      prevDate = d;
+    });
+    if (runStart) runs.push(Math.round((prevDate - runStart) / DAY_MS) + 1);
+    return runs;
+  }
+
+  function cycleAvgLength() {
+    const starts = getPeriodStartDates();
+    if (starts.length >= 2) {
+      const diffs = [];
+      for (let i = 1; i < starts.length; i++) diffs.push(Math.round((starts[i] - starts[i - 1]) / DAY_MS));
+      const recent = diffs.slice(-6).filter((d) => d >= 10 && d <= 60);
+      if (recent.length) return Math.round(recent.reduce((a, b) => a + b, 0) / recent.length);
+    }
+    return store.settings.cicloAvgLength || 28;
+  }
+
+  function cycleAvgPeriodLength() {
+    const runs = getPeriodRunLengths();
+    if (runs.length) {
+      const recent = runs.slice(-6).filter((d) => d >= 1 && d <= 15);
+      if (recent.length) return Math.round(recent.reduce((a, b) => a + b, 0) / recent.length);
+    }
+    return store.settings.cicloAvgPeriodLength || 5;
+  }
+
+  function cycleInfo(forDate) {
+    const starts = getPeriodStartDates();
+    if (starts.length === 0) return null;
+    const avgLen = cycleAvgLength();
+    const avgPeriod = cycleAvgPeriodLength();
+    const lastStart = starts[starts.length - 1];
+    const today = startOfDay(forDate);
+    const cycleDay = Math.round((today - lastStart) / DAY_MS) + 1;
+    const nextPeriodDate = new Date(lastStart);
+    nextPeriodDate.setDate(nextPeriodDate.getDate() + avgLen);
+    const daysUntilNext = Math.round((nextPeriodDate - today) / DAY_MS);
+    const ovulationDate = new Date(nextPeriodDate);
+    ovulationDate.setDate(ovulationDate.getDate() - 14);
+    const fertileStart = new Date(ovulationDate);
+    fertileStart.setDate(fertileStart.getDate() - 5);
+    const fertileEnd = new Date(ovulationDate);
+    fertileEnd.setDate(fertileEnd.getDate() + 1);
+
+    let phase;
+    if (cycleDay >= 1 && cycleDay <= avgPeriod) phase = 'menstrual';
+    else if (today >= fertileStart && today <= fertileEnd) phase = 'ovulacion';
+    else if (today < fertileStart) phase = 'folicular';
+    else phase = 'lutea';
+
+    return { cycleDay, phase, lastStart, nextPeriodDate, daysUntilNext, ovulationDate, fertileStart, fertileEnd, avgLen, avgPeriod, cycleCount: starts.length };
+  }
+
+  function fmtShortDate(d) {
+    return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
   }
 
   function workoutsEnabled() {
@@ -557,13 +671,77 @@
 
   const cicloCard = document.getElementById('cicloCard');
   const periodDayBtn = document.getElementById('periodDayBtn');
+  const cycleFlowRow = document.getElementById('cycleFlowRow');
+  const cycleFlowScale = document.getElementById('cycleFlowScale');
+  const cycleSymptomList = document.getElementById('cycleSymptomList');
+  const cycleInfoLine = document.getElementById('cycleInfoLine');
+
   periodDayBtn.addEventListener('click', () => {
     const key = dateKey(currentDate);
     const entry = ensureEntry(key);
     entry.periodDay = !entry.periodDay;
+    if (!entry.periodDay) entry.periodFlow = null;
     saveStore();
     renderHoy();
   });
+
+  cycleFlowScale.addEventListener('click', (e) => {
+    const btn = e.target.closest('.flow-btn');
+    if (!btn) return;
+    const key = dateKey(currentDate);
+    const entry = ensureEntry(key);
+    entry.periodFlow = entry.periodFlow === btn.dataset.flow ? null : btn.dataset.flow;
+    saveStore();
+    renderHoy();
+  });
+
+  cycleSymptomList.innerHTML = CYCLE_SYMPTOMS.map((s) => `<button type="button" class="symptom-chip" data-symptom="${s.id}" aria-pressed="false">${s.label}</button>`).join('');
+  cycleSymptomList.addEventListener('click', (e) => {
+    const btn = e.target.closest('.symptom-chip');
+    if (!btn) return;
+    const key = dateKey(currentDate);
+    const entry = ensureEntry(key);
+    entry.cycleSymptoms = entry.cycleSymptoms || [];
+    const id = btn.dataset.symptom;
+    const idx = entry.cycleSymptoms.indexOf(id);
+    if (idx === -1) entry.cycleSymptoms.push(id);
+    else entry.cycleSymptoms.splice(idx, 1);
+    saveStore();
+    renderHoy();
+  });
+
+  function renderCicloCard(entry) {
+    if (!cicloEnabled()) { cicloCard.hidden = true; return; }
+    cicloCard.hidden = false;
+    periodDayBtn.setAttribute('aria-pressed', String(!!entry.periodDay));
+    cycleFlowRow.hidden = !entry.periodDay;
+    cycleFlowScale.querySelectorAll('.flow-btn').forEach((btn) => {
+      btn.setAttribute('aria-pressed', String(entry.periodFlow === btn.dataset.flow));
+    });
+    const symptoms = entry.cycleSymptoms || [];
+    cycleSymptomList.querySelectorAll('.symptom-chip').forEach((btn) => {
+      btn.setAttribute('aria-pressed', String(symptoms.includes(btn.dataset.symptom)));
+    });
+
+    const info = cycleInfo(currentDate);
+    if (!info) {
+      cycleInfoLine.textContent = 'Marca tu primer día de regla para empezar a estimar tu ciclo.';
+      return;
+    }
+    const phaseLabel = CYCLE_PHASE_LABELS[info.phase];
+    let nextLine;
+    if (info.daysUntilNext > 0) nextLine = `próxima regla en ${info.daysUntilNext} ${info.daysUntilNext === 1 ? 'día' : 'días'}`;
+    else if (info.daysUntilNext === 0) nextLine = 'tu regla debería empezar hoy';
+    else nextLine = `regla con ${Math.abs(info.daysUntilNext)} ${Math.abs(info.daysUntilNext) === 1 ? 'día' : 'días'} de retraso`;
+    let html = `Día <strong>${info.cycleDay}</strong> del ciclo · ${phaseLabel} · ${nextLine}`;
+    if (info.phase === 'folicular' || info.phase === 'ovulacion') {
+      html += `<br>Ventana fértil estimada: ${fmtShortDate(info.fertileStart)}–${fmtShortDate(info.fertileEnd)}`;
+    }
+    if (info.cycleCount < 2) {
+      html += '<br>Estimación basada en la duración media configurada en Ajustes (aún poco historial propio).';
+    }
+    cycleInfoLine.innerHTML = html;
+  }
 
   const goalsCard = document.getElementById('goalsCard');
   const goalsList = document.getElementById('goalsList');
@@ -806,8 +984,7 @@
         </div>
       </li>`).join('') : '<li class="task-empty-hint">No tienes suplementos registrados. Añade uno en Ajustes.</li>';
 
-    cicloCard.hidden = !cicloEnabled();
-    periodDayBtn.setAttribute('aria-pressed', String(!!entry.periodDay));
+    renderCicloCard(entry);
 
     updateStreakBadge();
     renderObjetivos(entry);
@@ -1590,6 +1767,17 @@
       if (entry && entry.periodDay) count++;
     }
     document.getElementById('periodDaysCount').textContent = count;
+    document.getElementById('cicloAvgLengthValue').textContent = `${cycleAvgLength()} d`;
+
+    const predictionLine = document.getElementById('cyclePredictionLine');
+    const info = cycleInfo(startOfDay(new Date()));
+    if (!info) {
+      predictionLine.textContent = 'Marca tu primer día de regla para ver una estimación.';
+    } else {
+      const late = info.daysUntilNext < 0;
+      const dueText = late ? `con ${Math.abs(info.daysUntilNext)} días de retraso` : `en ${info.daysUntilNext} días`;
+      predictionLine.textContent = `Próxima regla estimada: ${fmtShortDate(info.nextPeriodDate)} (${dueText}). Duración media de la regla: ${cycleAvgPeriodLength()} días.`;
+    }
   }
 
   function renderWorkoutStats(year, monthIndex, lastDay) {
@@ -2593,6 +2781,28 @@
   tracksCicloToggle.checked = cicloEnabled();
   tracksCicloToggle.addEventListener('change', () => {
     store.settings.tracksCiclo = tracksCicloToggle.checked;
+    saveStore();
+    renderHoy();
+    if (activeTab === 'stats') renderStats();
+  });
+
+  const cicloAvgLengthInput = document.getElementById('cicloAvgLengthInput');
+  cicloAvgLengthInput.value = store.settings.cicloAvgLength;
+  cicloAvgLengthInput.addEventListener('change', () => {
+    const value = parseInt(cicloAvgLengthInput.value, 10);
+    store.settings.cicloAvgLength = (!isNaN(value) && value >= 15 && value <= 60) ? value : 28;
+    cicloAvgLengthInput.value = store.settings.cicloAvgLength;
+    saveStore();
+    renderHoy();
+    if (activeTab === 'stats') renderStats();
+  });
+
+  const cicloAvgPeriodInput = document.getElementById('cicloAvgPeriodInput');
+  cicloAvgPeriodInput.value = store.settings.cicloAvgPeriodLength;
+  cicloAvgPeriodInput.addEventListener('change', () => {
+    const value = parseInt(cicloAvgPeriodInput.value, 10);
+    store.settings.cicloAvgPeriodLength = (!isNaN(value) && value >= 1 && value <= 15) ? value : 5;
+    cicloAvgPeriodInput.value = store.settings.cicloAvgPeriodLength;
     saveStore();
     renderHoy();
     if (activeTab === 'stats') renderStats();
