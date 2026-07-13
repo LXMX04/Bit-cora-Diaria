@@ -951,13 +951,13 @@
     return chunks;
   }
 
-  async function translateToSpanish(text) {
+  async function translateText(text, langpair) {
     const trimmed = (text || '').trim();
     if (!trimmed) return trimmed;
     const chunks = chunkTextForTranslation(trimmed, TRANSLATE_CHUNK_LIMIT);
     const translatedChunks = [];
     for (const chunk of chunks) {
-      const res = await fetch(`${TRANSLATE_API_BASE}?q=${encodeURIComponent(chunk)}&langpair=en|es`);
+      const res = await fetch(`${TRANSLATE_API_BASE}?q=${encodeURIComponent(chunk)}&langpair=${langpair}`);
       if (!res.ok) throw new Error('translate-http');
       const data = await res.json();
       const translated = data.responseData && data.responseData.translatedText;
@@ -965,6 +965,33 @@
       translatedChunks.push(translated);
     }
     return translatedChunks.join(' ');
+  }
+
+  function translateToSpanish(text) {
+    return translateText(text, 'en|es');
+  }
+
+  async function translateToEnglish(text) {
+    const trimmed = (text || '').trim();
+    if (!trimmed) return trimmed;
+    try {
+      return await translateText(trimmed, 'es|en');
+    } catch (err) {
+      return trimmed;
+    }
+  }
+
+  function extractCookTimeMinutes(text) {
+    if (!text) return null;
+    const matches = text.matchAll(/(\d+)\s*(?:hours?|hrs?|hr)\b|(\d+)\s*(?:minutes?|mins?|min)\b/gi);
+    let total = 0;
+    let found = false;
+    for (const m of matches) {
+      if (m[1]) { total += parseInt(m[1], 10) * 60; found = true; }
+      else if (m[2]) { total += parseInt(m[2], 10); found = true; }
+    }
+    if (!found || total <= 0 || total > 480) return null;
+    return total;
   }
 
   function buildIngredientPairs(meal) {
@@ -979,16 +1006,22 @@
 
   async function translateMealToSpanish(meal) {
     const pairs = buildIngredientPairs(meal);
+    const cookTimeMin = extractCookTimeMinutes(meal.strInstructions);
     try {
-      const [nameEs, instructionsEs, ...ingredientNamesEs] = await Promise.all([
+      const [nameEs, instructionsEs, categoryEs, areaEs, ...ingredientNamesEs] = await Promise.all([
         translateToSpanish(meal.strMeal || ''),
         translateToSpanish(meal.strInstructions || ''),
+        translateToSpanish(meal.strCategory || ''),
+        translateToSpanish(meal.strArea || ''),
         ...pairs.map((p) => translateToSpanish(p.ing))
       ]);
       return {
         meal,
         name: nameEs || meal.strMeal || 'Receta',
         instructions: instructionsEs || meal.strInstructions || '',
+        category: categoryEs || meal.strCategory || '',
+        area: areaEs || meal.strArea || '',
+        cookTimeMin,
         ingredientsList: pairs.map((p, i) => `${p.measure} ${ingredientNamesEs[i] || p.ing}`.trim()),
         translated: true
       };
@@ -997,6 +1030,9 @@
         meal,
         name: meal.strMeal || 'Receta',
         instructions: meal.strInstructions || '',
+        category: meal.strCategory || '',
+        area: meal.strArea || '',
+        cookTimeMin,
         ingredientsList: pairs.map((p) => `${p.measure} ${p.ing}`.trim()),
         translated: false
       };
@@ -1048,16 +1084,30 @@
       const sourceLabel = safeUrl(meal.strSource) ? 'Receta original ↗' : 'Ver vídeo ↗';
       const sourceLink = sourceUrl ? `<a href="${sourceUrl}" target="_blank" rel="noopener noreferrer" class="link-btn">${sourceLabel}</a>` : '';
       const thumb = safeUrl(meal.strMealThumb);
-      const badge = d.translated ? '' : ' <span class="recipe-untranslated">(sin traducir)</span>';
+      const untranslatedBadge = d.translated ? '' : ' <span class="recipe-untranslated">(sin traducir)</span>';
+      const metaBits = [d.category, d.area, d.cookTimeMin ? `~${d.cookTimeMin} min` : ''].filter(Boolean);
+      const metaLine = metaBits.length ? `<span class="recipe-meta-inline">${escapeHtml(metaBits.join(' · '))}</span>` : '';
+      const badges = [
+        d.cookTimeMin ? `<span class="recipe-badge">⏱ ~${d.cookTimeMin} min (estimado)</span>` : '',
+        d.category ? `<span class="recipe-badge">🍽 ${escapeHtml(d.category)}</span>` : '',
+        d.area ? `<span class="recipe-badge">🌍 ${escapeHtml(d.area)}</span>` : '',
+        `<span class="recipe-badge">🧂 ${d.ingredientsList.length} ingredientes</span>`
+      ].filter(Boolean).join('');
       return `
       <div class="card recipe-card">
         <button type="button" class="recipe-card-header" data-recipe-toggle aria-expanded="false">
           ${thumb ? `<img class="recipe-thumb" src="${thumb}" alt="" loading="lazy" />` : '<span class="recipe-thumb"></span>'}
-          <span class="recipe-name">${escapeHtml(d.name)}${badge}</span>
+          <span class="recipe-header-text">
+            <span class="recipe-name">${escapeHtml(d.name)}${untranslatedBadge}</span>
+            ${metaLine}
+          </span>
           <span class="accordion-chevron">›</span>
         </button>
         <div class="recipe-card-body" hidden>
-          <p class="recipe-ingredients"><strong>Ingredientes:</strong> ${d.ingredientsList.map((x) => escapeHtml(x)).join(', ')}</p>
+          <div class="recipe-meta">${badges}</div>
+          <h3 class="recipe-section-title">Ingredientes</h3>
+          <ul class="recipe-ingredient-list">${d.ingredientsList.map((x) => `<li>${escapeHtml(x)}</li>`).join('')}</ul>
+          <h3 class="recipe-section-title">Instrucciones</h3>
           <p class="recipe-instructions">${escapeHtml(d.instructions)}</p>
           ${sourceLink}
         </div>
@@ -1070,7 +1120,8 @@
     recipeResults.innerHTML = '<p class="hint-text">Buscando recetas…</p>';
     searchRecipesBtn.disabled = true;
     try {
-      const meals = await searchRecipesByIngredients(searchIngredients);
+      const englishIngredients = await Promise.all(searchIngredients.map((ing) => translateToEnglish(ing)));
+      const meals = await searchRecipesByIngredients(englishIngredients);
       if (meals.length === 0) {
         renderRecipeResults([]);
         return;
