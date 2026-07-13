@@ -867,6 +867,18 @@
     { text: 'Ten en cuenta que muy poco es necesario para hacer una vida feliz.', author: 'Marco Aurelio' },
     { text: 'No es que tengamos poco tiempo, sino que perdemos mucho.', author: 'Séneca' },
     { text: 'No son las cosas las que nos perturban, sino la opinión que tenemos de ellas.', author: 'Epicteto' },
+    { text: 'Siempre parece imposible hasta que se hace.', author: 'Nelson Mandela' },
+    { text: 'El éxito no es definitivo, el fracaso no es fatal: lo que cuenta es el valor para continuar.', author: 'Winston Churchill' },
+    { text: 'Lo que no te mata, te hace más fuerte.', author: 'Friedrich Nietzsche' },
+    { text: 'Cuando ya no podemos cambiar una situación, nos enfrentamos al reto de cambiarnos a nosotros mismos.', author: 'Viktor Frankl' },
+    { text: 'Lo que hay detrás de ti y lo que hay delante de ti son cosas insignificantes comparadas con lo que hay dentro de ti.', author: 'Ralph Waldo Emerson' },
+    { text: 'La única forma de hacer un gran trabajo es amar lo que haces.', author: 'Steve Jobs' },
+    { text: 'No cuentes los días, haz que los días cuenten.', author: 'Muhammad Ali' },
+    { text: 'La vida es como andar en bicicleta: para mantener el equilibrio, debes seguir moviéndote.', author: 'Albert Einstein' },
+    { text: 'La mente lo es todo. En lo que piensas, te conviertes.', author: 'Buda' },
+    { text: 'No hay que temer nada en la vida, solo hay que comprenderlo.', author: 'Marie Curie' },
+    { text: 'Puedes encontrarte con muchas derrotas, pero no debes dejar que te derroten.', author: 'Maya Angelou' },
+    { text: 'No temo al hombre que ha practicado 10.000 patadas una vez, sino al que ha practicado una patada 10.000 veces.', author: 'Bruce Lee' },
   ];
 
   function dayOfYear(d) {
