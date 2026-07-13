@@ -12,6 +12,7 @@
   --border: #e1e6e4;
   --danger: #c25450;
   --danger-soft: rgba(194, 84, 80, 0.14);
+  --failure: #dc2626;
   --good: #2f6f5e;
   --shadow: 0 1px 2px rgba(15, 30, 25, 0.06), 0 4px 12px rgba(15, 30, 25, 0.05);
   --radius: 16px;
@@ -45,6 +46,7 @@
   --accent-2-soft: rgba(224, 172, 84, 0.18);
   --danger: #e08683;
   --danger-soft: rgba(224, 134, 131, 0.16);
+  --failure: #ff5449;
   --good: #4fae93;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 14px rgba(0, 0, 0, 0.35);
 
@@ -73,6 +75,7 @@
     --accent-2-soft: rgba(224, 172, 84, 0.18);
     --danger: #e08683;
     --danger-soft: rgba(224, 134, 131, 0.16);
+    --failure: #ff5449;
     --good: #4fae93;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 14px rgba(0, 0, 0, 0.35);
 
@@ -998,8 +1001,8 @@ main {
   font-weight: 700;
 }
 .failure-btn[aria-pressed="true"] {
-  background: var(--danger);
-  border-color: var(--danger);
+  background: var(--failure);
+  border-color: var(--failure);
   color: #fff;
 }
 
