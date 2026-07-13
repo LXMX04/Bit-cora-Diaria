@@ -1,6 +1,6 @@
 {
-  "name": "Bitácora Diaria",
-  "short_name": "Bitácora",
+  "name": "Suit Up — Bitácora Diaria",
+  "short_name": "Suit Up",
   "description": "Agenda diaria de hábitos, comidas, consumo y reflexión personal.",
   "start_url": "./index.html",
   "scope": "./",
