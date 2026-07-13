@@ -2322,10 +2322,13 @@
   });
 
   const tracksJointsToggle = document.getElementById('tracksJointsToggle');
+  const jointPriceGroup = document.getElementById('jointPriceGroup');
   tracksJointsToggle.checked = jointsEnabled();
+  jointPriceGroup.hidden = !jointsEnabled();
   tracksJointsToggle.addEventListener('change', () => {
     store.settings.tracksJoints = tracksJointsToggle.checked;
     saveStore();
+    jointPriceGroup.hidden = !jointsEnabled();
     updateConsumoTabIcon();
     renderConsumo();
     if (activeTab === 'stats') renderStats();

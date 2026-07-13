@@ -565,11 +565,13 @@
               </label>
             </div>
             <p class="hint-text">Actívalo si fumas tabaco y/o joints, para que aparezcan en Consumo y en Stats. Si lo desactivas, ambos desaparecen.</p>
-            <div class="setting-row">
-              <span>Precio de joints (€ cada 4 porros)</span>
-              <input type="number" id="jointPriceInput" min="0" step="0.01" value="4.50" inputmode="decimal" />
+            <div id="jointPriceGroup">
+              <div class="setting-row">
+                <span>Precio de joints (€ cada 4 porros)</span>
+                <input type="number" id="jointPriceInput" min="0" step="0.01" value="4.50" inputmode="decimal" />
+              </div>
+              <p class="hint-text">Se usa para calcular el gasto en Consumo y Stats.</p>
             </div>
-            <p class="hint-text">Se usa para calcular el gasto en Consumo y Stats.</p>
           </div>
           <ul class="task-manage-list" id="purchaseManageList"></ul>
           <div class="task-add-row">
