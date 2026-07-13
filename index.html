@@ -262,6 +262,20 @@
           </div>
         </div>
       </div>
+
+      <div class="card" id="recipeSearchCard">
+        <h2 class="card-title">Buscador de recetas</h2>
+        <p class="hint-text" style="margin-top:0">Añade los ingredientes que tienes y busca recetas online que los usen. Resultados de TheMealDB, en inglés.</p>
+        <div class="task-add-row">
+          <input type="text" id="newIngredientInput" class="task-add-input" placeholder="Ingrediente… (ej. chicken, rice)" maxlength="30" />
+          <button class="secondary-btn task-add-btn" id="addIngredientBtn">Añadir</button>
+        </div>
+        <ul class="task-manage-list" id="ingredientChipList">
+          <li class="task-empty-hint">Añade al menos un ingrediente.</li>
+        </ul>
+        <button class="primary-btn" id="searchRecipesBtn" disabled>Buscar recetas</button>
+        <div id="recipeResults" class="recipe-results"></div>
+      </div>
     </section>
 
     <!-- CONSUMO -->

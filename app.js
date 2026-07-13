@@ -808,7 +808,7 @@
 
     workoutCard.hidden = !workoutsEnabled();
     const workout = entry.workout || { durationMin: 0, exercises: {} };
-    document.getElementById('workoutDurationValue').textContent = workout.durationMin || 0;
+    document.getElementById('workoutDurationValue').textContent = `${workout.durationMin || 0} min`;
     const exercises = store.settings.exercises;
     const workoutExercises = workout.exercises || {};
     exerciseEmptyHint.hidden = exercises.length > 0;
@@ -891,6 +891,134 @@
       });
     });
   }
+
+  /* ============ Recipe search ============ */
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  function safeUrl(url) {
+    if (typeof url !== 'string') return '';
+    return /^https?:\/\//i.test(url.trim()) ? url.trim() : '';
+  }
+
+  const RECIPE_API_BASE = 'https://www.themealdb.com/api/json/v1/1';
+  const RECIPE_CANDIDATE_LIMIT = 10;
+
+  async function searchRecipesByIngredients(ingredients) {
+    const primary = ingredients[0].trim().toLowerCase().replace(/\s+/g, '_');
+    const filterRes = await fetch(`${RECIPE_API_BASE}/filter.php?i=${encodeURIComponent(primary)}`);
+    if (!filterRes.ok) throw new Error('network');
+    const filterData = await filterRes.json();
+    const candidates = (filterData.meals || []).slice(0, RECIPE_CANDIDATE_LIMIT);
+    if (candidates.length === 0) return [];
+    const others = ingredients.slice(1).map((x) => x.trim().toLowerCase());
+    const details = await Promise.all(candidates.map((c) =>
+      fetch(`${RECIPE_API_BASE}/lookup.php?i=${encodeURIComponent(c.idMeal)}`)
+        .then((r) => r.json())
+        .then((d) => (d.meals && d.meals[0]) || null)
+        .catch(() => null)
+    ));
+    return details.filter((meal) => {
+      if (!meal) return false;
+      if (others.length === 0) return true;
+      const mealIngredients = [];
+      for (let i = 1; i <= 20; i++) {
+        const ing = meal[`strIngredient${i}`];
+        if (ing && ing.trim()) mealIngredients.push(ing.trim().toLowerCase());
+      }
+      return others.every((need) => mealIngredients.some((ing) => ing.includes(need) || need.includes(ing)));
+    });
+  }
+
+  const ingredientChipList = document.getElementById('ingredientChipList');
+  const newIngredientInput = document.getElementById('newIngredientInput');
+  const addIngredientBtn = document.getElementById('addIngredientBtn');
+  const searchRecipesBtn = document.getElementById('searchRecipesBtn');
+  const recipeResults = document.getElementById('recipeResults');
+  let searchIngredients = [];
+
+  function renderIngredientChips() {
+    ingredientChipList.innerHTML = searchIngredients.length ? searchIngredients.map((ing, i) => `
+      <li class="task-manage-item" data-ingredient-index="${i}">
+        <span class="task-manage-label">${escapeHtml(ing)}</span>
+        <button type="button" class="task-remove-btn" data-remove-ingredient="${i}" aria-label="Eliminar ${escapeHtml(ing)}">×</button>
+      </li>`).join('') : '<li class="task-empty-hint">Añade al menos un ingrediente.</li>';
+    searchRecipesBtn.disabled = searchIngredients.length === 0;
+  }
+
+  function addIngredient() {
+    const val = newIngredientInput.value.trim();
+    if (!val) return;
+    searchIngredients.push(val);
+    newIngredientInput.value = '';
+    renderIngredientChips();
+  }
+
+  addIngredientBtn.addEventListener('click', addIngredient);
+  newIngredientInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addIngredient(); });
+
+  ingredientChipList.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-remove-ingredient]');
+    if (!btn) return;
+    searchIngredients.splice(parseInt(btn.dataset.removeIngredient, 10), 1);
+    renderIngredientChips();
+  });
+
+  function renderRecipeResults(meals) {
+    if (meals.length === 0) {
+      recipeResults.innerHTML = '<p class="hint-text">No se encontraron recetas con esos ingredientes. Prueba con menos ingredientes o escritos en inglés.</p>';
+      return;
+    }
+    recipeResults.innerHTML = meals.map((meal) => {
+      const ingredientsList = [];
+      for (let i = 1; i <= 20; i++) {
+        const ing = meal[`strIngredient${i}`];
+        const measure = meal[`strMeasure${i}`];
+        if (ing && ing.trim()) ingredientsList.push(escapeHtml(`${(measure || '').trim()} ${ing.trim()}`.trim()));
+      }
+      const sourceUrl = safeUrl(meal.strSource) || safeUrl(meal.strYoutube);
+      const sourceLabel = safeUrl(meal.strSource) ? 'Receta original ↗' : 'Ver vídeo ↗';
+      const sourceLink = sourceUrl ? `<a href="${sourceUrl}" target="_blank" rel="noopener noreferrer" class="link-btn">${sourceLabel}</a>` : '';
+      const thumb = safeUrl(meal.strMealThumb);
+      return `
+      <div class="card recipe-card">
+        <button type="button" class="recipe-card-header" data-recipe-toggle aria-expanded="false">
+          ${thumb ? `<img class="recipe-thumb" src="${thumb}" alt="" loading="lazy" />` : '<span class="recipe-thumb"></span>'}
+          <span class="recipe-name">${escapeHtml(meal.strMeal || 'Receta')}</span>
+          <span class="accordion-chevron">›</span>
+        </button>
+        <div class="recipe-card-body" hidden>
+          <p class="recipe-ingredients"><strong>Ingredientes:</strong> ${ingredientsList.join(', ')}</p>
+          <p class="recipe-instructions">${escapeHtml(meal.strInstructions || '')}</p>
+          ${sourceLink}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  searchRecipesBtn.addEventListener('click', async () => {
+    if (searchIngredients.length === 0) return;
+    recipeResults.innerHTML = '<p class="hint-text">Buscando recetas…</p>';
+    searchRecipesBtn.disabled = true;
+    try {
+      const meals = await searchRecipesByIngredients(searchIngredients);
+      renderRecipeResults(meals);
+    } catch (err) {
+      recipeResults.innerHTML = '<p class="hint-text">No se pudo conectar con el buscador de recetas. Comprueba tu conexión a internet.</p>';
+    } finally {
+      searchRecipesBtn.disabled = searchIngredients.length === 0;
+    }
+  });
+
+  recipeResults.addEventListener('click', (e) => {
+    const header = e.target.closest('[data-recipe-toggle]');
+    if (!header) return;
+    const body = header.nextElementSibling;
+    const isOpen = header.getAttribute('aria-expanded') === 'true';
+    header.setAttribute('aria-expanded', String(!isOpen));
+    body.hidden = isOpen;
+  });
 
   /* ============ CONSUMO panel ============ */
   const cigarettesValueEl = document.getElementById('cigarettesValue');
