@@ -931,6 +931,78 @@
     });
   }
 
+  const TRANSLATE_API_BASE = 'https://api.mymemory.translated.net/get';
+  const TRANSLATE_CHUNK_LIMIT = 450;
+
+  function chunkTextForTranslation(text, maxLen) {
+    if (text.length <= maxLen) return [text];
+    const words = text.split(/\s+/);
+    const chunks = [];
+    let current = '';
+    words.forEach((w) => {
+      if ((current ? current + ' ' + w : w).length > maxLen) {
+        if (current) chunks.push(current);
+        current = w;
+      } else {
+        current = current ? `${current} ${w}` : w;
+      }
+    });
+    if (current) chunks.push(current);
+    return chunks;
+  }
+
+  async function translateToSpanish(text) {
+    const trimmed = (text || '').trim();
+    if (!trimmed) return trimmed;
+    const chunks = chunkTextForTranslation(trimmed, TRANSLATE_CHUNK_LIMIT);
+    const translatedChunks = [];
+    for (const chunk of chunks) {
+      const res = await fetch(`${TRANSLATE_API_BASE}?q=${encodeURIComponent(chunk)}&langpair=en|es`);
+      if (!res.ok) throw new Error('translate-http');
+      const data = await res.json();
+      const translated = data.responseData && data.responseData.translatedText;
+      if (!translated) throw new Error('translate-empty');
+      translatedChunks.push(translated);
+    }
+    return translatedChunks.join(' ');
+  }
+
+  function buildIngredientPairs(meal) {
+    const pairs = [];
+    for (let i = 1; i <= 20; i++) {
+      const ing = meal[`strIngredient${i}`];
+      const measure = meal[`strMeasure${i}`];
+      if (ing && ing.trim()) pairs.push({ ing: ing.trim(), measure: (measure || '').trim() });
+    }
+    return pairs;
+  }
+
+  async function translateMealToSpanish(meal) {
+    const pairs = buildIngredientPairs(meal);
+    try {
+      const [nameEs, instructionsEs, ...ingredientNamesEs] = await Promise.all([
+        translateToSpanish(meal.strMeal || ''),
+        translateToSpanish(meal.strInstructions || ''),
+        ...pairs.map((p) => translateToSpanish(p.ing))
+      ]);
+      return {
+        meal,
+        name: nameEs || meal.strMeal || 'Receta',
+        instructions: instructionsEs || meal.strInstructions || '',
+        ingredientsList: pairs.map((p, i) => `${p.measure} ${ingredientNamesEs[i] || p.ing}`.trim()),
+        translated: true
+      };
+    } catch (err) {
+      return {
+        meal,
+        name: meal.strMeal || 'Receta',
+        instructions: meal.strInstructions || '',
+        ingredientsList: pairs.map((p) => `${p.measure} ${p.ing}`.trim()),
+        translated: false
+      };
+    }
+  }
+
   const ingredientChipList = document.getElementById('ingredientChipList');
   const newIngredientInput = document.getElementById('newIngredientInput');
   const addIngredientBtn = document.getElementById('addIngredientBtn');
@@ -965,32 +1037,28 @@
     renderIngredientChips();
   });
 
-  function renderRecipeResults(meals) {
-    if (meals.length === 0) {
+  function renderRecipeResults(displayMeals) {
+    if (displayMeals.length === 0) {
       recipeResults.innerHTML = '<p class="hint-text">No se encontraron recetas con esos ingredientes. Prueba con menos ingredientes o escritos en inglés.</p>';
       return;
     }
-    recipeResults.innerHTML = meals.map((meal) => {
-      const ingredientsList = [];
-      for (let i = 1; i <= 20; i++) {
-        const ing = meal[`strIngredient${i}`];
-        const measure = meal[`strMeasure${i}`];
-        if (ing && ing.trim()) ingredientsList.push(escapeHtml(`${(measure || '').trim()} ${ing.trim()}`.trim()));
-      }
+    recipeResults.innerHTML = displayMeals.map((d) => {
+      const meal = d.meal;
       const sourceUrl = safeUrl(meal.strSource) || safeUrl(meal.strYoutube);
       const sourceLabel = safeUrl(meal.strSource) ? 'Receta original ↗' : 'Ver vídeo ↗';
       const sourceLink = sourceUrl ? `<a href="${sourceUrl}" target="_blank" rel="noopener noreferrer" class="link-btn">${sourceLabel}</a>` : '';
       const thumb = safeUrl(meal.strMealThumb);
+      const badge = d.translated ? '' : ' <span class="recipe-untranslated">(sin traducir)</span>';
       return `
       <div class="card recipe-card">
         <button type="button" class="recipe-card-header" data-recipe-toggle aria-expanded="false">
           ${thumb ? `<img class="recipe-thumb" src="${thumb}" alt="" loading="lazy" />` : '<span class="recipe-thumb"></span>'}
-          <span class="recipe-name">${escapeHtml(meal.strMeal || 'Receta')}</span>
+          <span class="recipe-name">${escapeHtml(d.name)}${badge}</span>
           <span class="accordion-chevron">›</span>
         </button>
         <div class="recipe-card-body" hidden>
-          <p class="recipe-ingredients"><strong>Ingredientes:</strong> ${ingredientsList.join(', ')}</p>
-          <p class="recipe-instructions">${escapeHtml(meal.strInstructions || '')}</p>
+          <p class="recipe-ingredients"><strong>Ingredientes:</strong> ${d.ingredientsList.map((x) => escapeHtml(x)).join(', ')}</p>
+          <p class="recipe-instructions">${escapeHtml(d.instructions)}</p>
           ${sourceLink}
         </div>
       </div>`;
@@ -1003,7 +1071,16 @@
     searchRecipesBtn.disabled = true;
     try {
       const meals = await searchRecipesByIngredients(searchIngredients);
-      renderRecipeResults(meals);
+      if (meals.length === 0) {
+        renderRecipeResults([]);
+        return;
+      }
+      recipeResults.innerHTML = '<p class="hint-text">Traduciendo recetas…</p>';
+      const displayMeals = [];
+      for (const meal of meals) {
+        displayMeals.push(await translateMealToSpanish(meal));
+      }
+      renderRecipeResults(displayMeals);
     } catch (err) {
       recipeResults.innerHTML = '<p class="hint-text">No se pudo conectar con el buscador de recetas. Comprueba tu conexión a internet.</p>';
     } finally {
