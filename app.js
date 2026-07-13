@@ -899,10 +899,7 @@
     { text: 'No deseo que las mujeres tengan poder sobre los hombres, sino sobre ellas mismas.', author: 'Mary Wollstonecraft' },
   ];
 
-  function dayOfYear(d) {
-    const start = new Date(d.getFullYear(), 0, 0);
-    return Math.floor((d - start) / 86400000);
-  }
+  const sessionQuote = DAILY_QUOTES[Math.floor(Math.random() * DAILY_QUOTES.length)];
 
   function updateDailyQuote() {
     const quoteEl = document.getElementById('dailyQuote');
@@ -912,8 +909,7 @@
       quoteEl.innerHTML = '';
       return;
     }
-    const q = DAILY_QUOTES[dayOfYear(today) % DAILY_QUOTES.length];
-    quoteEl.innerHTML = `<span class="daily-quote-text">"${q.text}"</span><span class="daily-quote-author">${q.author}</span>`;
+    quoteEl.innerHTML = `<span class="daily-quote-text">"${sessionQuote.text}"</span><span class="daily-quote-author">${sessionQuote.author}</span>`;
   }
 
   function updateGreeting(entry) {
