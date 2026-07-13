@@ -682,6 +682,13 @@
     { text: 'No diseño ropa, diseño sueños.', author: 'Ralph Lauren' },
     { text: 'La elegancia es un rechazo.', author: 'Diana Vreeland' },
     { text: 'Ponte traje.', author: 'Barney Stinson — Cómo conocí a vuestra madre' },
+    { text: 'No importa lo despacio que vayas, siempre que no te detengas.', author: 'Confucio' },
+    { text: 'Un viaje de mil millas comienza con un solo paso.', author: 'Lao-Tsé' },
+    { text: 'Si fallas en prepararte, te estás preparando para fallar.', author: 'Benjamin Franklin' },
+    { text: 'Cada acción que realizas es un voto por el tipo de persona en la que quieres convertirte.', author: 'James Clear' },
+    { text: 'Ten en cuenta que muy poco es necesario para hacer una vida feliz.', author: 'Marco Aurelio' },
+    { text: 'No es que tengamos poco tiempo, sino que perdemos mucho.', author: 'Séneca' },
+    { text: 'No son las cosas las que nos perturban, sino la opinión que tenemos de ellas.', author: 'Epicteto' },
   ];
 
   function dayOfYear(d) {
@@ -2826,6 +2833,6 @@
 
   const splashEl = document.getElementById('splash');
   if (splashEl) {
-    requestAnimationFrame(() => splashEl.classList.add('is-hidden'));
+    setTimeout(() => splashEl.classList.add('is-hidden'), 1600);
   }
 })();
