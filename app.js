@@ -2823,4 +2823,9 @@
 
   renderAll();
   checkReminder();
+
+  const splashEl = document.getElementById('splash');
+  if (splashEl) {
+    requestAnimationFrame(() => splashEl.classList.add('is-hidden'));
+  }
 })();

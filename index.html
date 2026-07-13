@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
 <title>Bitácora Diaria</title>
-<meta name="theme-color" content="#2f6f5e" />
+<meta name="theme-color" content="#1c2740" />
 <meta name="description" content="Agenda diaria de hábitos, comidas, consumo y reflexión personal." />
 
 <link rel="manifest" href="manifest.webmanifest" />
@@ -15,6 +15,24 @@
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+<div id="splash" class="splash" aria-hidden="true">
+  <svg class="splash-figure" viewBox="0 0 160 200">
+    <path d="M28,150 C28,104 50,72 80,72 C110,72 132,104 132,150 L132,196 L28,196 Z" fill="var(--surface)" stroke="var(--accent)" stroke-width="2.4" />
+    <path d="M62,80 L80,118 L98,80" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+    <g class="splash-knot">
+      <path d="M73,88 L87,88 L82,100 L78,100 Z" fill="var(--claret)" />
+      <path d="M78,100 L82,100 L88,140 L80,158 L72,140 Z" fill="var(--claret)" />
+      <line x1="80" y1="101" x2="80" y2="150" stroke="var(--surface)" stroke-width="0.6" opacity="0.5" />
+    </g>
+    <g class="splash-hand-left">
+      <path d="M52,96 C46,98 43,104 45,110 C46.5,114 51,116 56,114 L68,102 C66,98 61,95 56,95 Z" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round" />
+    </g>
+    <g class="splash-hand-right">
+      <path d="M108,96 C114,98 117,104 115,110 C113.5,114 109,116 104,114 L92,102 C94,98 99,95 104,95 Z" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round" />
+    </g>
+  </svg>
+  <p class="splash-label">Bitácora Diaria</p>
+</div>
 <div id="app">
 
   <header class="topbar">
@@ -22,8 +40,9 @@
     <div class="brand">
       <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
         <circle cx="12" cy="12" r="9.5" fill="none" stroke="var(--accent)" stroke-width="1.6" />
-        <circle cx="12" cy="12" r="7" fill="none" stroke="var(--accent)" stroke-width="0.8" opacity="0.55" />
-        <text x="12" y="15.8" text-anchor="middle" font-family="Georgia, 'Iowan Old Style', 'Palatino Linotype', serif" font-size="10.5" font-weight="700" fill="var(--accent)">B</text>
+        <path d="M10.3,7.2 L13.7,7.2 L12.9,9.4 L11.1,9.4 Z" fill="var(--claret)" />
+        <path d="M11.1,9.4 L12.9,9.4 L13.6,13.4 L12,17.3 L10.4,13.4 Z" fill="var(--claret)" />
+        <line x1="12" y1="9.6" x2="12" y2="16.1" stroke="var(--surface)" stroke-width="0.35" opacity="0.6" />
       </svg>
       <h1>Bitácora Diaria</h1>
     </div>
@@ -56,25 +75,25 @@
       <p class="streak-badge" id="streakBadge" hidden></p>
 
       <div class="card">
-        <h2 class="card-title">Hábitos diarios</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.5,4.5 L14.5,4.5 L13.2,7.2 L10.8,7.2 Z"/><path d="M10.8,7.2 L13.2,7.2 L14.3,13.5 L12,19 L9.7,13.5 Z"/></svg></span>Hábitos diarios</h2>
         <ul class="habit-list" id="dailyTaskList"></ul>
       </div>
 
       <div class="card">
         <div class="card-title-row">
-          <h2 class="card-title">Tareas semanales</h2>
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="13" r="7.5"/><path d="M12,8.5 L12,13 L15,15" stroke-linecap="round" stroke-linejoin="round"/><path d="M9,3.5 L15,3.5" stroke-linecap="round"/></svg></span>Tareas semanales</h2>
           <span class="week-range" id="weekRange">–</span>
         </div>
         <ul class="habit-list" id="weeklyTaskList"></ul>
       </div>
 
       <div class="card" id="supplementsCard">
-        <h2 class="card-title">Suplementos</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="9" width="18" height="6" rx="3"/><line x1="12" y1="9" x2="12" y2="15"/></svg></span>Suplementos</h2>
         <ul class="habit-list" id="supplementList"></ul>
       </div>
 
       <div class="card" id="cicloCard" hidden>
-        <h2 class="card-title">Ciclo</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5,12 A7,7 0 0 1 18,7.5" stroke-linecap="round"/><path d="M19,12 A7,7 0 0 1 6,16.5" stroke-linecap="round"/><path d="M15.5,5.5 L18,7.5 L15,9" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5,18.5 L6,16.5 L9,15" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Ciclo</h2>
         <ul class="habit-list">
           <li class="habit-row">
             <button class="check-btn" id="periodDayBtn" aria-pressed="false">
@@ -86,13 +105,13 @@
       </div>
 
       <div class="card">
-        <h2 class="card-title">Malos hábitos</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6,6 L18,18 M6,18 L18,6" stroke-linecap="round"/><circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/></svg></span>Malos hábitos</h2>
         <ul class="habit-list" id="badHabitList"></ul>
         <p class="hint-text">Márcalo si hoy has hecho esto que quieres evitar. Resta puntos del Total y se refleja en Stats.</p>
       </div>
 
       <div class="card reflection-card">
-        <h2 class="card-title">Reflexión del día</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5,19 L8,18 L17,9 C18,8 18,6.5 17,5.5 C16,4.5 14.5,4.5 13.5,5.5 L4.5,14.5 Z" stroke-linejoin="round"/><path d="M12,7 L15,10"/></svg></span>Reflexión del día</h2>
         <div class="reflection-quote-mark" aria-hidden="true">&#8220;</div>
         <textarea id="reflectionInput" class="reflection-box" rows="5" placeholder="¿Cómo ha ido el día? ¿Qué destacarías?"></textarea>
         <div class="save-hint" id="reflectionHint">Guardado automáticamente</div>
@@ -104,7 +123,7 @@
     <section class="tab-panel" id="panel-objetivos" data-panel="objetivos" hidden>
 
       <div class="card" id="aguaCard" hidden>
-        <h2 class="card-title">Agua</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,3 C7,8 5,11.5 5,14.5 C5,18.6 8.1,21 12,21 C15.9,21 19,18.6 19,14.5 C19,11.5 17,8 12,3 Z"/></svg></span>Agua</h2>
         <div class="consumo-row">
           <div class="consumo-label">
             <span class="consumo-name">Vasos de agua</span>
@@ -119,7 +138,7 @@
       </div>
 
       <div class="card" id="suenoCard" hidden>
-        <h2 class="card-title">Sueño</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20,13.5 A8,8 0 1 1 10.5,4 A6.3,6.3 0 0 0 20,13.5 Z" stroke-linejoin="round"/></svg></span>Sueño</h2>
         <div class="consumo-row">
           <div class="consumo-label">
             <span class="consumo-name">Horas dormidas</span>
@@ -143,7 +162,7 @@
       </div>
 
       <div class="card" id="pesoCard" hidden>
-        <h2 class="card-title">Peso</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7,20 L17,20 M12,20 L12,5 M8,5 L16,5" stroke-linecap="round"/><circle cx="12" cy="5" r="3"/></svg></span>Peso</h2>
         <div class="meal-row">
           <label class="meal-label" for="weightInput">Peso de hoy</label>
           <input type="number" id="weightInput" class="meal-time weight-input" min="0" max="400" step="0.1" placeholder="kg" />
@@ -152,7 +171,7 @@
       </div>
 
       <div class="card" id="ayunoCard" hidden>
-        <h2 class="card-title">Ayuno intermitente</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,12 L12,6.5 A5.5,5.5 0 0 1 16.5,14.5 Z" fill="currentColor" stroke="none" opacity="0.35"/><path d="M12,12 L12,6.5" stroke-linecap="round"/></svg></span>Ayuno intermitente</h2>
         <div class="meal-row">
           <label class="meal-label" for="fastStartInput">Inicio del ayuno</label>
           <input type="time" id="fastStartInput" class="meal-time" />
@@ -165,7 +184,7 @@
       </div>
 
       <div class="card" id="menteCard" hidden>
-        <h2 class="card-title">Mente</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,4 C9,7 7,10 7,13 C7,16.9 9.2,19 12,19 C14.8,19 17,16.9 17,13 C17,10 15,7 12,4 Z"/><path d="M12,8 C10.5,10 10,12 10,13.5" stroke-linecap="round"/></svg></span>Mente</h2>
         <div class="consumo-row" id="meditationRow">
           <div class="consumo-label"><span class="consumo-name">Meditación</span></div>
           <div class="stepper" data-stepper="meditationMin">
@@ -186,7 +205,7 @@
       </div>
 
       <div class="card" id="workoutCard" hidden>
-        <h2 class="card-title">Ejercicio</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4,9 L4,15 M2,8 L2,16 M20,9 L20,15 M22,8 L22,16 M6,12 L18,12" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Ejercicio</h2>
         <div class="consumo-row">
           <div class="consumo-label"><span class="consumo-name">Duración</span></div>
           <div class="stepper" data-stepper="workoutDuration">
@@ -200,7 +219,7 @@
       </div>
 
       <div class="card" id="goalsCard">
-        <h2 class="card-title">Metas</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="4.5"/><circle cx="16" cy="16" r="4.5"/><circle cx="16" cy="16" r="1.4" fill="currentColor" stroke="none"/></svg></span>Metas</h2>
         <ul class="habit-list" id="goalsList"></ul>
       </div>
 
@@ -209,7 +228,7 @@
     <!-- COMIDAS -->
     <section class="tab-panel" id="panel-comidas" data-panel="comidas" hidden>
       <div class="card meal-card" data-meal="desayuno">
-        <h2 class="card-title">Desayuno</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5,17 L19,17" stroke-linecap="round"/><path d="M7,17 A5,5 0 0 1 17,17"/><path d="M12,7 L12,4.5 M6,10 L4.3,8.6 M18,10 L19.7,8.6" stroke-linecap="round"/></svg></span>Desayuno</h2>
         <div class="meal-row">
           <label class="meal-label" for="time-desayuno">Hora</label>
           <input type="time" id="time-desayuno" class="meal-time" data-meal-time="desayuno" />
@@ -228,7 +247,7 @@
       </div>
 
       <div class="card meal-card" data-meal="comida">
-        <h2 class="card-title">Comida</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4.5"/><path d="M12,3.5 L12,5.2 M12,18.8 L12,20.5 M3.5,12 L5.2,12 M18.8,12 L20.5,12 M6,6 L7.2,7.2 M16.8,16.8 L18,18 M18,6 L16.8,7.2 M7.2,16.8 L6,18" stroke-linecap="round"/></svg></span>Comida</h2>
         <div class="meal-row">
           <label class="meal-label" for="time-comida">Hora</label>
           <input type="time" id="time-comida" class="meal-time" data-meal-time="comida" />
@@ -247,7 +266,7 @@
       </div>
 
       <div class="card meal-card" data-meal="cena">
-        <h2 class="card-title">Cena</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M18,13 A6.5,6.5 0 1 1 11,5 A5,5 0 0 0 18,13 Z" stroke-linejoin="round"/><path d="M18.5,5.5 L19.2,7.2 L20.9,7.9 L19.2,8.6 L18.5,10.3 L17.8,8.6 L16.1,7.9 L17.8,7.2 Z" fill="currentColor" stroke="none"/></svg></span>Cena</h2>
         <div class="meal-row">
           <label class="meal-label" for="time-cena">Hora</label>
           <input type="time" id="time-cena" class="meal-time" data-meal-time="cena" />
@@ -266,7 +285,7 @@
       </div>
 
       <div class="card" id="recipeSearchCard">
-        <h2 class="card-title">Buscador de recetas</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10.5" cy="10.5" r="6"/><path d="M15,15 L20,20" stroke-linecap="round"/></svg></span>Buscador de recetas</h2>
         <p class="hint-text" style="margin-top:0">Añade los ingredientes que tienes, en español o inglés, y busca recetas online que los usen. Los resultados se traducen automáticamente al español.</p>
         <div class="task-add-row">
           <input type="text" id="newIngredientInput" class="task-add-input" placeholder="Ingrediente… (ej. pollo, arroz)" maxlength="30" />
@@ -283,7 +302,7 @@
     <!-- CONSUMO -->
     <section class="tab-panel" id="panel-consumo" data-panel="consumo" hidden>
       <div class="card" id="consumoTodayCard" hidden>
-        <h2 class="card-title">Consumo de hoy</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9,20 L9,14.5 C9,11.5 11,11.5 11,9 C11,7.5 10,7 10,5.5" stroke-linecap="round"/><path d="M13,20 L13,16 C13,13.5 15,13.8 15,11.5 C15,10.2 14.2,9.8 14.2,8.5" stroke-linecap="round" opacity="0.6"/></svg></span>Consumo de hoy</h2>
         <div class="consumo-row">
           <div class="consumo-label">
             <span class="consumo-name">Cigarros</span>
@@ -308,7 +327,7 @@
       </div>
 
       <div class="card" id="mediaMensualCard" hidden>
-        <h2 class="card-title">Media mensual</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9,20 L9,14.5 C9,11.5 11,11.5 11,9 C11,7.5 10,7 10,5.5" stroke-linecap="round"/><path d="M13,20 L13,16 C13,13.5 15,13.8 15,11.5 C15,10.2 14.2,9.8 14.2,8.5" stroke-linecap="round" opacity="0.6"/></svg></span>Media mensual</h2>
         <div class="avg-grid" id="mediaMensualGrid">
           <div class="avg-tile">
             <span class="avg-value" id="avgCigarettes">0.0</span>
@@ -325,13 +344,13 @@
       </div>
 
       <div class="card" id="purchasesCard">
-        <h2 class="card-title">Compras</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,7.5 L12,16.5 M9.7,9.3 C9.7,8.2 10.7,7.5 12,7.5 C13.4,7.5 14.3,8.3 14.3,9.3 C14.3,11.7 9.7,10.8 9.7,13.2 C9.7,14.3 10.6,15 12,15 C13.4,15 14.3,14.3 14.3,13.2" stroke-linecap="round"/></svg></span>Compras</h2>
         <div id="purchaseRows"></div>
         <p class="hint-text" id="purchaseEmptyHint" hidden>No tienes artículos de compra. Añade uno en Ajustes.</p>
       </div>
 
       <div class="card">
-        <h2 class="card-title">Gasto total</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,7.5 L12,16.5 M9.7,9.3 C9.7,8.2 10.7,7.5 12,7.5 C13.4,7.5 14.3,8.3 14.3,9.3 C14.3,11.7 9.7,10.8 9.7,13.2 C9.7,14.3 10.6,15 12,15 C13.4,15 14.3,14.3 14.3,13.2" stroke-linecap="round"/></svg></span>Gasto total</h2>
         <div id="spendGroups"></div>
         <p class="hint-text" id="spendHintConsumo">Lucky rojo 5,50 € · Lucky blanco 6,30 € por paquete · Joints 4,50 € cada 4 porros.</p>
       </div>
@@ -349,7 +368,7 @@
 
       <div class="card">
         <div class="card-title-row">
-          <h2 class="card-title">Progreso mensual</h2>
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,3.5 L12,5.2 M12,18.8 L12,20.5 M3.5,12 L5.2,12 M18.8,12 L20.5,12" stroke-linecap="round"/></svg></span>Progreso mensual</h2>
           <button class="link-btn" id="toggleHeatmapView">Ver tabla</button>
         </div>
         <div class="heatmap-legend" id="heatmapLegend"></div>
@@ -359,23 +378,23 @@
       </div>
 
       <div class="card">
-        <h2 class="card-title">Hábitos del mes</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,3.5 L12,5.2 M12,18.8 L12,20.5 M3.5,12 L5.2,12 M18.8,12 L20.5,12" stroke-linecap="round"/></svg></span>Hábitos del mes</h2>
         <div class="rings-grid" id="ringsGrid"></div>
       </div>
 
       <div class="card" id="supplementsStatsCard" hidden>
-        <h2 class="card-title">Suplementos</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="9" width="18" height="6" rx="3"/><line x1="12" y1="9" x2="12" y2="15"/></svg></span>Suplementos</h2>
         <div class="rings-grid rings-grid--lg" id="supplementRingsGrid"></div>
       </div>
 
       <div class="card" id="aguaStatsCard" hidden>
-        <h2 class="card-title">Agua</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,3 C7,8 5,11.5 5,14.5 C5,18.6 8.1,21 12,21 C15.9,21 19,18.6 19,14.5 C19,11.5 17,8 12,3 Z"/></svg></span>Agua</h2>
         <div class="rings-grid rings-grid--lg" id="aguaRingGrid"></div>
         <p class="hint-text" id="aguaAvgHint"></p>
       </div>
 
       <div class="card" id="suenoStatsCard" hidden>
-        <h2 class="card-title">Sueño</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20,13.5 A8,8 0 1 1 10.5,4 A6.3,6.3 0 0 0 20,13.5 Z" stroke-linejoin="round"/></svg></span>Sueño</h2>
         <div class="avg-grid">
           <div class="avg-tile">
             <span class="avg-value" id="avgSleepHours">0.0</span>
@@ -389,13 +408,13 @@
       </div>
 
       <div class="card" id="pesoStatsCard" hidden>
-        <h2 class="card-title">Peso corporal</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7,20 L17,20 M12,20 L12,5 M8,5 L16,5" stroke-linecap="round"/><circle cx="12" cy="5" r="3"/></svg></span>Peso corporal</h2>
         <div class="chart-wrap" id="weightChart"></div>
         <p class="hint-text" id="weightChangeHint"></p>
       </div>
 
       <div class="card" id="ayunoStatsCard" hidden>
-        <h2 class="card-title">Ayuno intermitente</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,12 L12,6.5 A5.5,5.5 0 0 1 16.5,14.5 Z" fill="currentColor" stroke="none" opacity="0.35"/><path d="M12,12 L12,6.5" stroke-linecap="round"/></svg></span>Ayuno intermitente</h2>
         <div class="avg-grid single">
           <div class="avg-tile">
             <span class="avg-value" id="avgFastingHours">0.0</span>
@@ -405,7 +424,7 @@
       </div>
 
       <div class="card" id="menteStatsCard" hidden>
-        <h2 class="card-title">Mente</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,4 C9,7 7,10 7,13 C7,16.9 9.2,19 12,19 C14.8,19 17,16.9 17,13 C17,10 15,7 12,4 Z"/><path d="M12,8 C10.5,10 10,12 10,13.5" stroke-linecap="round"/></svg></span>Mente</h2>
         <div class="avg-grid">
           <div class="avg-tile" id="meditationAvgTile">
             <span class="avg-value" id="avgMeditationMin">0</span>
@@ -419,7 +438,7 @@
       </div>
 
       <div class="card" id="cicloStatsCard" hidden>
-        <h2 class="card-title">Ciclo</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5,12 A7,7 0 0 1 18,7.5" stroke-linecap="round"/><path d="M19,12 A7,7 0 0 1 6,16.5" stroke-linecap="round"/><path d="M15.5,5.5 L18,7.5 L15,9" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5,18.5 L6,16.5 L9,15" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Ciclo</h2>
         <div class="avg-grid single">
           <div class="avg-tile">
             <span class="avg-value" id="periodDaysCount">0</span>
@@ -429,18 +448,18 @@
       </div>
 
       <div class="card" id="workoutStatsCard" hidden>
-        <h2 class="card-title">Ejercicio</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4,9 L4,15 M2,8 L2,16 M20,9 L20,15 M22,8 L22,16 M6,12 L18,12" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Ejercicio</h2>
         <div class="rings-grid rings-grid--lg" id="workoutRingGrid"></div>
         <div class="exercise-stats-list" id="exerciseStatsList"></div>
       </div>
 
       <div class="card" id="goalsStatsCard" hidden>
-        <h2 class="card-title">Metas</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="4.5"/><circle cx="16" cy="16" r="4.5"/><circle cx="16" cy="16" r="1.4" fill="currentColor" stroke="none"/></svg></span>Metas</h2>
         <div class="bars-list" id="goalsBars"></div>
       </div>
 
       <div class="card">
-        <h2 class="card-title">Alimentación</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,3.5 L12,5.2 M12,18.8 L12,20.5 M3.5,12 L5.2,12 M18.8,12 L20.5,12" stroke-linecap="round"/></svg></span>Alimentación</h2>
         <div class="food-avg-tile" id="foodAvgTile">
           <span class="food-avg-value" id="foodAvgValue">–</span>
           <span class="food-avg-label">salud media de las comidas</span>
@@ -457,12 +476,12 @@
       </div>
 
       <div class="card">
-        <h2 class="card-title">Tareas semanales</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="13" r="7.5"/><path d="M12,8.5 L12,13 L15,15" stroke-linecap="round" stroke-linejoin="round"/><path d="M9,3.5 L15,3.5" stroke-linecap="round"/></svg></span>Tareas semanales</h2>
         <div class="bars-list" id="weeklyBars"></div>
       </div>
 
       <div class="card" id="consumoChartCard">
-        <h2 class="card-title" id="consumoChartTitle">Cigarros y Joints</h2>
+        <h2 class="card-title" id="consumoChartTitle"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9,20 L9,14.5 C9,11.5 11,11.5 11,9 C11,7.5 10,7 10,5.5" stroke-linecap="round"/><path d="M13,20 L13,16 C13,13.5 15,13.8 15,11.5 C15,10.2 14.2,9.8 14.2,8.5" stroke-linecap="round" opacity="0.6"/></svg></span>Cigarros y Joints</h2>
         <div class="chart-wrap" id="consumoChart"></div>
         <div class="legend">
           <span class="legend-item"><span class="dot dot--cig"></span>Cigarros</span>
@@ -472,12 +491,12 @@
       </div>
 
       <div class="card" id="compareCard">
-        <h2 class="card-title">Comparativa mensual</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,7.5 L12,16.5 M9.7,9.3 C9.7,8.2 10.7,7.5 12,7.5 C13.4,7.5 14.3,8.3 14.3,9.3 C14.3,11.7 9.7,10.8 9.7,13.2 C9.7,14.3 10.6,15 12,15 C13.4,15 14.3,14.3 14.3,13.2" stroke-linecap="round"/></svg></span>Comparativa mensual</h2>
         <div class="compare-list" id="compareList"></div>
       </div>
 
       <div class="card" id="statsSpendCard">
-        <h2 class="card-title">Gasto total</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,7.5 L12,16.5 M9.7,9.3 C9.7,8.2 10.7,7.5 12,7.5 C13.4,7.5 14.3,8.3 14.3,9.3 C14.3,11.7 9.7,10.8 9.7,13.2 C9.7,14.3 10.6,15 12,15 C13.4,15 14.3,14.3 14.3,13.2" stroke-linecap="round"/></svg></span>Gasto total</h2>
         <div id="statsSpendGroups"></div>
         <p class="hint-text" id="spendHintStats">Lucky rojo 5,50 € · Lucky blanco 6,30 € por paquete · Joints 4,50 € cada 4 porros.</p>
       </div>
@@ -487,7 +506,7 @@
     <section class="tab-panel" id="panel-ajustes" data-panel="ajustes" hidden>
       <div class="card accordion-card">
         <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
-          <h2 class="card-title">Perfil</h2>
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4,7 L20,7 L20,10 C20,11.5 18.5,12.5 17,12 L17,17 C17,18.5 15.5,20 14,20 L10,20 C8.5,20 7,18.5 7,17 L7,12 C5.5,12.5 4,11.5 4,10 Z" stroke-linejoin="round"/></svg></span>Perfil</h2>
           <span class="accordion-chevron">›</span>
         </button>
         <div class="accordion-body" hidden>
@@ -523,7 +542,7 @@
 
       <div class="card accordion-card">
         <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
-          <h2 class="card-title">Recordatorio diario</h2>
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6,16 L6,10.5 C6,7 8.7,4.5 12,4.5 C15.3,4.5 18,7 18,10.5 L18,16 L20,18.5 L4,18.5 Z" stroke-linejoin="round"/><path d="M10,20.5 C10,21.5 10.9,22 12,22 C13.1,22 14,21.5 14,20.5" stroke-linecap="round"/></svg></span>Recordatorio diario</h2>
           <span class="accordion-chevron">›</span>
         </button>
         <div class="accordion-body" hidden>
@@ -546,7 +565,7 @@
 
       <div class="card accordion-card">
         <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
-          <h2 class="card-title">Consumo</h2>
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9,20 L9,14.5 C9,11.5 11,11.5 11,9 C11,7.5 10,7 10,5.5" stroke-linecap="round"/><path d="M13,20 L13,16 C13,13.5 15,13.8 15,11.5 C15,10.2 14.2,9.8 14.2,8.5" stroke-linecap="round" opacity="0.6"/></svg></span>Consumo</h2>
           <span class="accordion-chevron">›</span>
         </button>
         <div class="accordion-body" hidden>
@@ -587,7 +606,7 @@
 
       <div class="card accordion-card">
         <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
-          <h2 class="card-title">Tareas diarias</h2>
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.5,4.5 L14.5,4.5 L13.2,7.2 L10.8,7.2 Z"/><path d="M10.8,7.2 L13.2,7.2 L14.3,13.5 L12,19 L9.7,13.5 Z"/></svg></span>Tareas diarias</h2>
           <span class="accordion-chevron">›</span>
         </button>
         <div class="accordion-body" hidden>
@@ -610,7 +629,7 @@
 
       <div class="card accordion-card">
         <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
-          <h2 class="card-title">Tareas semanales</h2>
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="13" r="7.5"/><path d="M12,8.5 L12,13 L15,15" stroke-linecap="round" stroke-linejoin="round"/><path d="M9,3.5 L15,3.5" stroke-linecap="round"/></svg></span>Tareas semanales</h2>
           <span class="accordion-chevron">›</span>
         </button>
         <div class="accordion-body" hidden>
@@ -625,7 +644,7 @@
 
       <div class="card accordion-card">
         <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
-          <h2 class="card-title">Malos hábitos</h2>
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6,6 L18,18 M6,18 L18,6" stroke-linecap="round"/><circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/></svg></span>Malos hábitos</h2>
           <span class="accordion-chevron">›</span>
         </button>
         <div class="accordion-body" hidden>
@@ -640,7 +659,7 @@
 
       <div class="card accordion-card">
         <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
-          <h2 class="card-title">Suplementos</h2>
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="9" width="18" height="6" rx="3"/><line x1="12" y1="9" x2="12" y2="15"/></svg></span>Suplementos</h2>
           <span class="accordion-chevron">›</span>
         </button>
         <div class="accordion-body" hidden>
@@ -663,7 +682,7 @@
 
       <div class="card accordion-card">
         <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
-          <h2 class="card-title">Agua</h2>
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,3 C7,8 5,11.5 5,14.5 C5,18.6 8.1,21 12,21 C15.9,21 19,18.6 19,14.5 C19,11.5 17,8 12,3 Z"/></svg></span>Agua</h2>
           <span class="accordion-chevron">›</span>
         </button>
         <div class="accordion-body" hidden>
@@ -684,7 +703,7 @@
 
       <div class="card accordion-card">
         <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
-          <h2 class="card-title">Sueño</h2>
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20,13.5 A8,8 0 1 1 10.5,4 A6.3,6.3 0 0 0 20,13.5 Z" stroke-linejoin="round"/></svg></span>Sueño</h2>
           <span class="accordion-chevron">›</span>
         </button>
         <div class="accordion-body" hidden>
@@ -701,7 +720,7 @@
 
       <div class="card accordion-card">
         <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
-          <h2 class="card-title">Peso corporal</h2>
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7,20 L17,20 M12,20 L12,5 M8,5 L16,5" stroke-linecap="round"/><circle cx="12" cy="5" r="3"/></svg></span>Peso corporal</h2>
           <span class="accordion-chevron">›</span>
         </button>
         <div class="accordion-body" hidden>
@@ -718,7 +737,7 @@
 
       <div class="card accordion-card">
         <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
-          <h2 class="card-title">Ayuno intermitente</h2>
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,12 L12,6.5 A5.5,5.5 0 0 1 16.5,14.5 Z" fill="currentColor" stroke="none" opacity="0.35"/><path d="M12,12 L12,6.5" stroke-linecap="round"/></svg></span>Ayuno intermitente</h2>
           <span class="accordion-chevron">›</span>
         </button>
         <div class="accordion-body" hidden>
@@ -735,7 +754,7 @@
 
       <div class="card accordion-card">
         <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
-          <h2 class="card-title">Mente</h2>
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,4 C9,7 7,10 7,13 C7,16.9 9.2,19 12,19 C14.8,19 17,16.9 17,13 C17,10 15,7 12,4 Z"/><path d="M12,8 C10.5,10 10,12 10,13.5" stroke-linecap="round"/></svg></span>Mente</h2>
           <span class="accordion-chevron">›</span>
         </button>
         <div class="accordion-body" hidden>
@@ -759,7 +778,7 @@
 
       <div class="card accordion-card">
         <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
-          <h2 class="card-title">Ciclo menstrual</h2>
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5,12 A7,7 0 0 1 18,7.5" stroke-linecap="round"/><path d="M19,12 A7,7 0 0 1 6,16.5" stroke-linecap="round"/><path d="M15.5,5.5 L18,7.5 L15,9" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5,18.5 L6,16.5 L9,15" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Ciclo menstrual</h2>
           <span class="accordion-chevron">›</span>
         </button>
         <div class="accordion-body" hidden>
@@ -776,7 +795,7 @@
 
       <div class="card accordion-card">
         <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
-          <h2 class="card-title">Ejercicio</h2>
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4,9 L4,15 M2,8 L2,16 M20,9 L20,15 M22,8 L22,16 M6,12 L18,12" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Ejercicio</h2>
           <span class="accordion-chevron">›</span>
         </button>
         <div class="accordion-body" hidden>
@@ -799,7 +818,7 @@
 
       <div class="card accordion-card">
         <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
-          <h2 class="card-title">Metas</h2>
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="4.5"/><circle cx="16" cy="16" r="4.5"/><circle cx="16" cy="16" r="1.4" fill="currentColor" stroke="none"/></svg></span>Metas</h2>
           <span class="accordion-chevron">›</span>
         </button>
         <div class="accordion-body" hidden>
@@ -816,7 +835,7 @@
 
       <div class="card accordion-card">
         <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
-          <h2 class="card-title">Copia de seguridad</h2>
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="8" width="16" height="11" rx="1.5"/><path d="M4,12 L20,12"/><path d="M9.5,15 L14.5,15" stroke-linecap="round"/><path d="M8,8 L8,6 C8,5 8.7,4.5 9.5,4.5 L14.5,4.5 C15.3,4.5 16,5 16,6 L16,8"/></svg></span>Copia de seguridad</h2>
           <span class="accordion-chevron">›</span>
         </button>
         <div class="accordion-body" hidden>
