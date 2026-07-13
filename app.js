@@ -20,6 +20,7 @@
       tracksMeditacion: false,
       tracksLectura: false,
       tracksCiclo: false,
+      tracksWorkouts: false,
       jointPricePer4: 4.50,
       dailyTasks: [],
       weeklyTasks: [],
@@ -27,6 +28,7 @@
       purchaseItems: [],
       supplements: [],
       goals: [],
+      exercises: [],
       profile: { name: '', sex: '', birthdate: '', height: null, weight: null }
     };
   }
@@ -53,6 +55,9 @@
       }
       if (!Array.isArray(parsed.settings.goals)) {
         parsed.settings.goals = [];
+      }
+      if (!Array.isArray(parsed.settings.exercises)) {
+        parsed.settings.exercises = [];
       }
       if (!Array.isArray(parsed.settings.purchaseItems)) {
         parsed.settings.purchaseItems = [
@@ -102,6 +107,9 @@
       if (typeof parsed.settings.tracksCiclo !== 'boolean') {
         parsed.settings.tracksCiclo = false;
       }
+      if (typeof parsed.settings.tracksWorkouts !== 'boolean') {
+        parsed.settings.tracksWorkouts = false;
+      }
       if (!parsed.settings.profile || typeof parsed.settings.profile !== 'object') {
         parsed.settings.profile = defaultSettings().profile;
       }
@@ -146,7 +154,8 @@
       fastEnd: '',
       meditationMin: 0,
       readingMin: 0,
-      periodDay: false
+      periodDay: false,
+      workout: { durationMin: 0, exercises: {} }
     };
   }
 
@@ -196,6 +205,10 @@
 
   function cicloEnabled() {
     return store.settings.tracksCiclo === true;
+  }
+
+  function workoutsEnabled() {
+    return store.settings.tracksWorkouts === true;
   }
 
   function aguaGoal() {
@@ -335,7 +348,7 @@
   const tabBtnObjetivos = document.getElementById('tabBtnObjetivos');
   function objetivosEnabled() {
     return aguaEnabled() || suenoEnabled() || pesoEnabled() || ayunoEnabled() ||
-      meditacionEnabled() || lecturaEnabled() || store.settings.goals.length > 0;
+      meditacionEnabled() || lecturaEnabled() || workoutsEnabled() || store.settings.goals.length > 0;
   }
   function updateObjetivosTabVisibility() {
     tabBtnObjetivos.hidden = !objetivosEnabled();
@@ -566,6 +579,51 @@
     renderHoy();
   });
 
+  const workoutCard = document.getElementById('workoutCard');
+  const exerciseLogList = document.getElementById('exerciseLogList');
+  const exerciseEmptyHint = document.getElementById('exerciseEmptyHint');
+
+  document.querySelectorAll('[data-stepper="workoutDuration"] .stepper-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const key = dateKey(currentDate);
+      const entry = ensureEntry(key);
+      entry.workout = entry.workout || { durationMin: 0, exercises: {} };
+      entry.workout.durationMin = Math.max(0, (entry.workout.durationMin || 0) + parseInt(btn.dataset.step, 10));
+      saveStore();
+      renderHoy();
+    });
+  });
+
+  function ensureExerciseLog(entry, exerciseId) {
+    entry.workout = entry.workout || { durationMin: 0, exercises: {} };
+    entry.workout.exercises = entry.workout.exercises || {};
+    entry.workout.exercises[exerciseId] = entry.workout.exercises[exerciseId] || { weight: null, reps: 0, failure: false };
+    return entry.workout.exercises[exerciseId];
+  }
+
+  exerciseLogList.addEventListener('change', (e) => {
+    const input = e.target.closest('.exercise-input');
+    if (!input) return;
+    const key = dateKey(currentDate);
+    const entry = ensureEntry(key);
+    const log = ensureExerciseLog(entry, input.dataset.exerciseId);
+    const field = input.dataset.exerciseField;
+    const value = parseFloat(input.value);
+    log[field] = (!isNaN(value) && value >= 0) ? value : (field === 'weight' ? null : 0);
+    saveStore();
+  });
+
+  exerciseLogList.addEventListener('click', (e) => {
+    const btn = e.target.closest('.failure-btn');
+    if (!btn) return;
+    const key = dateKey(currentDate);
+    const entry = ensureEntry(key);
+    const log = ensureExerciseLog(entry, btn.dataset.exerciseId);
+    log.failure = !log.failure;
+    saveStore();
+    btn.setAttribute('aria-pressed', String(log.failure));
+  });
+
   function isDayComplete(entry) {
     if (!entry) return false;
     return store.settings.dailyTasks.every((t) => entry[t.id]) && (!teethEnabled() || entry.teeth > 0);
@@ -747,6 +805,31 @@
     document.getElementById('lecturaRow').hidden = !lecturaEnabled();
     document.getElementById('meditationMinValue').textContent = entry.meditationMin || 0;
     document.getElementById('readingMinValue').textContent = entry.readingMin || 0;
+
+    workoutCard.hidden = !workoutsEnabled();
+    const workout = entry.workout || { durationMin: 0, exercises: {} };
+    document.getElementById('workoutDurationValue').textContent = workout.durationMin || 0;
+    const exercises = store.settings.exercises;
+    const workoutExercises = workout.exercises || {};
+    exerciseEmptyHint.hidden = exercises.length > 0;
+    exerciseLogList.innerHTML = exercises.map((ex) => {
+      const log = workoutExercises[ex.id] || { weight: null, reps: 0, failure: false };
+      return `
+      <li class="exercise-row" data-exercise="${ex.id}">
+        <div class="exercise-row-name">${ex.label}</div>
+        <div class="exercise-row-inputs">
+          <div class="exercise-field">
+            <label>Peso (kg)</label>
+            <input type="number" class="exercise-input" data-exercise-id="${ex.id}" data-exercise-field="weight" min="0" step="0.5" placeholder="0" value="${log.weight != null ? log.weight : ''}" />
+          </div>
+          <div class="exercise-field">
+            <label>Reps</label>
+            <input type="number" class="exercise-input" data-exercise-id="${ex.id}" data-exercise-field="reps" min="0" step="1" placeholder="0" value="${log.reps || ''}" />
+          </div>
+          <button type="button" class="failure-btn" data-exercise-id="${ex.id}" aria-pressed="${!!log.failure}">Al fallo</button>
+        </div>
+      </li>`;
+    }).join('');
 
     const goals = store.settings.goals;
     const entryGoals = entry.goals || {};
@@ -1205,6 +1288,54 @@
     document.getElementById('periodDaysCount').textContent = count;
   }
 
+  function renderWorkoutStats(year, monthIndex, lastDay) {
+    const card = document.getElementById('workoutStatsCard');
+    if (!workoutsEnabled()) { card.hidden = true; return; }
+    card.hidden = false;
+    const grid = document.getElementById('workoutRingGrid');
+    const list = document.getElementById('exerciseStatsList');
+
+    let trainedDays = 0;
+    for (let d = 1; d <= lastDay; d++) {
+      const entry = getEntry(dateKey(new Date(year, monthIndex, d)));
+      if (!entry || !entry.workout) continue;
+      const w = entry.workout;
+      const anyExercise = w.exercises && Object.values(w.exercises).some((log) => log.reps > 0 || (log.weight != null && log.weight > 0));
+      if ((w.durationMin > 0) || anyExercise) trainedDays++;
+    }
+    const pct = lastDay > 0 ? (trainedDays / lastDay) * 100 : 0;
+    grid.innerHTML = `<div class="ring-tile ring-tile--lg">${ringSVGLarge(pct)}<span class="ring-pct ring-pct--lg">${Math.round(pct)}%</span><span class="ring-name">días entrenados</span></div>`;
+
+    const exercises = store.settings.exercises;
+    if (exercises.length === 0) {
+      list.innerHTML = '';
+      return;
+    }
+    list.innerHTML = exercises.map((ex) => {
+      let sessions = 0, maxWeight = null, totalReps = 0, failureCount = 0;
+      for (let d = 1; d <= lastDay; d++) {
+        const entry = getEntry(dateKey(new Date(year, monthIndex, d)));
+        const log = entry && entry.workout && entry.workout.exercises && entry.workout.exercises[ex.id];
+        if (!log) continue;
+        const hasData = log.reps > 0 || (log.weight != null && log.weight > 0);
+        if (!hasData) continue;
+        sessions++;
+        if (log.weight != null && (maxWeight === null || log.weight > maxWeight)) maxWeight = log.weight;
+        totalReps += log.reps || 0;
+        if (log.failure) failureCount++;
+      }
+      const parts = [`${sessions} ${sessions === 1 ? 'vez' : 'veces'}`];
+      if (maxWeight != null) parts.push(`máx ${maxWeight} kg`);
+      if (totalReps > 0) parts.push(`${totalReps} reps totales`);
+      if (failureCount > 0) parts.push(`${failureCount} al fallo`);
+      return `
+      <div class="exercise-stat-row">
+        <div class="exercise-stat-name">${ex.label}</div>
+        <div class="exercise-stat-detail">${sessions > 0 ? parts.join(' · ') : 'Sin datos este mes'}</div>
+      </div>`;
+    }).join('');
+  }
+
   function renderGoalsStats(year, monthIndex, lastDay) {
     const card = document.getElementById('goalsStatsCard');
     const goals = store.settings.goals;
@@ -1276,6 +1407,12 @@
     return `hsl(${hue}, ${dark ? 55 : 50}%, ${dark ? 62 : 45}%)`;
   }
 
+  function exerciseColor(index) {
+    const hue = (index * 61 + 20) % 360;
+    const dark = currentTheme() === 'dark';
+    return `hsl(${hue}, ${dark ? 55 : 50}%, ${dark ? 62 : 45}%)`;
+  }
+
   function buildHeatmapRows() {
     const dailyRows = store.settings.dailyTasks.map((t, i) => ({
       key: t.id, label: t.label, type: 'daily', color: dailyTaskColor(i)
@@ -1289,10 +1426,14 @@
     const supplementRows = supplementsEnabled() ? store.settings.supplements.map((s, i) => ({
       key: s.id, label: s.label, type: 'daily', color: supplementColor(i), groupStart: i === 0
     })) : [];
+    const exerciseRows = workoutsEnabled() ? store.settings.exercises.map((ex, i) => ({
+      key: ex.id, label: ex.label, type: 'daily', color: exerciseColor(i), groupStart: i === 0
+    })) : [];
     return [
       ...dailyRows,
       ...(teethEnabled() ? [{ key: 'teeth', label: 'Dientes', type: 'daily', color: 'var(--h-teeth)' }] : []),
       ...supplementRows,
+      ...exerciseRows,
       ...(cicloEnabled() ? [{ key: 'periodDay', label: 'Ciclo', type: 'daily', color: 'var(--h-ciclo)', groupStart: true }] : []),
       { key: 'health', label: 'Alimentación', type: 'health', groupStart: true },
       ...weeklyRows,
@@ -1357,6 +1498,10 @@
       });
       store.settings.supplements.forEach((s) => {
         dayEntry[s.id] = !!(entry && entry.supplements && entry.supplements[s.id]);
+      });
+      store.settings.exercises.forEach((ex) => {
+        const log = entry && entry.workout && entry.workout.exercises && entry.workout.exercises[ex.id];
+        dayEntry[ex.id] = !!(log && (log.reps > 0 || (log.weight != null && log.weight > 0)));
       });
       dayEntry.periodDay = !!(entry && entry.periodDay);
       store.settings.dailyTasks.forEach((t) => {
@@ -1549,6 +1694,7 @@
     renderAyunoStats(year, monthIndex, lastDay);
     renderMenteStats(year, monthIndex, lastDay);
     renderCicloStats(year, monthIndex, lastDay);
+    renderWorkoutStats(year, monthIndex, lastDay);
     renderGoalsStats(year, monthIndex, lastDay);
 
     // Weekly tasks bars
@@ -2144,6 +2290,56 @@
     renderHoy();
     if (activeTab === 'stats') renderStats();
   });
+
+  /* ============ AJUSTES panel / Ejercicio ============ */
+  const tracksWorkoutsToggle = document.getElementById('tracksWorkoutsToggle');
+  const exerciseManageList = document.getElementById('exerciseManageList');
+  const newExerciseInput = document.getElementById('newExerciseInput');
+  const addExerciseBtn = document.getElementById('addExerciseBtn');
+
+  tracksWorkoutsToggle.checked = workoutsEnabled();
+  tracksWorkoutsToggle.addEventListener('change', () => {
+    store.settings.tracksWorkouts = tracksWorkoutsToggle.checked;
+    saveStore();
+    renderHoy();
+    if (activeTab === 'stats') renderStats();
+  });
+
+  function renderExerciseManageList() {
+    const exercises = store.settings.exercises;
+    exerciseManageList.innerHTML = exercises.length ? exercises.map((ex) => `
+      <li class="task-manage-item" data-task-id="${ex.id}">
+        <span class="task-manage-label">${ex.label}</span>
+        <button type="button" class="task-remove-btn" data-remove-task="${ex.id}" aria-label="Eliminar ${ex.label}">×</button>
+      </li>`).join('') : '<li class="task-empty-hint">No tienes ejercicios todavía.</li>';
+  }
+
+  function addExercise() {
+    const label = newExerciseInput.value.trim();
+    if (!label) return;
+    store.settings.exercises.push({ id: generateTaskId(), label });
+    saveStore();
+    newExerciseInput.value = '';
+    renderExerciseManageList();
+    renderHoy();
+    if (activeTab === 'stats') renderStats();
+  }
+
+  addExerciseBtn.addEventListener('click', addExercise);
+  newExerciseInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addExercise(); });
+
+  exerciseManageList.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-remove-task]');
+    if (!btn) return;
+    const exerciseId = btn.dataset.removeTask;
+    store.settings.exercises = store.settings.exercises.filter((ex) => ex.id !== exerciseId);
+    saveStore();
+    renderExerciseManageList();
+    renderHoy();
+    if (activeTab === 'stats') renderStats();
+  });
+
+  renderExerciseManageList();
 
   /* ============ AJUSTES panel / Metas ============ */
   const goalManageList = document.getElementById('goalManageList');

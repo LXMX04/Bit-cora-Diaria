@@ -183,6 +183,20 @@
         <p class="hint-text">Minutos de hoy.</p>
       </div>
 
+      <div class="card" id="workoutCard" hidden>
+        <h2 class="card-title">Ejercicio</h2>
+        <div class="consumo-row">
+          <div class="consumo-label"><span class="consumo-name">Duración</span></div>
+          <div class="stepper" data-stepper="workoutDuration">
+            <button class="stepper-btn" data-step="-5" aria-label="Restar 5 min">–</button>
+            <span class="stepper-value" id="workoutDurationValue">0</span>
+            <button class="stepper-btn" data-step="5" aria-label="Sumar 5 min">+</button>
+          </div>
+        </div>
+        <ul class="exercise-list" id="exerciseLogList"></ul>
+        <p class="hint-text" id="exerciseEmptyHint" hidden>No tienes ejercicios configurados. Añade uno en Ajustes.</p>
+      </div>
+
       <div class="card" id="goalsCard">
         <h2 class="card-title">Metas</h2>
         <ul class="habit-list" id="goalsList"></ul>
@@ -396,6 +410,12 @@
             <span class="avg-label">días de regla este mes</span>
           </div>
         </div>
+      </div>
+
+      <div class="card" id="workoutStatsCard" hidden>
+        <h2 class="card-title">Ejercicio</h2>
+        <div class="rings-grid rings-grid--lg" id="workoutRingGrid"></div>
+        <div class="exercise-stats-list" id="exerciseStatsList"></div>
       </div>
 
       <div class="card" id="goalsStatsCard" hidden>
@@ -733,6 +753,29 @@
             </label>
           </div>
           <p class="hint-text">Marca los días de regla. Se reflejan en el mapa de Stats.</p>
+        </div>
+      </div>
+
+      <div class="card accordion-card">
+        <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
+          <h2 class="card-title">Ejercicio</h2>
+          <span class="accordion-chevron">›</span>
+        </button>
+        <div class="accordion-body" hidden>
+          <div class="setting-row">
+            <span>Activar en Objetivos</span>
+            <label class="switch">
+              <input type="checkbox" id="tracksWorkoutsToggle" />
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+          <p class="hint-text">Registra peso, repeticiones y si llegaste al fallo en cada ejercicio. Se refleja en Stats.</p>
+          <ul class="task-manage-list" id="exerciseManageList"></ul>
+          <div class="task-add-row">
+            <input type="text" id="newExerciseInput" class="task-add-input" placeholder="Nuevo ejercicio…" maxlength="30" />
+            <button class="secondary-btn task-add-btn" id="addExerciseBtn">Añadir</button>
+          </div>
+          <p class="hint-text">Ej. "Press banca", "Sentadilla". Se guardan solo en este dispositivo.</p>
         </div>
       </div>
 

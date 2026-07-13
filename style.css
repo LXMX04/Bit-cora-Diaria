@@ -942,6 +942,89 @@ main {
   border-radius: 5px;
 }
 
+/* ---------- Exercise rows ---------- */
+.exercise-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.exercise-row {
+  padding: 12px 0;
+}
+.exercise-row + .exercise-row {
+  border-top: 1px solid var(--border);
+}
+.exercise-row-name {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.exercise-row-inputs {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.exercise-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.exercise-field label {
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+.exercise-input {
+  width: 64px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-alt);
+  color: var(--text);
+  padding: 6px 8px;
+  font-size: 14px;
+  text-align: right;
+}
+.failure-btn {
+  margin-left: auto;
+  flex: none;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface-alt);
+  color: var(--text-muted);
+  padding: 8px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.failure-btn[aria-pressed="true"] {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+
+.exercise-stats-list {
+  display: flex;
+  flex-direction: column;
+  margin-top: 14px;
+}
+.exercise-stats-list:empty { margin-top: 0; }
+.exercise-stat-row {
+  padding: 10px 0;
+}
+.exercise-stat-row + .exercise-stat-row {
+  border-top: 1px solid var(--border);
+}
+.exercise-stat-name {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+.exercise-stat-detail {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
 .chart-wrap {
   width: 100%;
   overflow: hidden;
