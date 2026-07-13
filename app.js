@@ -673,6 +673,34 @@
     }, 400);
   });
 
+  const DAILY_QUOTES = [
+    { text: 'Viste con descuido y recordarán el vestido; viste impecable y te recordarán a ti.', author: 'Coco Chanel' },
+    { text: 'Los pantalones de chándal son una señal de derrota. Perdiste el control de tu vida, así que compraste un chándal.', author: 'Karl Lagerfeld' },
+    { text: 'Vestir bien es una forma de buena educación.', author: 'Tom Ford' },
+    { text: 'Las modas pasan, el estilo es eterno.', author: 'Yves Saint Laurent' },
+    { text: 'El estilo es una forma de decir quién eres sin tener que hablar.', author: 'Giorgio Armani' },
+    { text: 'No diseño ropa, diseño sueños.', author: 'Ralph Lauren' },
+    { text: 'La elegancia es un rechazo.', author: 'Diana Vreeland' },
+    { text: 'Ponte traje.', author: 'Barney Stinson — Cómo conocí a vuestra madre' },
+  ];
+
+  function dayOfYear(d) {
+    const start = new Date(d.getFullYear(), 0, 0);
+    return Math.floor((d - start) / 86400000);
+  }
+
+  function updateDailyQuote() {
+    const quoteEl = document.getElementById('dailyQuote');
+    if (!quoteEl) return;
+    const today = startOfDay(new Date());
+    if (currentDate.getTime() !== today.getTime()) {
+      quoteEl.innerHTML = '';
+      return;
+    }
+    const q = DAILY_QUOTES[dayOfYear(today) % DAILY_QUOTES.length];
+    quoteEl.innerHTML = `<span class="daily-quote-text">"${q.text}"</span><span class="daily-quote-author">${q.author}</span>`;
+  }
+
   function updateGreeting(entry) {
     const greetingEl = document.getElementById('dayGreeting');
     const today = startOfDay(new Date());
@@ -705,6 +733,7 @@
     const key = dateKey(currentDate);
     const entry = getEntry(key) || emptyEntry();
     updateGreeting(entry);
+    updateDailyQuote();
 
     const dailyItemsHtml = store.settings.dailyTasks.map((t) => `
       <li class="habit-row" data-habit="${t.id}">
@@ -1365,27 +1394,39 @@
     return isCurrentMonth ? today.getDate() : daysInMonth(year, monthIndex);
   }
 
+  function ringTicks(cx, cy, r, pct, totalTicks, majorEvery, minorLen, majorLen, minorWidth, majorWidth) {
+    const filled = Math.round((Math.max(0, Math.min(100, pct)) / 100) * totalTicks);
+    let ticks = '';
+    for (let i = 0; i < totalTicks; i++) {
+      const angle = (i / totalTicks) * Math.PI * 2 - Math.PI / 2;
+      const isMajor = i % majorEvery === 0;
+      const len = isMajor ? majorLen : minorLen;
+      const width = isMajor ? majorWidth : minorWidth;
+      const x1 = cx + (r - len / 2) * Math.cos(angle);
+      const y1 = cy + (r - len / 2) * Math.sin(angle);
+      const x2 = cx + (r + len / 2) * Math.cos(angle);
+      const y2 = cy + (r + len / 2) * Math.sin(angle);
+      const color = i < filled ? 'var(--claret)' : 'var(--border)';
+      ticks += `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="${color}" stroke-width="${width}" stroke-linecap="round"/>`;
+    }
+    return ticks;
+  }
+
   function ringSVG(pct) {
-    const r = 26, c = 2 * Math.PI * r;
-    const filled = (Math.max(0, Math.min(100, pct)) / 100) * c;
+    const ticks = ringTicks(32, 32, 26, pct, 36, 9, 5, 8, 1.5, 2.2);
     return `
       <svg width="64" height="64" viewBox="0 0 64 64">
-        <circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--border)" stroke-width="6"/>
-        <circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--accent)" stroke-width="6"
-          stroke-linecap="round" stroke-dasharray="${filled} ${c}"
-          transform="rotate(-90 32 32)"/>
+        <circle cx="32" cy="32" r="26" fill="none" stroke="var(--border)" stroke-width="1" opacity="0.4"/>
+        ${ticks}
       </svg>`;
   }
 
   function ringSVGLarge(pct) {
-    const r = 38, c = 2 * Math.PI * r;
-    const filled = (Math.max(0, Math.min(100, pct)) / 100) * c;
+    const ticks = ringTicks(46, 46, 37, pct, 48, 12, 6, 10, 1.7, 2.6);
     return `
       <svg width="92" height="92" viewBox="0 0 92 92">
-        <circle cx="46" cy="46" r="${r}" fill="none" stroke="var(--border)" stroke-width="8"/>
-        <circle cx="46" cy="46" r="${r}" fill="none" stroke="var(--accent)" stroke-width="8"
-          stroke-linecap="round" stroke-dasharray="${filled} ${c}"
-          transform="rotate(-90 46 46)"/>
+        <circle cx="46" cy="46" r="37" fill="none" stroke="var(--border)" stroke-width="1" opacity="0.4"/>
+        ${ticks}
       </svg>`;
   }
 
