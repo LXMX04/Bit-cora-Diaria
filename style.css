@@ -1571,6 +1571,156 @@ select.profile-input {
   .rings-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
+/* ---------- Nuevas mecánicas ---------- */
+.gratitude-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gratitude-input {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-alt);
+  color: var(--text);
+  padding: 9px 12px;
+  font-size: 14px;
+  font-family: inherit;
+}
+.gratitude-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.template-select {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-alt);
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.rest-timer {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.rest-timer-label {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+.rest-timer-value {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  flex: none;
+  min-width: 62px;
+}
+.rest-timer--done .rest-timer-value {
+  color: var(--claret);
+}
+
+.chart-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 10px 0 4px;
+}
+.mini-bar-svg {
+  width: 100%;
+  height: 64px;
+  display: block;
+}
+.exercise-row-group {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+}
+.exercise-progress-row + .exercise-progress-row {
+  margin-top: 10px;
+}
+
+.week-compare-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.week-compare-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.week-compare-row:last-child {
+  border-bottom: none;
+}
+.week-compare-label {
+  font-size: 13.5px;
+  color: var(--text);
+  flex: 1;
+}
+.week-compare-values {
+  font-size: 13px;
+  text-align: right;
+}
+.week-compare-arrow {
+  flex: none;
+  width: 20px;
+  text-align: center;
+  font-weight: 800;
+  color: var(--text-muted);
+}
+.week-compare-good {
+  color: var(--good);
+}
+.week-compare-bad {
+  color: var(--danger);
+}
+
+.budget-bar-track {
+  width: 100%;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--surface-alt);
+  overflow: hidden;
+  margin: 10px 0 8px;
+}
+.budget-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+.budget-bar-fill--over {
+  background: var(--danger);
+}
+
+.shopping-item-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+.shopping-item-done {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.recipe-save-btn {
+  margin-bottom: 12px;
+}
+
 /* ---------- Landscape ---------- */
 @media (orientation: landscape) and (min-width: 560px) {
   :root {

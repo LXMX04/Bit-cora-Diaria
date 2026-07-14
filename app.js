@@ -23,6 +23,16 @@
       cicloAvgLength: 28,
       cicloAvgPeriodLength: 5,
       tracksWorkouts: false,
+      restTimerSeconds: 90,
+      workoutTemplates: [],
+      tracksRecetasFavoritas: true,
+      savedRecipes: [],
+      shoppingList: [],
+      tracksSnacks: false,
+      tracksGratitud: false,
+      tracksEnergia: false,
+      tracksRopa: false,
+      monthlyBudget: null,
       jointPricePer4: 4.50,
       dailyTasks: [],
       weeklyTasks: [],
@@ -118,6 +128,36 @@
       if (typeof parsed.settings.tracksWorkouts !== 'boolean') {
         parsed.settings.tracksWorkouts = false;
       }
+      if (typeof parsed.settings.restTimerSeconds !== 'number' || parsed.settings.restTimerSeconds < 10) {
+        parsed.settings.restTimerSeconds = 90;
+      }
+      if (!Array.isArray(parsed.settings.workoutTemplates)) {
+        parsed.settings.workoutTemplates = [];
+      }
+      if (typeof parsed.settings.tracksRecetasFavoritas !== 'boolean') {
+        parsed.settings.tracksRecetasFavoritas = true;
+      }
+      if (!Array.isArray(parsed.settings.savedRecipes)) {
+        parsed.settings.savedRecipes = [];
+      }
+      if (!Array.isArray(parsed.settings.shoppingList)) {
+        parsed.settings.shoppingList = [];
+      }
+      if (typeof parsed.settings.tracksSnacks !== 'boolean') {
+        parsed.settings.tracksSnacks = false;
+      }
+      if (typeof parsed.settings.tracksGratitud !== 'boolean') {
+        parsed.settings.tracksGratitud = false;
+      }
+      if (typeof parsed.settings.tracksEnergia !== 'boolean') {
+        parsed.settings.tracksEnergia = false;
+      }
+      if (typeof parsed.settings.tracksRopa !== 'boolean') {
+        parsed.settings.tracksRopa = false;
+      }
+      if (parsed.settings.monthlyBudget !== null && typeof parsed.settings.monthlyBudget !== 'number') {
+        parsed.settings.monthlyBudget = null;
+      }
       if (!parsed.settings.profile || typeof parsed.settings.profile !== 'object') {
         parsed.settings.profile = defaultSettings().profile;
       }
@@ -165,7 +205,12 @@
       periodDay: false,
       periodFlow: null,
       cycleSymptoms: [],
-      workout: { durationMin: 0, exercises: {} }
+      workout: { durationMin: 0, exercises: {}, templateId: '' },
+      snacks: [],
+      gratitude: ['', '', ''],
+      energyLevel: 0,
+      stressLevel: 0,
+      outfitPlanned: false
     };
   }
 
@@ -323,6 +368,35 @@
 
   function workoutsEnabled() {
     return store.settings.tracksWorkouts === true;
+  }
+
+  function snacksEnabled() {
+    return store.settings.tracksSnacks === true;
+  }
+
+  function gratitudEnabled() {
+    return store.settings.tracksGratitud === true;
+  }
+
+  function energiaEnabled() {
+    return store.settings.tracksEnergia === true;
+  }
+
+  function ropaEnabled() {
+    return store.settings.tracksRopa === true;
+  }
+
+  const EXERCISE_GROUPS = [
+    { id: '', label: 'Sin grupo' },
+    { id: 'empuje', label: 'Empuje' },
+    { id: 'tiron', label: 'Tirón' },
+    { id: 'pierna', label: 'Pierna' },
+    { id: 'core', label: 'Core' },
+    { id: 'cardio', label: 'Cardio' }
+  ];
+  function exerciseGroupLabel(id) {
+    const g = EXERCISE_GROUPS.find((x) => x.id === id);
+    return g ? g.label : 'Sin grupo';
   }
 
   function aguaGoal() {
@@ -760,6 +834,63 @@
   const workoutCard = document.getElementById('workoutCard');
   const exerciseLogList = document.getElementById('exerciseLogList');
   const exerciseEmptyHint = document.getElementById('exerciseEmptyHint');
+  const templateSelect = document.getElementById('templateSelect');
+  templateSelect.addEventListener('change', () => {
+    const key = dateKey(currentDate);
+    const entry = ensureEntry(key);
+    entry.workout = entry.workout || { durationMin: 0, exercises: {}, templateId: '' };
+    entry.workout.templateId = templateSelect.value;
+    saveStore();
+    renderHoy();
+  });
+
+  /* ---- Cronómetro de descanso ---- */
+  const restTimerValueEl = document.getElementById('restTimerValue');
+  const restTimerStartBtn = document.getElementById('restTimerStartBtn');
+  const restTimerResetBtn = document.getElementById('restTimerResetBtn');
+  const restTimerEl = document.getElementById('restTimer');
+  let restTimerRemaining = store.settings.restTimerSeconds || 90;
+  let restTimerInterval = null;
+
+  function formatRestTime(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+  function renderRestTimer() {
+    restTimerValueEl.textContent = formatRestTime(Math.max(0, restTimerRemaining));
+    restTimerEl.classList.toggle('rest-timer--done', restTimerRemaining <= 0 && restTimerInterval === null);
+  }
+  function stopRestTimer() {
+    if (restTimerInterval) {
+      clearInterval(restTimerInterval);
+      restTimerInterval = null;
+    }
+  }
+  restTimerStartBtn.addEventListener('click', () => {
+    if (restTimerInterval) {
+      stopRestTimer();
+      restTimerStartBtn.textContent = 'Iniciar';
+      return;
+    }
+    if (restTimerRemaining <= 0) restTimerRemaining = store.settings.restTimerSeconds || 90;
+    restTimerStartBtn.textContent = 'Pausar';
+    restTimerInterval = setInterval(() => {
+      restTimerRemaining -= 1;
+      renderRestTimer();
+      if (restTimerRemaining <= 0) {
+        stopRestTimer();
+        restTimerStartBtn.textContent = 'Iniciar';
+      }
+    }, 1000);
+  });
+  restTimerResetBtn.addEventListener('click', () => {
+    stopRestTimer();
+    restTimerStartBtn.textContent = 'Iniciar';
+    restTimerRemaining = store.settings.restTimerSeconds || 90;
+    renderRestTimer();
+  });
+  renderRestTimer();
 
   document.querySelectorAll('[data-stepper="workoutDuration"] .stepper-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -850,6 +981,70 @@
       reflectionHint.textContent = 'Guardado automáticamente';
     }, 400);
   });
+
+  const gratitudCard = document.getElementById('gratitudCard');
+  const gratitudeInputs = document.querySelectorAll('.gratitude-input');
+  let gratitudeTimer = null;
+  gratitudeInputs.forEach((input) => {
+    input.addEventListener('input', () => {
+      const key = dateKey(currentDate);
+      const entry = ensureEntry(key);
+      entry.gratitude = entry.gratitude || ['', '', ''];
+      entry.gratitude[Number(input.dataset.gratitudeIndex)] = input.value;
+      clearTimeout(gratitudeTimer);
+      gratitudeTimer = setTimeout(saveStore, 400);
+    });
+  });
+
+  const energiaCard = document.getElementById('energiaCard');
+  energiaCard.addEventListener('click', (e) => {
+    const btn = e.target.closest('.health-btn');
+    if (!btn) return;
+    const scale = btn.closest('.health-scale');
+    const key = dateKey(currentDate);
+    const entry = ensureEntry(key);
+    const value = Number(btn.dataset.value);
+    if (scale.hasAttribute('data-health-energy')) {
+      entry.energyLevel = entry.energyLevel === value ? 0 : value;
+    } else if (scale.hasAttribute('data-health-stress')) {
+      entry.stressLevel = entry.stressLevel === value ? 0 : value;
+    }
+    saveStore();
+    renderHoy();
+  });
+
+  const ropaCard = document.getElementById('ropaCard');
+  const outfitBtn = document.getElementById('outfitBtn');
+  outfitBtn.addEventListener('click', () => {
+    const key = dateKey(currentDate);
+    const entry = ensureEntry(key);
+    entry.outfitPlanned = !entry.outfitPlanned;
+    saveStore();
+    renderHoy();
+  });
+
+  function renderWellbeingCards(entry) {
+    gratitudCard.hidden = !gratitudEnabled();
+    if (gratitudEnabled()) {
+      const g = entry.gratitude || ['', '', ''];
+      gratitudeInputs.forEach((input) => {
+        input.value = g[Number(input.dataset.gratitudeIndex)] || '';
+      });
+    }
+    energiaCard.hidden = !energiaEnabled();
+    if (energiaEnabled()) {
+      energiaCard.querySelectorAll('[data-health-energy] .health-btn').forEach((btn) => {
+        btn.classList.toggle('is-active', Number(btn.dataset.value) === (entry.energyLevel || 0));
+      });
+      energiaCard.querySelectorAll('[data-health-stress] .health-btn').forEach((btn) => {
+        btn.classList.toggle('is-active', Number(btn.dataset.value) === (entry.stressLevel || 0));
+      });
+    }
+    ropaCard.hidden = !ropaEnabled();
+    if (ropaEnabled()) {
+      outfitBtn.setAttribute('aria-pressed', String(!!entry.outfitPlanned));
+    }
+  }
 
   const DAILY_QUOTES = [
     { text: 'Viste con descuido y recordarán el vestido; viste impecable y te recordarán a ti.', author: 'Coco Chanel' },
@@ -1011,6 +1206,7 @@
       </li>`).join('') : '<li class="task-empty-hint">No tienes suplementos registrados. Añade uno en Ajustes.</li>';
 
     renderCicloCard(entry);
+    renderWellbeingCards(entry);
 
     updateStreakBadge();
     renderObjetivos(entry);
@@ -1046,16 +1242,28 @@
     document.getElementById('readingMinValue').textContent = entry.readingMin || 0;
 
     workoutCard.hidden = !workoutsEnabled();
-    const workout = entry.workout || { durationMin: 0, exercises: {} };
+    const workout = entry.workout || { durationMin: 0, exercises: {}, templateId: '' };
     document.getElementById('workoutDurationValue').textContent = `${workout.durationMin || 0} min`;
-    const exercises = store.settings.exercises;
+    const templates = store.settings.workoutTemplates || [];
+    const templateSelectRow = document.getElementById('templateSelectRow');
+    templateSelectRow.hidden = templates.length === 0;
+    if (templates.length > 0) {
+      templateSelect.innerHTML = '<option value="">Todos los ejercicios</option>' +
+        templates.map((t) => `<option value="${t.id}">${escapeHtml(t.label)}</option>`).join('');
+      templateSelect.value = workout.templateId || '';
+    }
+    const activeTemplate = templates.find((t) => t.id === workout.templateId);
+    const exercises = activeTemplate
+      ? store.settings.exercises.filter((ex) => activeTemplate.exerciseIds.includes(ex.id))
+      : store.settings.exercises;
     const workoutExercises = workout.exercises || {};
-    exerciseEmptyHint.hidden = exercises.length > 0;
+    exerciseEmptyHint.hidden = store.settings.exercises.length > 0;
     exerciseLogList.innerHTML = exercises.map((ex) => {
       const log = workoutExercises[ex.id] || { weight: null, reps: 0, failure: false };
+      const groupTag = ex.group ? `<span class="exercise-row-group">${escapeHtml(exerciseGroupLabel(ex.group))}</span>` : '';
       return `
       <li class="exercise-row" data-exercise="${ex.id}">
-        <div class="exercise-row-name">${ex.label}</div>
+        <div class="exercise-row-name">${escapeHtml(ex.label)}${groupTag}</div>
         <div class="exercise-row-inputs">
           <div class="exercise-field">
             <label>Peso (kg)</label>
@@ -1129,7 +1337,139 @@
         btn.classList.toggle('is-active', parseInt(btn.dataset.value, 10) === health);
       });
     });
+    renderSnacks(entry);
+    renderSavedRecipes();
+    renderShoppingList();
   }
+
+  /* ============ Snacks ============ */
+  const snacksCard = document.getElementById('snacksCard');
+  const snackList = document.getElementById('snackList');
+  const newSnackInput = document.getElementById('newSnackInput');
+  const addSnackBtn = document.getElementById('addSnackBtn');
+
+  function renderSnacks(entry) {
+    snacksCard.hidden = !snacksEnabled();
+    if (!snacksEnabled()) return;
+    const snacks = entry.snacks || [];
+    snackList.innerHTML = snacks.length ? snacks.map((s, i) => `
+      <li class="task-manage-item">
+        <span class="task-manage-label">${escapeHtml(s)}</span>
+        <button class="task-remove-btn" data-remove-snack="${i}" aria-label="Quitar">×</button>
+      </li>`).join('') : '<li class="task-empty-hint">Sin snacks registrados hoy.</li>';
+  }
+
+  function addSnack() {
+    const text = newSnackInput.value.trim();
+    if (!text) return;
+    const key = dateKey(currentDate);
+    const entry = ensureEntry(key);
+    entry.snacks = entry.snacks || [];
+    entry.snacks.push(text);
+    newSnackInput.value = '';
+    saveStore();
+    renderComidas();
+  }
+  addSnackBtn.addEventListener('click', addSnack);
+  newSnackInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addSnack(); });
+  snackList.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-remove-snack]');
+    if (!btn) return;
+    const key = dateKey(currentDate);
+    const entry = ensureEntry(key);
+    entry.snacks = entry.snacks || [];
+    entry.snacks.splice(parseInt(btn.dataset.removeSnack, 10), 1);
+    saveStore();
+    renderComidas();
+  });
+
+  /* ============ Recetas favoritas + lista de la compra ============ */
+  const savedRecipesCard = document.getElementById('savedRecipesCard');
+  const savedRecipesList = document.getElementById('savedRecipesList');
+  const shoppingListCard = document.getElementById('shoppingListCard');
+  const shoppingListItems = document.getElementById('shoppingListItems');
+  const newShoppingItemInput = document.getElementById('newShoppingItemInput');
+  const addShoppingItemBtn = document.getElementById('addShoppingItemBtn');
+  const clearShoppingListBtn = document.getElementById('clearShoppingListBtn');
+
+  function renderSavedRecipes() {
+    const saved = store.settings.savedRecipes || [];
+    savedRecipesCard.hidden = saved.length === 0;
+    if (saved.length === 0) return;
+    savedRecipesList.innerHTML = saved.map((r, i) => `
+      <li class="task-manage-item">
+        <span class="task-manage-label">${escapeHtml(r.name)}</span>
+        <button class="secondary-btn" data-shopping-from-recipe="${i}" style="margin-right:6px">+ Lista</button>
+        <button class="task-remove-btn" data-remove-saved-recipe="${i}" aria-label="Quitar">×</button>
+      </li>`).join('');
+  }
+  savedRecipesList.addEventListener('click', (e) => {
+    const removeBtn = e.target.closest('[data-remove-saved-recipe]');
+    const shopBtn = e.target.closest('[data-shopping-from-recipe]');
+    if (removeBtn) {
+      store.settings.savedRecipes.splice(parseInt(removeBtn.dataset.removeSavedRecipe, 10), 1);
+      saveStore();
+      renderComidas();
+    } else if (shopBtn) {
+      const recipe = store.settings.savedRecipes[parseInt(shopBtn.dataset.shoppingFromRecipe, 10)];
+      if (recipe && Array.isArray(recipe.ingredientsList)) {
+        recipe.ingredientsList.forEach((label) => {
+          if (!store.settings.shoppingList.some((it) => it.text === label)) {
+            store.settings.shoppingList.push({ text: label, done: false });
+          }
+        });
+        saveStore();
+        renderComidas();
+      }
+    }
+  });
+
+  function renderShoppingList() {
+    const list = store.settings.shoppingList || [];
+    shoppingListCard.hidden = list.length === 0;
+    if (list.length === 0) return;
+    shoppingListItems.innerHTML = list.map((item, i) => `
+      <li class="task-manage-item">
+        <label class="shopping-item-label">
+          <input type="checkbox" data-shopping-check="${i}" ${item.done ? 'checked' : ''} />
+          <span class="${item.done ? 'shopping-item-done' : ''}">${escapeHtml(item.text)}</span>
+        </label>
+        <button class="task-remove-btn" data-remove-shopping="${i}" aria-label="Quitar">×</button>
+      </li>`).join('');
+  }
+  function addShoppingItem() {
+    const text = newShoppingItemInput.value.trim();
+    if (!text) return;
+    store.settings.shoppingList.push({ text, done: false });
+    newShoppingItemInput.value = '';
+    saveStore();
+    renderComidas();
+  }
+  addShoppingItemBtn.addEventListener('click', addShoppingItem);
+  newShoppingItemInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addShoppingItem(); });
+  shoppingListItems.addEventListener('click', (e) => {
+    const removeBtn = e.target.closest('[data-remove-shopping]');
+    if (removeBtn) {
+      store.settings.shoppingList.splice(parseInt(removeBtn.dataset.removeShopping, 10), 1);
+      saveStore();
+      renderComidas();
+    }
+  });
+  shoppingListItems.addEventListener('change', (e) => {
+    const check = e.target.closest('[data-shopping-check]');
+    if (!check) return;
+    const item = store.settings.shoppingList[parseInt(check.dataset.shoppingCheck, 10)];
+    if (item) {
+      item.done = check.checked;
+      saveStore();
+      renderComidas();
+    }
+  });
+  clearShoppingListBtn.addEventListener('click', () => {
+    store.settings.shoppingList = [];
+    saveStore();
+    renderComidas();
+  });
 
   /* ============ Recipe search ============ */
   function escapeHtml(str) {
@@ -1312,12 +1652,15 @@
     renderIngredientChips();
   });
 
+  let lastDisplayMeals = [];
+
   function renderRecipeResults(displayMeals) {
+    lastDisplayMeals = displayMeals;
     if (displayMeals.length === 0) {
       recipeResults.innerHTML = '<p class="hint-text">No se encontraron recetas con esos ingredientes. Prueba con menos ingredientes o escritos en inglés.</p>';
       return;
     }
-    recipeResults.innerHTML = displayMeals.map((d) => {
+    recipeResults.innerHTML = displayMeals.map((d, idx) => {
       const meal = d.meal;
       const sourceUrl = safeUrl(meal.strSource) || safeUrl(meal.strYoutube);
       const sourceLabel = safeUrl(meal.strSource) ? 'Receta original ↗' : 'Ver vídeo ↗';
@@ -1332,6 +1675,7 @@
         d.area ? `<span class="recipe-badge">🌍 ${escapeHtml(d.area)}</span>` : '',
         `<span class="recipe-badge">🧂 ${d.ingredientsList.length} ingredientes</span>`
       ].filter(Boolean).join('');
+      const isSaved = (store.settings.savedRecipes || []).some((r) => r.meal && r.meal.idMeal === meal.idMeal);
       return `
       <div class="card recipe-card">
         <button type="button" class="recipe-card-header" data-recipe-toggle aria-expanded="false">
@@ -1344,6 +1688,7 @@
         </button>
         <div class="recipe-card-body" hidden>
           <div class="recipe-meta">${badges}</div>
+          <button type="button" class="secondary-btn recipe-save-btn" data-save-recipe="${idx}" aria-pressed="${isSaved}">${isSaved ? '★ Guardada' : '☆ Guardar receta'}</button>
           <h3 class="recipe-section-title">Ingredientes</h3>
           <ul class="recipe-ingredient-list">${d.ingredientsList.map((x) => `<li>${escapeHtml(x)}</li>`).join('')}</ul>
           <h3 class="recipe-section-title">Instrucciones</h3>
@@ -1353,6 +1698,22 @@
       </div>`;
     }).join('');
   }
+
+  recipeResults.addEventListener('click', (e) => {
+    const saveBtn = e.target.closest('[data-save-recipe]');
+    if (!saveBtn) return;
+    const d = lastDisplayMeals[parseInt(saveBtn.dataset.saveRecipe, 10)];
+    if (!d) return;
+    const idx = store.settings.savedRecipes.findIndex((r) => r.meal && r.meal.idMeal === d.meal.idMeal);
+    if (idx === -1) {
+      store.settings.savedRecipes.push(d);
+    } else {
+      store.settings.savedRecipes.splice(idx, 1);
+    }
+    saveStore();
+    renderRecipeResults(lastDisplayMeals);
+    renderComidas();
+  });
 
   searchRecipesBtn.addEventListener('click', async () => {
     if (searchIngredients.length === 0) return;
@@ -1640,6 +2001,23 @@
       </svg>`;
   }
 
+  function miniBarChartSVG(values, labels, color) {
+    const w = 260, h = 64, pad = 4;
+    const nums = values.filter((v) => v != null);
+    const max = Math.max(1, ...nums);
+    const barW = (w - pad * 2) / values.length;
+    const bars = values.map((v, i) => {
+      if (v == null) return '';
+      const barH = Math.max(2, (v / max) * (h - pad * 2 - 12));
+      const x = pad + i * barW;
+      const y = h - pad - barH;
+      return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(barW * 0.62).toFixed(1)}" height="${barH.toFixed(1)}" rx="2" fill="${color}"/>
+        <text x="${(x + barW * 0.31).toFixed(1)}" y="${(y - 3).toFixed(1)}" text-anchor="middle" font-size="8" fill="var(--text-muted)">${v}</text>`;
+    }).join('');
+    const labelRow = labels ? `<div class="bar-chart-labels">${labels.map((l) => `<span>${escapeHtml(String(l))}</span>`).join('')}</div>` : '';
+    return `<svg viewBox="0 0 ${w} ${h}" class="mini-bar-svg" preserveAspectRatio="none">${bars}</svg>${labelRow}`;
+  }
+
   function renderSupplementRings(year, monthIndex, lastDay) {
     const card = document.getElementById('supplementsStatsCard');
     const grid = document.getElementById('supplementRingsGrid');
@@ -1783,6 +2161,72 @@
     document.getElementById('avgReadingMin').textContent = countRead > 0 ? Math.round(sumRead / countRead) : 0;
   }
 
+  function mondayOf(d) {
+    const day = (d.getDay() + 6) % 7;
+    const m = new Date(d);
+    m.setDate(d.getDate() - day);
+    return startOfDay(m);
+  }
+
+  function computeWeekStats(mondayDate) {
+    const today = startOfDay(new Date());
+    const dailyTotal = store.settings.dailyTasks.length + (teethEnabled() ? 1 : 0);
+    let done = 0, possible = 0, cigarettes = 0, joints = 0, spend = 0;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(mondayDate);
+      d.setDate(mondayDate.getDate() + i);
+      if (d > today) continue;
+      const entry = getEntry(dateKey(d));
+      possible += dailyTotal;
+      if (!entry) continue;
+      store.settings.dailyTasks.forEach((t) => { if (entry[t.id]) done++; });
+      if (teethEnabled() && entry.teeth > 0) done++;
+      cigarettes += entry.cigarettes || 0;
+      joints += entry.joints || 0;
+      store.settings.purchaseItems.forEach((item) => {
+        spend += ((entry.purchases && entry.purchases[item.id]) || 0) * item.price;
+      });
+      if (jointsEnabled()) spend += ((entry.joints || 0) / 4) * jointPricePer4();
+    }
+    return { habitsPct: possible > 0 ? (done / possible) * 100 : 0, cigarettes, joints, spend };
+  }
+
+  function renderWeekCompare() {
+    const card = document.getElementById('weekCompareCard');
+    const list = document.getElementById('weekCompareList');
+    if (store.settings.dailyTasks.length === 0 && !consumoEnabled()) { card.hidden = true; return; }
+    card.hidden = false;
+    const thisMonday = mondayOf(new Date());
+    const lastMonday = new Date(thisMonday);
+    lastMonday.setDate(thisMonday.getDate() - 7);
+    const thisWeek = computeWeekStats(thisMonday);
+    const lastWeek = computeWeekStats(lastMonday);
+
+    const rows = [];
+    if (store.settings.dailyTasks.length > 0) {
+      rows.push({ label: 'Hábitos diarios completados', a: thisWeek.habitsPct, b: lastWeek.habitsPct, fmt: (v) => `${Math.round(v)}%`, lowerIsBetter: false });
+    }
+    if (consumoEnabled()) {
+      rows.push({ label: 'Cigarros', a: thisWeek.cigarettes, b: lastWeek.cigarettes, fmt: (v) => `${v}`, lowerIsBetter: true });
+      if (jointsEnabled()) rows.push({ label: 'Joints', a: thisWeek.joints, b: lastWeek.joints, fmt: (v) => `${v}`, lowerIsBetter: true });
+      rows.push({ label: 'Gasto', a: thisWeek.spend, b: lastWeek.spend, fmt: (v) => formatEuro(v), lowerIsBetter: true });
+    }
+
+    list.innerHTML = rows.map((r) => {
+      const diff = r.a - r.b;
+      const better = r.lowerIsBetter ? diff < 0 : diff > 0;
+      const worse = r.lowerIsBetter ? diff > 0 : diff < 0;
+      const arrow = diff === 0 ? '·' : (diff > 0 ? '↑' : '↓');
+      const cls = diff === 0 ? '' : (better ? 'week-compare-good' : (worse ? 'week-compare-bad' : ''));
+      return `
+      <div class="week-compare-row">
+        <span class="week-compare-label">${r.label}</span>
+        <span class="week-compare-values"><strong>${r.fmt(r.a)}</strong> <span class="hint-text" style="display:inline">vs ${r.fmt(r.b)} sem. pasada</span></span>
+        <span class="week-compare-arrow ${cls}">${arrow}</span>
+      </div>`;
+    }).join('');
+  }
+
   function renderCicloStats(year, monthIndex, lastDay) {
     const card = document.getElementById('cicloStatsCard');
     if (!cicloEnabled()) { card.hidden = true; return; }
@@ -1803,6 +2247,18 @@
       const late = info.daysUntilNext < 0;
       const dueText = late ? `con ${Math.abs(info.daysUntilNext)} días de retraso` : `en ${info.daysUntilNext} días`;
       predictionLine.textContent = `Próxima regla estimada: ${fmtShortDate(info.nextPeriodDate)} (${dueText}). Duración media de la regla: ${cycleAvgPeriodLength()} días.`;
+    }
+
+    const chartWrap = document.getElementById('cycleLengthChartWrap');
+    const starts = getPeriodStartDates();
+    if (starts.length >= 2) {
+      const diffs = [];
+      for (let i = 1; i < starts.length; i++) diffs.push(Math.round((starts[i] - starts[i - 1]) / DAY_MS));
+      const recent = diffs.slice(-8);
+      chartWrap.hidden = false;
+      document.getElementById('cycleLengthChart').innerHTML = miniBarChartSVG(recent, null, 'var(--h-ciclo)');
+    } else {
+      chartWrap.hidden = true;
     }
   }
 
@@ -1850,6 +2306,22 @@
       <div class="exercise-stat-row">
         <div class="exercise-stat-name">${ex.label}</div>
         <div class="exercise-stat-detail">${sessions > 0 ? parts.join(' · ') : 'Sin datos este mes'}</div>
+      </div>`;
+    }).join('');
+
+    const progressList = document.getElementById('exerciseProgressList');
+    progressList.innerHTML = exercises.map((ex, i) => {
+      const weights = [];
+      for (let d = 1; d <= lastDay; d++) {
+        const entry = getEntry(dateKey(new Date(year, monthIndex, d)));
+        const log = entry && entry.workout && entry.workout.exercises && entry.workout.exercises[ex.id];
+        weights.push(log && log.weight != null && log.weight > 0 ? log.weight : null);
+      }
+      if (weights.every((v) => v == null)) return '';
+      return `
+      <div class="exercise-progress-row">
+        <p class="chart-subtitle">${escapeHtml(ex.label)} — progresión de peso (kg) este mes</p>
+        ${miniBarChartSVG(weights, null, exerciseColor(i))}
       </div>`;
     }).join('');
   }
@@ -2214,6 +2686,7 @@
     renderCicloStats(year, monthIndex, lastDay);
     renderWorkoutStats(year, monthIndex, lastDay);
     renderGoalsStats(year, monthIndex, lastDay);
+    renderWeekCompare();
 
     // Weekly tasks bars
     const weekKeys = new Set();
@@ -2257,6 +2730,7 @@
     } else {
       document.getElementById('statsSpendGroups').innerHTML = '';
       document.getElementById('spendHintStats').textContent = '';
+      document.getElementById('budgetGroup').hidden = true;
     }
   }
 
@@ -2267,6 +2741,25 @@
       year, monthIndex, lastDay,
       `en ${MONTHS_LONG[monthIndex]}`, `en ${year}`
     );
+
+    const budgetGroup = document.getElementById('budgetGroup');
+    const budget = store.settings.monthlyBudget;
+    if (budget == null || budget <= 0) {
+      budgetGroup.hidden = true;
+      return;
+    }
+    let totalMonth = store.settings.purchaseItems.reduce((s, item) => s + monthPurchaseSpend(item.id, item.price, year, monthIndex, lastDay), 0);
+    if (jointsEnabled()) totalMonth += monthJointsSpend(year, monthIndex, lastDay);
+    budgetGroup.hidden = false;
+    const pct = Math.min(100, (totalMonth / budget) * 100);
+    const over = totalMonth > budget;
+    const fill = document.getElementById('budgetBarFill');
+    fill.style.width = `${pct}%`;
+    fill.classList.toggle('budget-bar-fill--over', over);
+    const hint = document.getElementById('budgetHint');
+    hint.textContent = over
+      ? `Has superado tu presupuesto de ${formatEuro(budget)}: llevas ${formatEuro(totalMonth)} este mes.`
+      : `Llevas ${formatEuro(totalMonth)} de tu presupuesto de ${formatEuro(budget)} este mes.`;
   }
 
   function renderConsumoChart(year, monthIndex, lastDay) {
@@ -2673,6 +3166,16 @@
 
   renderPurchaseManageList();
 
+  const monthlyBudgetInput = document.getElementById('monthlyBudgetInput');
+  monthlyBudgetInput.value = store.settings.monthlyBudget != null ? store.settings.monthlyBudget : '';
+  monthlyBudgetInput.addEventListener('change', () => {
+    const value = parseFloat(monthlyBudgetInput.value);
+    store.settings.monthlyBudget = (!isNaN(value) && value > 0) ? value : null;
+    monthlyBudgetInput.value = store.settings.monthlyBudget != null ? store.settings.monthlyBudget : '';
+    saveStore();
+    if (activeTab === 'stats') renderStats();
+  });
+
   /* ============ AJUSTES panel / Profile ============ */
   const profileNameInput = document.getElementById('profileNameInput');
   const profileSexInput = document.getElementById('profileSexInput');
@@ -2802,6 +3305,40 @@
     if (activeTab === 'stats') renderStats();
   });
 
+  /* ============ AJUSTES panel / Snacks, Gratitud, Energía, Ropa ============ */
+  const tracksSnacksToggle = document.getElementById('tracksSnacksToggle');
+  tracksSnacksToggle.checked = snacksEnabled();
+  tracksSnacksToggle.addEventListener('change', () => {
+    store.settings.tracksSnacks = tracksSnacksToggle.checked;
+    saveStore();
+    renderHoy();
+  });
+
+  const tracksGratitudToggle = document.getElementById('tracksGratitudToggle');
+  tracksGratitudToggle.checked = gratitudEnabled();
+  tracksGratitudToggle.addEventListener('change', () => {
+    store.settings.tracksGratitud = tracksGratitudToggle.checked;
+    saveStore();
+    renderHoy();
+  });
+
+  const tracksEnergiaToggle = document.getElementById('tracksEnergiaToggle');
+  tracksEnergiaToggle.checked = energiaEnabled();
+  tracksEnergiaToggle.addEventListener('change', () => {
+    store.settings.tracksEnergia = tracksEnergiaToggle.checked;
+    saveStore();
+    renderHoy();
+    if (activeTab === 'stats') renderStats();
+  });
+
+  const tracksRopaToggle = document.getElementById('tracksRopaToggle');
+  tracksRopaToggle.checked = ropaEnabled();
+  tracksRopaToggle.addEventListener('change', () => {
+    store.settings.tracksRopa = tracksRopaToggle.checked;
+    saveStore();
+    renderHoy();
+  });
+
   /* ============ AJUSTES panel / Ciclo menstrual ============ */
   const tracksCicloToggle = document.getElementById('tracksCicloToggle');
   tracksCicloToggle.checked = cicloEnabled();
@@ -2838,7 +3375,9 @@
   const tracksWorkoutsToggle = document.getElementById('tracksWorkoutsToggle');
   const exerciseManageList = document.getElementById('exerciseManageList');
   const newExerciseInput = document.getElementById('newExerciseInput');
+  const newExerciseGroupSelect = document.getElementById('newExerciseGroupSelect');
   const addExerciseBtn = document.getElementById('addExerciseBtn');
+  newExerciseGroupSelect.innerHTML = EXERCISE_GROUPS.map((g) => `<option value="${g.id}">${g.label}</option>`).join('');
 
   tracksWorkoutsToggle.checked = workoutsEnabled();
   tracksWorkoutsToggle.addEventListener('change', () => {
@@ -2852,15 +3391,18 @@
     const exercises = store.settings.exercises;
     exerciseManageList.innerHTML = exercises.length ? exercises.map((ex) => `
       <li class="task-manage-item" data-task-id="${ex.id}">
-        <span class="task-manage-label">${ex.label}</span>
-        <button type="button" class="task-remove-btn" data-remove-task="${ex.id}" aria-label="Eliminar ${ex.label}">×</button>
+        <span class="task-manage-label">${escapeHtml(ex.label)}</span>
+        <select class="template-select exercise-group-select" data-exercise-group="${ex.id}">
+          ${EXERCISE_GROUPS.map((g) => `<option value="${g.id}" ${(ex.group || '') === g.id ? 'selected' : ''}>${g.label}</option>`).join('')}
+        </select>
+        <button type="button" class="task-remove-btn" data-remove-task="${ex.id}" aria-label="Eliminar ${escapeHtml(ex.label)}">×</button>
       </li>`).join('') : '<li class="task-empty-hint">No tienes ejercicios todavía.</li>';
   }
 
   function addExercise() {
     const label = newExerciseInput.value.trim();
     if (!label) return;
-    store.settings.exercises.push({ id: generateTaskId(), label });
+    store.settings.exercises.push({ id: generateTaskId(), label, group: newExerciseGroupSelect.value });
     saveStore();
     newExerciseInput.value = '';
     renderExerciseManageList();
@@ -2876,13 +3418,116 @@
     if (!btn) return;
     const exerciseId = btn.dataset.removeTask;
     store.settings.exercises = store.settings.exercises.filter((ex) => ex.id !== exerciseId);
+    store.settings.workoutTemplates.forEach((t) => { t.exerciseIds = t.exerciseIds.filter((id) => id !== exerciseId); });
     saveStore();
     renderExerciseManageList();
+    renderTemplateManageList();
     renderHoy();
     if (activeTab === 'stats') renderStats();
   });
+  exerciseManageList.addEventListener('change', (e) => {
+    const select = e.target.closest('[data-exercise-group]');
+    if (!select) return;
+    const ex = store.settings.exercises.find((x) => x.id === select.dataset.exerciseGroup);
+    if (ex) {
+      ex.group = select.value;
+      saveStore();
+      renderHoy();
+      if (activeTab === 'stats') renderStats();
+    }
+  });
 
   renderExerciseManageList();
+
+  const restTimerSecondsInput = document.getElementById('restTimerSecondsInput');
+  restTimerSecondsInput.value = store.settings.restTimerSeconds;
+  restTimerSecondsInput.addEventListener('change', () => {
+    const value = parseInt(restTimerSecondsInput.value, 10);
+    store.settings.restTimerSeconds = (!isNaN(value) && value >= 10 && value <= 600) ? value : 90;
+    restTimerSecondsInput.value = store.settings.restTimerSeconds;
+    saveStore();
+  });
+
+  const templateManageList = document.getElementById('templateManageList');
+  const newTemplateInput = document.getElementById('newTemplateInput');
+  const addTemplateBtn = document.getElementById('addTemplateBtn');
+  const templateExercisePicker = document.getElementById('templateExercisePicker');
+  let editingTemplateId = null;
+
+  function renderTemplateManageList() {
+    const templates = store.settings.workoutTemplates;
+    templateManageList.innerHTML = templates.length ? templates.map((t) => `
+      <li class="task-manage-item" data-task-id="${t.id}">
+        <button type="button" class="task-manage-label template-edit-btn" data-edit-template="${t.id}" style="text-align:left;background:none;border:none;padding:0;color:inherit;font:inherit">${escapeHtml(t.label)} <span class="hint-text" style="display:inline">(${t.exerciseIds.length})</span></button>
+        <button type="button" class="task-remove-btn" data-remove-template="${t.id}" aria-label="Eliminar ${escapeHtml(t.label)}">×</button>
+      </li>`).join('') : '<li class="task-empty-hint">No tienes rutinas todavía.</li>';
+    renderTemplateExercisePicker();
+  }
+
+  function renderTemplateExercisePicker() {
+    if (!editingTemplateId) {
+      templateExercisePicker.innerHTML = '';
+      return;
+    }
+    const template = store.settings.workoutTemplates.find((t) => t.id === editingTemplateId);
+    if (!template) {
+      templateExercisePicker.innerHTML = '';
+      return;
+    }
+    const exercises = store.settings.exercises;
+    templateExercisePicker.innerHTML = `
+      <p class="hint-text" style="margin-bottom:6px">Ejercicios en "${escapeHtml(template.label)}":</p>
+      <div class="cycle-symptom-list">
+        ${exercises.length ? exercises.map((ex) => `
+          <button type="button" class="symptom-chip" data-template-exercise="${ex.id}" aria-pressed="${template.exerciseIds.includes(ex.id)}">${escapeHtml(ex.label)}</button>
+        `).join('') : '<span class="hint-text">Añade ejercicios arriba primero.</span>'}
+      </div>`;
+  }
+
+  function addTemplate() {
+    const label = newTemplateInput.value.trim();
+    if (!label) return;
+    const id = generateTaskId();
+    store.settings.workoutTemplates.push({ id, label, exerciseIds: [] });
+    editingTemplateId = id;
+    newTemplateInput.value = '';
+    saveStore();
+    renderTemplateManageList();
+    renderHoy();
+  }
+  addTemplateBtn.addEventListener('click', addTemplate);
+  newTemplateInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addTemplate(); });
+
+  templateManageList.addEventListener('click', (e) => {
+    const removeBtn = e.target.closest('[data-remove-template]');
+    const editBtn = e.target.closest('[data-edit-template]');
+    if (removeBtn) {
+      store.settings.workoutTemplates = store.settings.workoutTemplates.filter((t) => t.id !== removeBtn.dataset.removeTemplate);
+      if (editingTemplateId === removeBtn.dataset.removeTemplate) editingTemplateId = null;
+      saveStore();
+      renderTemplateManageList();
+      renderHoy();
+    } else if (editBtn) {
+      editingTemplateId = editingTemplateId === editBtn.dataset.editTemplate ? null : editBtn.dataset.editTemplate;
+      renderTemplateExercisePicker();
+    }
+  });
+
+  templateExercisePicker.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-template-exercise]');
+    if (!btn) return;
+    const template = store.settings.workoutTemplates.find((t) => t.id === editingTemplateId);
+    if (!template) return;
+    const exId = btn.dataset.templateExercise;
+    const idx = template.exerciseIds.indexOf(exId);
+    if (idx === -1) template.exerciseIds.push(exId);
+    else template.exerciseIds.splice(idx, 1);
+    saveStore();
+    renderTemplateManageList();
+    renderHoy();
+  });
+
+  renderTemplateManageList();
 
   /* ============ AJUSTES panel / Metas ============ */
   const goalManageList = document.getElementById('goalManageList');
@@ -3005,8 +3650,104 @@
     saveStore();
   }
 
+  function checkCycleNotice() {
+    if (!cicloEnabled() || !store.settings.reminderEnabled) return;
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    const info = cycleInfo(startOfDay(new Date()));
+    if (!info) return;
+    const todayKey = dateKey(new Date());
+    if (store.lastCycleNotifiedDate === todayKey) return;
+    let body = null;
+    if (info.daysUntilNext === 2 || info.daysUntilNext === 1) {
+      body = `Tu próxima regla está prevista en ${info.daysUntilNext} ${info.daysUntilNext === 1 ? 'día' : 'días'}.`;
+    } else if (info.daysUntilNext === 0) {
+      body = 'Tu regla debería empezar hoy, según tu ciclo.';
+    }
+    if (!body) return;
+    const title = 'Bitácora Diaria';
+    if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+      navigator.serviceWorker.ready.then((reg) => reg.showNotification(title, { body, icon: 'icons/icon-192.png' }));
+    } else {
+      new Notification(title, { body, icon: 'icons/icon-192.png' });
+    }
+    store.lastCycleNotifiedDate = todayKey;
+    saveStore();
+  }
+
   setInterval(checkReminder, 60000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkReminder(); });
+  setInterval(checkCycleNotice, 60000);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      checkReminder();
+      checkCycleNotice();
+    }
+  });
+
+  /* ============ Exportar CSV / PDF ============ */
+  function buildExportRows() {
+    const dailyTotal = store.settings.dailyTasks.length + (teethEnabled() ? 1 : 0);
+    return Object.keys(store.entries).sort().map((key) => {
+      const e = store.entries[key];
+      let done = 0;
+      store.settings.dailyTasks.forEach((t) => { if (e[t.id]) done++; });
+      if (teethEnabled() && e.teeth > 0) done++;
+      return {
+        fecha: key,
+        habitos: `${done}/${dailyTotal}`,
+        reflexion: (e.reflection || '').replace(/[\r\n]+/g, ' '),
+        suenoHoras: e.sleepHours || '',
+        suenoCalidad: e.sleepQuality || '',
+        peso: e.weight != null ? e.weight : '',
+        cigarrillos: e.cigarettes || 0,
+        joints: e.joints || 0,
+        regla: e.periodDay ? 'Sí' : '',
+        energia: e.energyLevel || '',
+        estres: e.stressLevel || ''
+      };
+    });
+  }
+
+  document.getElementById('exportCsvBtn').addEventListener('click', () => {
+    const rows = buildExportRows();
+    const header = ['Fecha', 'Hábitos', 'Reflexión', 'Horas sueño', 'Calidad sueño', 'Peso', 'Cigarrillos', 'Joints', 'Día de regla', 'Energía', 'Estrés'];
+    const lines = [header, ...rows.map((r) => [r.fecha, r.habitos, r.reflexion, r.suenoHoras, r.suenoCalidad, r.peso, r.cigarrillos, r.joints, r.regla, r.energia, r.estres])];
+    const csv = lines.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bitacora-datos-${dateKey(new Date())}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('exportPdfBtn').addEventListener('click', () => {
+    const rows = buildExportRows();
+    const bodyRows = rows.map((r) => `<tr><td>${escapeHtml(r.fecha)}</td><td>${escapeHtml(r.habitos)}</td><td>${escapeHtml(String(r.suenoHoras))}</td><td>${escapeHtml(String(r.peso))}</td><td>${escapeHtml(String(r.cigarrillos))}</td><td>${escapeHtml(String(r.joints))}</td><td>${escapeHtml(r.regla)}</td></tr>`).join('');
+    const html = `<!doctype html><html lang="es"><head><meta charset="UTF-8"><title>Bitácora Diaria — resumen</title>
+<style>
+  body{font-family:-apple-system,sans-serif;padding:24px;color:#171b26;}
+  h1{font-size:20px;margin-bottom:4px;}
+  p{color:#5b6270;font-size:13px;}
+  table{border-collapse:collapse;width:100%;font-size:12px;margin-top:16px;}
+  th,td{border:1px solid #ccc;padding:5px 8px;text-align:left;}
+  th{background:#eee;}
+  @media print { body{padding:0;} }
+</style></head><body>
+<h1>Bitácora Diaria — resumen de datos</h1>
+<p>Generado el ${new Date().toLocaleDateString('es-ES')} · ${rows.length} días registrados</p>
+<table><thead><tr><th>Fecha</th><th>Hábitos</th><th>Sueño (h)</th><th>Peso</th><th>Cigarrillos</th><th>Joints</th><th>Regla</th></tr></thead>
+<tbody>${bodyRows}</tbody></table>
+</body></html>`;
+    const win = window.open('', '_blank');
+    if (!win) { alert('Permite ventanas emergentes para ver la vista de impresión.'); return; }
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 300);
+  });
 
   /* ============ Backup / restore ============ */
   document.getElementById('exportBtn').addEventListener('click', () => {
@@ -3066,6 +3807,7 @@
 
   renderAll();
   checkReminder();
+  checkCycleNotice();
 
   const splashEl = document.getElementById('splash');
   if (splashEl) {

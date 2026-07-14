@@ -132,6 +132,51 @@
         <div class="save-hint" id="reflectionHint">Guardado automáticamente</div>
       </div>
 
+      <div class="card" id="gratitudCard" hidden>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,4 C9,7 7,10 7,13 C7,16.9 9.2,19 12,19 C14.8,19 17,16.9 17,13 C17,10 15,7 12,4 Z"/><path d="M12,8 C10.5,10 10,12 10,13.5" stroke-linecap="round"/></svg></span>Gratitud</h2>
+        <p class="hint-text" style="margin-top:0">Tres cosas de hoy por las que estés agradecido.</p>
+        <div class="gratitude-list">
+          <input type="text" class="gratitude-input" data-gratitude-index="0" maxlength="80" placeholder="1." />
+          <input type="text" class="gratitude-input" data-gratitude-index="1" maxlength="80" placeholder="2." />
+          <input type="text" class="gratitude-input" data-gratitude-index="2" maxlength="80" placeholder="3." />
+        </div>
+      </div>
+
+      <div class="card" id="energiaCard" hidden>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,3.5 L12,5.2 M12,18.8 L12,20.5 M3.5,12 L5.2,12 M18.8,12 L20.5,12 M6,6 L7.2,7.2 M16.8,16.8 L18,18 M18,6 L16.8,7.2 M7.2,16.8 L6,18" stroke-linecap="round"/></svg></span>Energía y estrés</h2>
+        <div class="health-row">
+          <span class="health-label">Energía</span>
+          <div class="health-scale" data-health-energy="0">
+            <button type="button" class="health-btn" data-value="1">1</button>
+            <button type="button" class="health-btn" data-value="2">2</button>
+            <button type="button" class="health-btn" data-value="3">3</button>
+            <button type="button" class="health-btn" data-value="4">4</button>
+            <button type="button" class="health-btn" data-value="5">5</button>
+          </div>
+        </div>
+        <div class="health-row">
+          <span class="health-label">Estrés</span>
+          <div class="health-scale" data-health-stress="0">
+            <button type="button" class="health-btn" data-value="1">1</button>
+            <button type="button" class="health-btn" data-value="2">2</button>
+            <button type="button" class="health-btn" data-value="3">3</button>
+            <button type="button" class="health-btn" data-value="4">4</button>
+            <button type="button" class="health-btn" data-value="5">5</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="ropaCard" hidden>
+        <ul class="habit-list">
+          <li class="habit-row">
+            <button class="check-btn" id="outfitBtn" aria-pressed="false">
+              <span class="check-icon">✓</span>
+            </button>
+            <div class="habit-text"><span class="habit-name">Ropa preparada para mañana</span></div>
+          </li>
+        </ul>
+      </div>
+
     </section>
 
     <!-- OBJETIVOS -->
@@ -229,8 +274,20 @@
             <button class="stepper-btn" data-step="5" aria-label="Sumar 5 min">+</button>
           </div>
         </div>
+        <div class="setting-row" id="templateSelectRow" hidden>
+          <span>Rutina de hoy</span>
+          <select id="templateSelect" class="template-select">
+            <option value="">Todos los ejercicios</option>
+          </select>
+        </div>
         <ul class="exercise-list" id="exerciseLogList"></ul>
         <p class="hint-text" id="exerciseEmptyHint" hidden>No tienes ejercicios configurados. Añade uno en Ajustes.</p>
+        <div class="rest-timer" id="restTimer">
+          <span class="rest-timer-label">Descanso</span>
+          <span class="rest-timer-value" id="restTimerValue">01:30</span>
+          <button type="button" class="secondary-btn" id="restTimerStartBtn">Iniciar</button>
+          <button type="button" class="secondary-btn" id="restTimerResetBtn">Reiniciar</button>
+        </div>
       </div>
 
       <div class="card" id="goalsCard">
@@ -299,6 +356,15 @@
         </div>
       </div>
 
+      <div class="card" id="snacksCard" hidden>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,4 C9,7 7,10 7,13 C7,16.9 9.2,19 12,19 C14.8,19 17,16.9 17,13 C17,10 15,7 12,4 Z"/></svg></span>Snacks</h2>
+        <ul class="task-manage-list" id="snackList"><li class="task-empty-hint">Sin snacks registrados hoy.</li></ul>
+        <div class="task-add-row">
+          <input type="text" id="newSnackInput" class="task-add-input" placeholder="Qué has picado…" maxlength="40" />
+          <button class="secondary-btn task-add-btn" id="addSnackBtn">Añadir</button>
+        </div>
+      </div>
+
       <div class="card" id="recipeSearchCard">
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10.5" cy="10.5" r="6"/><path d="M15,15 L20,20" stroke-linecap="round"/></svg></span>Buscador de recetas</h2>
         <p class="hint-text" style="margin-top:0">Añade los ingredientes que tienes, en español o inglés, y busca recetas online que los usen. Los resultados se traducen automáticamente al español.</p>
@@ -311,6 +377,21 @@
         </ul>
         <button class="primary-btn" id="searchRecipesBtn" disabled>Buscar recetas</button>
         <div id="recipeResults" class="recipe-results"></div>
+      </div>
+
+      <div class="card" id="savedRecipesCard" hidden>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,19.5 C12,19.5 4,14.3 4,9.2 C4,6.3 6.2,4.5 8.5,4.5 C9.9,4.5 11.2,5.3 12,6.6 C12.8,5.3 14.1,4.5 15.5,4.5 C17.8,4.5 20,6.3 20,9.2 C20,14.3 12,19.5 12,19.5 Z" stroke-linejoin="round"/></svg></span>Recetas guardadas</h2>
+        <ul class="task-manage-list" id="savedRecipesList"><li class="task-empty-hint">Guarda una receta del buscador para verla aquí.</li></ul>
+      </div>
+
+      <div class="card" id="shoppingListCard" hidden>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M9,9 C9,9 9.3,7.5 12,7.5 C14.7,7.5 15,9 15,9 M6,12 L18,12 M6,15 L18,15" stroke-linecap="round"/></svg></span>Lista de la compra</h2>
+        <ul class="task-manage-list" id="shoppingListItems"><li class="task-empty-hint">Vacía. Añade artículos o genera una desde una receta guardada.</li></ul>
+        <div class="task-add-row">
+          <input type="text" id="newShoppingItemInput" class="task-add-input" placeholder="Añadir artículo…" maxlength="40" />
+          <button class="secondary-btn task-add-btn" id="addShoppingItemBtn">Añadir</button>
+        </div>
+        <button class="secondary-btn" id="clearShoppingListBtn">Vaciar lista</button>
       </div>
     </section>
 
@@ -465,12 +546,22 @@
           </div>
         </div>
         <p class="hint-text" id="cyclePredictionLine">Marca tu primer día de regla para ver una estimación.</p>
+        <div id="cycleLengthChartWrap" hidden>
+          <p class="chart-subtitle">Duración de los últimos ciclos</p>
+          <div class="bar-chart" id="cycleLengthChart"></div>
+        </div>
       </div>
 
       <div class="card" id="workoutStatsCard" hidden>
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4,9 L4,15 M2,8 L2,16 M20,9 L20,15 M22,8 L22,16 M6,12 L18,12" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Ejercicio</h2>
         <div class="rings-grid rings-grid--lg" id="workoutRingGrid"></div>
         <div class="exercise-stats-list" id="exerciseStatsList"></div>
+        <div class="exercise-progress-list" id="exerciseProgressList"></div>
+      </div>
+
+      <div class="card" id="weekCompareCard" hidden>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="13" r="7.5"/><path d="M12,8.5 L12,13 L15,15" stroke-linecap="round" stroke-linejoin="round"/><path d="M9,3.5 L15,3.5" stroke-linecap="round"/></svg></span>Esta semana vs. la anterior</h2>
+        <div class="week-compare-list" id="weekCompareList"></div>
       </div>
 
       <div class="card" id="goalsStatsCard" hidden>
@@ -519,6 +610,10 @@
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,7.5 L12,16.5 M9.7,9.3 C9.7,8.2 10.7,7.5 12,7.5 C13.4,7.5 14.3,8.3 14.3,9.3 C14.3,11.7 9.7,10.8 9.7,13.2 C9.7,14.3 10.6,15 12,15 C13.4,15 14.3,14.3 14.3,13.2" stroke-linecap="round"/></svg></span>Gasto total</h2>
         <div id="statsSpendGroups"></div>
         <p class="hint-text" id="spendHintStats">Lucky rojo 5,50 € · Lucky blanco 6,30 € por paquete · Joints 4,50 € cada 4 porros.</p>
+        <div id="budgetGroup" hidden>
+          <div class="budget-bar-track"><div class="budget-bar-fill" id="budgetBarFill"></div></div>
+          <p class="hint-text" id="budgetHint"></p>
+        </div>
       </div>
     </section>
 
@@ -621,6 +716,11 @@
             <button class="secondary-btn task-add-btn" id="addPurchaseBtn">Añadir</button>
           </div>
           <p class="hint-text">Cada artículo aparece en Consumo con su propio contador y en Gasto total con su propia categoría.</p>
+          <div class="setting-row">
+            <span>Presupuesto mensual (€)</span>
+            <input type="number" id="monthlyBudgetInput" min="0" step="1" placeholder="Sin límite" />
+          </div>
+          <p class="hint-text">Si lo rellenas, en Stats → Gasto total verás cuánto llevas gastado frente a tu presupuesto.</p>
         </div>
       </div>
 
@@ -798,6 +898,74 @@
 
       <div class="card accordion-card">
         <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,4 C9,7 7,10 7,13 C7,16.9 9.2,19 12,19 C14.8,19 17,16.9 17,13 C17,10 15,7 12,4 Z"/></svg></span>Snacks</h2>
+          <span class="accordion-chevron">›</span>
+        </button>
+        <div class="accordion-body" hidden>
+          <div class="setting-row">
+            <span>Activar en Comidas</span>
+            <label class="switch">
+              <input type="checkbox" id="tracksSnacksToggle" />
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+          <p class="hint-text">Registra lo que picas fuera de desayuno, comida y cena.</p>
+        </div>
+      </div>
+
+      <div class="card accordion-card">
+        <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,4 C9,7 7,10 7,13 C7,16.9 9.2,19 12,19 C14.8,19 17,16.9 17,13 C17,10 15,7 12,4 Z"/><path d="M12,8 C10.5,10 10,12 10,13.5" stroke-linecap="round"/></svg></span>Gratitud</h2>
+          <span class="accordion-chevron">›</span>
+        </button>
+        <div class="accordion-body" hidden>
+          <div class="setting-row">
+            <span>Activar en Hoy</span>
+            <label class="switch">
+              <input type="checkbox" id="tracksGratitudToggle" />
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+          <p class="hint-text">Tres cosas por las que estés agradecido cada día.</p>
+        </div>
+      </div>
+
+      <div class="card accordion-card">
+        <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,3.5 L12,5.2 M12,18.8 L12,20.5 M3.5,12 L5.2,12 M18.8,12 L20.5,12 M6,6 L7.2,7.2 M16.8,16.8 L18,18 M18,6 L16.8,7.2 M7.2,16.8 L6,18" stroke-linecap="round"/></svg></span>Energía y estrés</h2>
+          <span class="accordion-chevron">›</span>
+        </button>
+        <div class="accordion-body" hidden>
+          <div class="setting-row">
+            <span>Activar en Hoy</span>
+            <label class="switch">
+              <input type="checkbox" id="tracksEnergiaToggle" />
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+          <p class="hint-text">Escala 1-5 diaria de energía y estrés.</p>
+        </div>
+      </div>
+
+      <div class="card accordion-card">
+        <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.5,4.5 L14.5,4.5 L13.2,7.2 L10.8,7.2 Z"/><path d="M10.8,7.2 L13.2,7.2 L14.3,13.5 L12,19 L9.7,13.5 Z"/></svg></span>Ropa del día</h2>
+          <span class="accordion-chevron">›</span>
+        </button>
+        <div class="accordion-body" hidden>
+          <div class="setting-row">
+            <span>Activar en Hoy</span>
+            <label class="switch">
+              <input type="checkbox" id="tracksRopaToggle" />
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+          <p class="hint-text">Un check sencillo para marcar si has dejado la ropa lista para mañana. Ponte traje.</p>
+        </div>
+      </div>
+
+      <div class="card accordion-card">
+        <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
           <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5,12 A7,7 0 0 1 18,7.5" stroke-linecap="round"/><path d="M19,12 A7,7 0 0 1 6,16.5" stroke-linecap="round"/><path d="M15.5,5.5 L18,7.5 L15,9" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5,18.5 L6,16.5 L9,15" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Ciclo menstrual</h2>
           <span class="accordion-chevron">›</span>
         </button>
@@ -838,9 +1006,23 @@
           <ul class="task-manage-list" id="exerciseManageList"></ul>
           <div class="task-add-row">
             <input type="text" id="newExerciseInput" class="task-add-input" placeholder="Nuevo ejercicio…" maxlength="30" />
+            <select id="newExerciseGroupSelect" class="template-select"></select>
             <button class="secondary-btn task-add-btn" id="addExerciseBtn">Añadir</button>
           </div>
           <p class="hint-text">Ej. "Press banca", "Sentadilla". Se guardan solo en este dispositivo.</p>
+
+          <div class="setting-row">
+            <span>Descanso entre series (segundos)</span>
+            <input type="number" id="restTimerSecondsInput" min="10" max="600" step="5" value="90" />
+          </div>
+
+          <p class="hint-text" style="margin-bottom:6px"><strong>Rutinas</strong> — agrupa ejercicios para elegir "rutina de hoy" en Objetivos.</p>
+          <ul class="task-manage-list" id="templateManageList"></ul>
+          <div class="task-add-row">
+            <input type="text" id="newTemplateInput" class="task-add-input" placeholder="Nueva rutina… (ej. Push)" maxlength="30" />
+            <button class="secondary-btn task-add-btn" id="addTemplateBtn">Añadir</button>
+          </div>
+          <div id="templateExercisePicker"></div>
         </div>
       </div>
 
@@ -873,6 +1055,11 @@
           </div>
           <input type="file" id="importFile" accept="application/json" hidden />
           <p class="hint-text">Todos los datos se guardan solo en este dispositivo. Exporta un archivo de vez en cuando para no perder tu historial.</p>
+          <div class="backup-row">
+            <button class="secondary-btn" id="exportCsvBtn">Exportar CSV</button>
+            <button class="secondary-btn" id="exportPdfBtn">Vista para PDF</button>
+          </div>
+          <p class="hint-text">El CSV se abre en Excel/Sheets. "Vista para PDF" abre una página imprimible — desde ahí usa Imprimir → Guardar como PDF.</p>
         </div>
       </div>
     </section>
