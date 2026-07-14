@@ -3005,24 +3005,62 @@
 
   function renderMonthWrapped(year, monthIndex, lastDay) {
     const card = document.getElementById('monthWrappedCard');
-    const monthComplete = lastDay > 0 && lastDay === daysInMonth(year, monthIndex);
-    if (!monthComplete) { card.hidden = true; return; }
-    const stats = computeWrappedStats(new Date(year, monthIndex, 1), new Date(year, monthIndex, lastDay));
+    const today = startOfDay(new Date());
+    let wrapYear = year, wrapMonth = monthIndex, wrapLastDay = lastDay;
+
+    const isViewingCurrentMonth = (year === today.getFullYear() && monthIndex === today.getMonth());
+    if (isViewingCurrentMonth) {
+      if (today.getDate() <= 7) {
+        // First week of the month: still show last month's recap.
+        const prevMonthDate = new Date(year, monthIndex - 1, 1);
+        wrapYear = prevMonthDate.getFullYear();
+        wrapMonth = prevMonthDate.getMonth();
+        wrapLastDay = daysInMonth(wrapYear, wrapMonth);
+      } else if (today.getDate() === daysInMonth(year, monthIndex)) {
+        // Last day of the month: show this month's own recap.
+        wrapLastDay = daysInMonth(year, monthIndex);
+      } else {
+        card.hidden = true;
+        return;
+      }
+    } else {
+      const monthComplete = lastDay > 0 && lastDay === daysInMonth(year, monthIndex);
+      if (!monthComplete) { card.hidden = true; return; }
+    }
+
+    const stats = computeWrappedStats(new Date(wrapYear, wrapMonth, 1), new Date(wrapYear, wrapMonth, wrapLastDay));
     if (stats.loggedDays === 0) { card.hidden = true; return; }
     card.hidden = false;
-    document.getElementById('monthWrappedTitle').textContent = `Resumen de ${MONTHS_LONG[monthIndex]}`;
+    document.getElementById('monthWrappedTitle').textContent = `Resumen de ${MONTHS_LONG[wrapMonth]}`;
     document.getElementById('monthWrappedTiles').innerHTML = buildWrappedTiles(stats);
   }
 
   function renderYearWrapped(year) {
     const card = document.getElementById('yearWrappedCard');
     const today = startOfDay(new Date());
-    const yearComplete = year < today.getFullYear() || (year === today.getFullYear() && today.getMonth() === 11 && today.getDate() === 31);
-    if (!yearComplete) { card.hidden = true; return; }
-    const stats = computeWrappedStats(new Date(year, 0, 1), new Date(year, 11, 31));
+    let wrapYear = year;
+
+    const isViewingCurrentYear = (year === today.getFullYear());
+    if (isViewingCurrentYear) {
+      if (today.getMonth() === 0 && today.getDate() <= 7) {
+        // First week of January: still show last year's recap.
+        wrapYear = year - 1;
+      } else if (today.getMonth() === 11 && today.getDate() === 31) {
+        // Last day of the year: show this year's own recap.
+        wrapYear = year;
+      } else {
+        card.hidden = true;
+        return;
+      }
+    } else if (year >= today.getFullYear()) {
+      card.hidden = true;
+      return;
+    }
+
+    const stats = computeWrappedStats(new Date(wrapYear, 0, 1), new Date(wrapYear, 11, 31));
     if (stats.loggedDays === 0) { card.hidden = true; return; }
     card.hidden = false;
-    document.getElementById('yearWrappedTitle').textContent = `Resumen de ${year}`;
+    document.getElementById('yearWrappedTitle').textContent = `Resumen de ${wrapYear}`;
     document.getElementById('yearWrappedTiles').innerHTML = buildWrappedTiles(stats);
   }
 
