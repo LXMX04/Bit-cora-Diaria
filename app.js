@@ -1659,9 +1659,98 @@
     return translateText(text, 'en|es');
   }
 
+  // Static Spanish -> English ingredient dictionary, used as a reliable first pass
+  // before falling back to the live translation API (which can be slow, rate-limited
+  // or unavailable). Keys are lowercase with accents stripped.
+  const ES_EN_INGREDIENTS = {
+    // Carnes y aves
+    pollo: 'chicken', 'pechuga de pollo': 'chicken breast', 'muslo de pollo': 'chicken thigh',
+    'alitas de pollo': 'chicken wings', ternera: 'beef', 'carne de res': 'beef', res: 'beef',
+    cerdo: 'pork', 'lomo de cerdo': 'pork loin', panceta: 'bacon', tocino: 'bacon', beicon: 'bacon',
+    jamon: 'ham', cordero: 'lamb', pavo: 'turkey', conejo: 'rabbit', chorizo: 'chorizo',
+    salchicha: 'sausage', salchichas: 'sausages', 'carne picada': 'ground beef', 'carne molida': 'ground beef',
+    // Pescados y mariscos
+    salmon: 'salmon', atun: 'tuna', bacalao: 'cod', merluza: 'hake', gambas: 'shrimp',
+    camarones: 'shrimp', langostinos: 'prawns', calamar: 'squid', calamares: 'squid',
+    pulpo: 'octopus', mejillones: 'mussels', almejas: 'clams', sardinas: 'sardines',
+    trucha: 'trout', anchoas: 'anchovies', vieiras: 'scallops', cangrejo: 'crab', langosta: 'lobster',
+    // Lacteos y huevos
+    huevo: 'egg', huevos: 'eggs', leche: 'milk', mantequilla: 'butter', queso: 'cheese',
+    'queso parmesano': 'parmesan cheese', 'queso mozzarella': 'mozzarella cheese',
+    'queso cheddar': 'cheddar cheese', 'queso crema': 'cream cheese', nata: 'cream',
+    crema: 'cream', 'crema agria': 'sour cream', yogur: 'yogurt', yogurt: 'yogurt', requeson: 'cottage cheese',
+    // Verduras
+    cebolla: 'onion', cebollas: 'onions', ajo: 'garlic', tomate: 'tomato', tomates: 'tomatoes',
+    patata: 'potato', patatas: 'potatoes', papa: 'potato', papas: 'potatoes',
+    zanahoria: 'carrot', zanahorias: 'carrots', pimiento: 'bell pepper', pimientos: 'bell peppers',
+    'pimiento rojo': 'red pepper', 'pimiento verde': 'green pepper', chile: 'chili pepper',
+    guindilla: 'chili pepper', calabacin: 'zucchini', berenjena: 'eggplant', brocoli: 'broccoli',
+    coliflor: 'cauliflower', espinaca: 'spinach', espinacas: 'spinach', lechuga: 'lettuce',
+    pepino: 'cucumber', apio: 'celery', guisantes: 'peas', guisante: 'peas', arvejas: 'peas',
+    chicharos: 'peas', 'judias verdes': 'green beans', 'judías verdes': 'green beans',
+    habas: 'broad beans', maiz: 'corn', elote: 'corn', choclo: 'corn', champinon: 'mushroom',
+    champinones: 'mushrooms', setas: 'mushrooms', col: 'cabbage', repollo: 'cabbage',
+    'coles de bruselas': 'brussels sprouts', remolacha: 'beetroot', rabano: 'radish',
+    esparragos: 'asparagus', alcachofa: 'artichoke', puerro: 'leek', jengibre: 'ginger',
+    aguacate: 'avocado', palta: 'avocado', calabaza: 'pumpkin', batata: 'sweet potato', boniato: 'sweet potato',
+    // Legumbres y cereales
+    arroz: 'rice', lentejas: 'lentils', garbanzos: 'chickpeas', frijoles: 'beans', alubias: 'beans',
+    judias: 'beans', pasta: 'pasta', espagueti: 'spaghetti', espaguetis: 'spaghetti',
+    macarrones: 'macaroni', fideos: 'noodles', harina: 'flour', pan: 'bread',
+    'pan rallado': 'breadcrumbs', avena: 'oats', quinoa: 'quinoa', cuscus: 'couscous',
+    // Frutas
+    limon: 'lemon', lima: 'lime', naranja: 'orange', manzana: 'apple', platano: 'banana',
+    banana: 'banana', fresa: 'strawberry', fresas: 'strawberries', uva: 'grape', uvas: 'grapes',
+    pina: 'pineapple', mango: 'mango', sandia: 'watermelon', melon: 'melon', pera: 'pear',
+    melocoton: 'peach', durazno: 'peach', cereza: 'cherry', cerezas: 'cherries', ciruela: 'plum',
+    coco: 'coconut', kiwi: 'kiwi', arandanos: 'blueberries', mora: 'blackberry', moras: 'blackberries',
+    granada: 'pomegranate', higo: 'fig',
+    // Especias y hierbas
+    sal: 'salt', pimienta: 'pepper', 'pimienta negra': 'black pepper', oregano: 'oregano',
+    albahaca: 'basil', perejil: 'parsley', cilantro: 'cilantro', comino: 'cumin', canela: 'cinnamon',
+    pimenton: 'paprika', 'nuez moscada': 'nutmeg', laurel: 'bay leaf', tomillo: 'thyme',
+    romero: 'rosemary', curcuma: 'turmeric', curry: 'curry', azafran: 'saffron', vainilla: 'vanilla',
+    // Aceites, salsas y condimentos
+    aceite: 'oil', 'aceite de oliva': 'olive oil', 'aceite vegetal': 'vegetable oil', vinagre: 'vinegar',
+    'salsa de soja': 'soy sauce', mostaza: 'mustard', mayonesa: 'mayonnaise', ketchup: 'ketchup',
+    miel: 'honey', azucar: 'sugar', 'azucar moreno': 'brown sugar', 'mantequilla de mani': 'peanut butter',
+    caldo: 'stock', 'caldo de pollo': 'chicken stock', 'caldo de carne': 'beef stock',
+    vino: 'wine', 'vino blanco': 'white wine', 'vino tinto': 'red wine', cerveza: 'beer', agua: 'water',
+    // Frutos secos
+    almendras: 'almonds', nueces: 'walnuts', avellanas: 'hazelnuts', pistachos: 'pistachios',
+    cacahuetes: 'peanuts', mani: 'peanuts', pasas: 'raisins', datiles: 'dates',
+    // Panadería / repostería
+    chocolate: 'chocolate', cacao: 'cocoa', levadura: 'yeast', bicarbonato: 'baking soda', gelatina: 'gelatin'
+  };
+
+  function stripAccents(str) {
+    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+
+  function normalizeEs(str) {
+    return stripAccents(str.toLowerCase().trim()).replace(/\s+/g, ' ');
+  }
+
+  function lookupIngredientTranslation(text) {
+    const norm = normalizeEs(text);
+    if (ES_EN_INGREDIENTS[norm]) return ES_EN_INGREDIENTS[norm];
+    const stripped = norm.replace(/^(el|la|los|las|un|una|unos|unas)\s+/, '').trim();
+    if (stripped && ES_EN_INGREDIENTS[stripped]) return ES_EN_INGREDIENTS[stripped];
+    const words = stripped.split(' ');
+    for (let size = words.length; size >= 1; size--) {
+      for (let start = 0; start + size <= words.length; start++) {
+        const phrase = words.slice(start, start + size).join(' ');
+        if (ES_EN_INGREDIENTS[phrase]) return ES_EN_INGREDIENTS[phrase];
+      }
+    }
+    return null;
+  }
+
   async function translateToEnglish(text) {
     const trimmed = (text || '').trim();
     if (!trimmed) return trimmed;
+    const dictHit = lookupIngredientTranslation(trimmed);
+    if (dictHit) return dictHit;
     try {
       return await translateText(trimmed, 'es|en');
     } catch (err) {
