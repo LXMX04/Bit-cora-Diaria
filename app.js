@@ -3005,7 +3005,8 @@
 
   function renderMonthWrapped(year, monthIndex, lastDay) {
     const card = document.getElementById('monthWrappedCard');
-    if (lastDay === 0) { card.hidden = true; return; }
+    const monthComplete = lastDay > 0 && lastDay === daysInMonth(year, monthIndex);
+    if (!monthComplete) { card.hidden = true; return; }
     const stats = computeWrappedStats(new Date(year, monthIndex, 1), new Date(year, monthIndex, lastDay));
     if (stats.loggedDays === 0) { card.hidden = true; return; }
     card.hidden = false;
@@ -3015,6 +3016,9 @@
 
   function renderYearWrapped(year) {
     const card = document.getElementById('yearWrappedCard');
+    const today = startOfDay(new Date());
+    const yearComplete = year < today.getFullYear() || (year === today.getFullYear() && today.getMonth() === 11 && today.getDate() === 31);
+    if (!yearComplete) { card.hidden = true; return; }
     const stats = computeWrappedStats(new Date(year, 0, 1), new Date(year, 11, 31));
     if (stats.loggedDays === 0) { card.hidden = true; return; }
     card.hidden = false;
