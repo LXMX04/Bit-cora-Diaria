@@ -2045,14 +2045,6 @@
     renderStats();
   });
 
-  const monthJumpInput = document.getElementById('monthJumpInput');
-  monthJumpInput.addEventListener('change', () => {
-    if (!monthJumpInput.value) return;
-    const [y, m] = monthJumpInput.value.split('-').map(Number);
-    statsMonth = new Date(y, m - 1, 1);
-    renderStats();
-  });
-
   const ICONS = {
     exercise: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 9v6M2 8v8M20 9v6M22 8v8M6 12h12" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     read: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 5c2-1 5-1 8 0v14c-3-1-6-1-8 0V5ZM20 5c-2-1-5-1-8 0v14c3-1 6-1 8 0V5Z" stroke-linejoin="round"/></svg>',
@@ -2778,7 +2770,6 @@
   function renderStats() {
     const year = statsMonth.getFullYear(), monthIndex = statsMonth.getMonth();
     monthLabel.textContent = `${MONTHS_LONG[monthIndex]} ${year}`;
-    monthJumpInput.value = `${year}-${pad2(monthIndex + 1)}`;
 
     const lastDay = monthDayRange(year, monthIndex);
 
@@ -2821,6 +2812,8 @@
     renderWorkoutStats(year, monthIndex, lastDay);
     renderGoalsStats(year, monthIndex, lastDay);
     renderWeekCompare();
+    renderMonthWrapped(year, monthIndex, lastDay);
+    renderYearWrapped(year);
     reflectionSearchCard.hidden = !Object.keys(store.entries).some((key) => (store.entries[key].reflection || '').trim());
 
     // Weekly tasks bars
@@ -2895,6 +2888,138 @@
     hint.textContent = over
       ? `Has superado tu presupuesto de ${formatEuro(budget)}: llevas ${formatEuro(totalMonth)} este mes.`
       : `Llevas ${formatEuro(totalMonth)} de tu presupuesto de ${formatEuro(budget)} este mes.`;
+  }
+
+  function computeWrappedStats(rangeStart, rangeEnd) {
+    const today = startOfDay(new Date());
+    const end = rangeEnd > today ? today : rangeEnd;
+    const habitCounts = {};
+    store.settings.dailyTasks.forEach((t) => { habitCounts[t.id] = 0; });
+    let daysCount = 0, loggedDays = 0, completeDays = 0, longestStreak = 0, curStreak = 0;
+    let foodSum = 0, foodCount = 0;
+    let cig = 0, joints = 0, spend = 0;
+    let workoutDays = 0;
+    let sleepSum = 0, sleepCount = 0;
+    let weightFirst = null, weightLast = null;
+    let periodDays = 0;
+
+    for (let d = new Date(rangeStart); d <= end; d = new Date(d.getTime() + DAY_MS)) {
+      daysCount++;
+      const entry = getEntry(dateKey(d));
+      if (!entry) { curStreak = 0; continue; }
+      if (entry.paused) continue;
+      loggedDays++;
+      if (isDayComplete(entry)) {
+        completeDays++;
+        curStreak++;
+        if (curStreak > longestStreak) longestStreak = curStreak;
+      } else {
+        curStreak = 0;
+      }
+      store.settings.dailyTasks.forEach((t) => { if (entry[t.id]) habitCounts[t.id]++; });
+      if (entry.meals) {
+        ['desayuno', 'comida', 'cena'].forEach((meal) => {
+          const h = entry.meals[meal] && entry.meals[meal].health;
+          if (h) { foodSum += h; foodCount++; }
+        });
+      }
+      if (consumoEnabled()) {
+        cig += entry.cigarettes || 0;
+        if (jointsEnabled()) joints += entry.joints || 0;
+        store.settings.purchaseItems.forEach((item) => {
+          spend += ((entry.purchases && entry.purchases[item.id]) || 0) * item.price;
+        });
+        if (jointsEnabled()) spend += ((entry.joints || 0) / 4) * jointPricePer4();
+      }
+      if (workoutsEnabled() && entry.workout) {
+        const w = entry.workout;
+        const anyExercise = w.exercises && Object.values(w.exercises).some((log) => log.reps > 0 || (log.weight != null && log.weight > 0));
+        if ((w.durationMin > 0) || anyExercise) workoutDays++;
+      }
+      if (suenoEnabled() && entry.sleepHours) { sleepSum += entry.sleepHours; sleepCount++; }
+      if (pesoEnabled() && entry.weight != null) {
+        if (weightFirst == null) weightFirst = entry.weight;
+        weightLast = entry.weight;
+      }
+      if (cicloEnabled() && entry.periodDay) periodDays++;
+    }
+
+    let bestHabit = null;
+    store.settings.dailyTasks.forEach((t) => {
+      if (habitCounts[t.id] > 0 && (!bestHabit || habitCounts[t.id] > bestHabit.count)) {
+        bestHabit = { label: t.label, count: habitCounts[t.id] };
+      }
+    });
+
+    return {
+      daysCount, loggedDays, completeDays, longestStreak,
+      completePct: daysCount > 0 ? (completeDays / daysCount) * 100 : 0,
+      bestHabit,
+      foodAvg: foodCount > 0 ? foodSum / foodCount : 0,
+      cig, joints, spend,
+      workoutDays,
+      sleepAvg: sleepCount > 0 ? sleepSum / sleepCount : 0,
+      weightDiff: (weightFirst != null && weightLast != null) ? weightLast - weightFirst : null,
+      periodDays
+    };
+  }
+
+  function wrappedTile(color, value, label) {
+    return `<div class="wrapped-tile" style="background:${color}"><span class="wrapped-tile-value">${value}</span><span class="wrapped-tile-label">${label}</span></div>`;
+  }
+
+  function buildWrappedTiles(stats) {
+    const tiles = [];
+    if (store.settings.dailyTasks.length > 0) {
+      tiles.push(wrappedTile('var(--accent)', `${Math.round(stats.completePct)}%`, 'días completos'));
+      if (stats.longestStreak > 0) {
+        tiles.push(wrappedTile('var(--claret)', `${stats.longestStreak}`, stats.longestStreak === 1 ? 'día de racha máxima' : 'días de racha máxima'));
+      }
+      if (stats.bestHabit) {
+        tiles.push(wrappedTile('var(--accent-2)', stats.bestHabit.label, 'tu hábito más constante'));
+      }
+    }
+    if (stats.foodAvg > 0) {
+      tiles.push(wrappedTile(healthColor(stats.foodAvg), `${stats.foodAvg.toFixed(1)} / 5`, 'alimentación media'));
+    }
+    if (suenoEnabled() && stats.sleepAvg > 0) {
+      tiles.push(wrappedTile('var(--h-total)', `${stats.sleepAvg.toFixed(1)} h`, 'sueño medio'));
+    }
+    if (workoutsEnabled() && stats.workoutDays > 0) {
+      tiles.push(wrappedTile('var(--h-teeth)', `${stats.workoutDays}`, stats.workoutDays === 1 ? 'día entrenado' : 'días entrenados'));
+    }
+    if (pesoEnabled() && stats.weightDiff != null && Math.abs(stats.weightDiff) >= 0.1) {
+      tiles.push(wrappedTile('var(--accent)', `${stats.weightDiff > 0 ? '+' : ''}${stats.weightDiff.toFixed(1)} kg`, 'cambio de peso'));
+    }
+    if (consumoEnabled() && (stats.cig > 0 || stats.joints > 0)) {
+      tiles.push(wrappedTile('var(--h-cig)', formatEuro(stats.spend), 'gasto en consumo'));
+    }
+    if (cicloEnabled() && stats.periodDays > 0) {
+      tiles.push(wrappedTile('var(--h-ciclo)', `${stats.periodDays}`, stats.periodDays === 1 ? 'día de regla' : 'días de regla'));
+    }
+    if (tiles.length === 0) {
+      tiles.push(wrappedTile('var(--surface-alt)', '–', 'Todavía sin datos suficientes'));
+    }
+    return tiles.join('');
+  }
+
+  function renderMonthWrapped(year, monthIndex, lastDay) {
+    const card = document.getElementById('monthWrappedCard');
+    if (lastDay === 0) { card.hidden = true; return; }
+    const stats = computeWrappedStats(new Date(year, monthIndex, 1), new Date(year, monthIndex, lastDay));
+    if (stats.loggedDays === 0) { card.hidden = true; return; }
+    card.hidden = false;
+    document.getElementById('monthWrappedTitle').textContent = `Resumen de ${MONTHS_LONG[monthIndex]}`;
+    document.getElementById('monthWrappedTiles').innerHTML = buildWrappedTiles(stats);
+  }
+
+  function renderYearWrapped(year) {
+    const card = document.getElementById('yearWrappedCard');
+    const stats = computeWrappedStats(new Date(year, 0, 1), new Date(year, 11, 31));
+    if (stats.loggedDays === 0) { card.hidden = true; return; }
+    card.hidden = false;
+    document.getElementById('yearWrappedTitle').textContent = `Resumen de ${year}`;
+    document.getElementById('yearWrappedTiles').innerHTML = buildWrappedTiles(stats);
   }
 
   function renderConsumoChart(year, monthIndex, lastDay) {
