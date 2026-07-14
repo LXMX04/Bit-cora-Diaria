@@ -15,6 +15,7 @@
       tracksAgua: false,
       aguaGoal: 8,
       tracksSueno: false,
+      sleepGoalHours: 8,
       tracksPeso: false,
       tracksAyuno: false,
       tracksMeditacion: false,
@@ -33,6 +34,8 @@
       tracksEnergia: false,
       tracksRopa: false,
       monthlyBudget: null,
+      travelModeActive: false,
+      cardOrder: {},
       jointPricePer4: 4.50,
       dailyTasks: [],
       weeklyTasks: [],
@@ -104,6 +107,9 @@
       if (typeof parsed.settings.tracksSueno !== 'boolean') {
         parsed.settings.tracksSueno = false;
       }
+      if (typeof parsed.settings.sleepGoalHours !== 'number' || parsed.settings.sleepGoalHours <= 0) {
+        parsed.settings.sleepGoalHours = 8;
+      }
       if (typeof parsed.settings.tracksPeso !== 'boolean') {
         parsed.settings.tracksPeso = false;
       }
@@ -158,6 +164,12 @@
       if (parsed.settings.monthlyBudget !== null && typeof parsed.settings.monthlyBudget !== 'number') {
         parsed.settings.monthlyBudget = null;
       }
+      if (typeof parsed.settings.travelModeActive !== 'boolean') {
+        parsed.settings.travelModeActive = false;
+      }
+      if (!parsed.settings.cardOrder || typeof parsed.settings.cardOrder !== 'object') {
+        parsed.settings.cardOrder = {};
+      }
       if (!parsed.settings.profile || typeof parsed.settings.profile !== 'object') {
         parsed.settings.profile = defaultSettings().profile;
       }
@@ -210,7 +222,8 @@
       gratitude: ['', '', ''],
       energyLevel: 0,
       stressLevel: 0,
-      outfitPlanned: false
+      outfitPlanned: false,
+      paused: false
     };
   }
 
@@ -942,11 +955,22 @@
     const totalTasks = store.settings.dailyTasks.length + (teethEnabled() ? 1 : 0);
     if (totalTasks === 0) return 0;
     let cursor = startOfDay(new Date());
-    if (!isDayComplete(getEntry(dateKey(cursor)))) {
+    let cursorEntry = getEntry(dateKey(cursor));
+    while (cursorEntry && cursorEntry.paused) {
+      cursor = new Date(cursor.getTime() - DAY_MS);
+      cursorEntry = getEntry(dateKey(cursor));
+    }
+    if (!isDayComplete(cursorEntry)) {
       cursor = new Date(cursor.getTime() - DAY_MS);
     }
     let streak = 0;
-    while (isDayComplete(getEntry(dateKey(cursor)))) {
+    while (true) {
+      const entry = getEntry(dateKey(cursor));
+      if (entry && entry.paused) {
+        cursor = new Date(cursor.getTime() - DAY_MS);
+        continue;
+      }
+      if (!isDayComplete(entry)) break;
       streak++;
       cursor = new Date(cursor.getTime() - DAY_MS);
     }
@@ -980,6 +1004,51 @@
       saveStore();
       reflectionHint.textContent = 'Guardado automáticamente';
     }, 400);
+  });
+
+  function fmtKeyDate(key) {
+    const [y, m, d] = key.split('-').map(Number);
+    return `${d} ${MONTHS_SHORT[m - 1]} ${y}`;
+  }
+
+  const reflectionSearchCard = document.getElementById('reflectionSearchCard');
+  const reflectionSearchInput = document.getElementById('reflectionSearchInput');
+  const reflectionSearchResults = document.getElementById('reflectionSearchResults');
+
+  function renderReflectionSearchResults(query) {
+    const q = query.trim().toLowerCase();
+    if (!q) { reflectionSearchResults.innerHTML = ''; return; }
+    const matches = Object.keys(store.entries)
+      .filter((key) => (store.entries[key].reflection || '').toLowerCase().includes(q))
+      .sort()
+      .reverse()
+      .slice(0, 30);
+    if (matches.length === 0) {
+      reflectionSearchResults.innerHTML = '<p class="hint-text">Sin resultados.</p>';
+      return;
+    }
+    reflectionSearchResults.innerHTML = matches.map((key) => {
+      const text = store.entries[key].reflection || '';
+      const idx = text.toLowerCase().indexOf(q);
+      const start = Math.max(0, idx - 30);
+      const end = Math.min(text.length, idx + q.length + 40);
+      const snippet = `${start > 0 ? '…' : ''}${text.slice(start, end)}${end < text.length ? '…' : ''}`;
+      return `<button type="button" class="reflection-result" data-jump-date="${key}">
+        <span class="reflection-result-date">${fmtKeyDate(key)}</span>
+        <span class="reflection-result-snippet">${escapeHtml(snippet)}</span>
+      </button>`;
+    }).join('');
+  }
+
+  reflectionSearchInput.addEventListener('input', () => renderReflectionSearchResults(reflectionSearchInput.value));
+
+  reflectionSearchResults.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-jump-date]');
+    if (!btn) return;
+    const [y, m, d] = btn.dataset.jumpDate.split('-').map(Number);
+    currentDate = startOfDay(new Date(y, m - 1, d));
+    switchTab('hoy');
+    renderAll();
   });
 
   const gratitudCard = document.getElementById('gratitudCard');
@@ -1114,6 +1183,10 @@
       greetingEl.textContent = '';
       return;
     }
+    if (entry.paused) {
+      greetingEl.innerHTML = '<strong>Modo viaje activado</strong> — hoy no cuenta para tu racha.';
+      return;
+    }
     const hour = new Date().getHours();
     const salute = hour < 6 ? 'Buenas noches' : hour < 13 ? 'Buenos días' : hour < 20 ? 'Buenas tardes' : 'Buenas noches';
     const name = (store.settings.profile && store.settings.profile.name || '').trim();
@@ -1135,11 +1208,47 @@
     }
   }
 
+  function renderYearAgo() {
+    const card = document.getElementById('yearAgoCard');
+    const today = startOfDay(new Date());
+    if (currentDate.getTime() !== today.getTime()) { card.hidden = true; return; }
+    const yearAgoDate = new Date(today);
+    yearAgoDate.setFullYear(yearAgoDate.getFullYear() - 1);
+    const entry = getEntry(dateKey(yearAgoDate));
+    if (!entry) { card.hidden = true; return; }
+
+    const dailyTotal = store.settings.dailyTasks.length + (teethEnabled() ? 1 : 0);
+    let done = 0;
+    store.settings.dailyTasks.forEach((t) => { if (entry[t.id]) done++; });
+    if (teethEnabled() && entry.teeth > 0) done++;
+
+    const bits = [];
+    if (dailyTotal > 0) bits.push(`${done}/${dailyTotal} hábitos completados`);
+    if (entry.weight != null) bits.push(`${entry.weight} kg`);
+    if (entry.sleepHours) bits.push(`${entry.sleepHours} h de sueño`);
+    const summary = bits.length ? `<p class="hint-text" style="margin:0 0 8px">${escapeHtml(bits.join(' · '))}</p>` : '';
+    const reflection = (entry.reflection || '').trim();
+    const excerpt = reflection.length > 140 ? `${reflection.slice(0, 140)}…` : reflection;
+    const reflectionHtml = excerpt ? `<p class="hint-text" style="margin:0;font-style:italic">"${escapeHtml(excerpt)}"</p>` : '';
+    if (!summary && !reflectionHtml) { card.hidden = true; return; }
+    card.hidden = false;
+    document.getElementById('yearAgoBody').innerHTML = `<p class="hint-text" style="margin:0 0 8px">${fmtShortDate(yearAgoDate)} de ${yearAgoDate.getFullYear()}</p>${summary}${reflectionHtml}`;
+  }
+
   function renderHoy() {
     const key = dateKey(currentDate);
+    const today = startOfDay(new Date());
+    if (store.settings.travelModeActive && currentDate.getTime() === today.getTime()) {
+      const liveEntry = ensureEntry(key);
+      if (!liveEntry.paused) {
+        liveEntry.paused = true;
+        saveStore();
+      }
+    }
     const entry = getEntry(key) || emptyEntry();
     updateGreeting(entry);
     updateDailyQuote();
+    renderYearAgo();
 
     const dailyItemsHtml = store.settings.dailyTasks.map((t) => `
       <li class="habit-row" data-habit="${t.id}">
@@ -1936,6 +2045,14 @@
     renderStats();
   });
 
+  const monthJumpInput = document.getElementById('monthJumpInput');
+  monthJumpInput.addEventListener('change', () => {
+    if (!monthJumpInput.value) return;
+    const [y, m] = monthJumpInput.value.split('-').map(Number);
+    statsMonth = new Date(y, m - 1, 1);
+    renderStats();
+  });
+
   const ICONS = {
     exercise: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 9v6M2 8v8M20 9v6M22 8v8M6 12h12" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     read: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 5c2-1 5-1 8 0v14c-3-1-6-1-8 0V5ZM20 5c-2-1-5-1-8 0v14c3-1 6-1 8 0V5Z" stroke-linejoin="round"/></svg>',
@@ -2081,6 +2198,22 @@
     }
     document.getElementById('avgSleepHours').textContent = countHours > 0 ? (sumHours / countHours).toFixed(1) : '0.0';
     document.getElementById('avgSleepQuality').textContent = countQuality > 0 ? (sumQuality / countQuality).toFixed(1) : '–';
+
+    const goal = store.settings.sleepGoalHours || 8;
+    const today = startOfDay(new Date());
+    let debt = 0, loggedDays = 0;
+    for (let i = 0; i < 14; i++) {
+      const d = new Date(today.getTime() - i * DAY_MS);
+      const entry = getEntry(dateKey(d));
+      if (entry && entry.sleepHours) {
+        loggedDays++;
+        if (entry.sleepHours < goal) debt += goal - entry.sleepHours;
+      }
+    }
+    const debtHint = document.getElementById('sleepDebtHint');
+    debtHint.textContent = loggedDays > 0
+      ? `Deuda de sueño (últimos 14 días): ${debt.toFixed(1)} h por debajo de tu objetivo de ${goal} h.`
+      : 'Registra tus horas de sueño para ver tu deuda acumulada de los últimos 14 días.';
   }
 
   function renderPesoStats(year, monthIndex, lastDay) {
@@ -2645,6 +2778,7 @@
   function renderStats() {
     const year = statsMonth.getFullYear(), monthIndex = statsMonth.getMonth();
     monthLabel.textContent = `${MONTHS_LONG[monthIndex]} ${year}`;
+    monthJumpInput.value = `${year}-${pad2(monthIndex + 1)}`;
 
     const lastDay = monthDayRange(year, monthIndex);
 
@@ -2687,6 +2821,7 @@
     renderWorkoutStats(year, monthIndex, lastDay);
     renderGoalsStats(year, monthIndex, lastDay);
     renderWeekCompare();
+    reflectionSearchCard.hidden = !Object.keys(store.entries).some((key) => (store.entries[key].reflection || '').trim());
 
     // Weekly tasks bars
     const weekKeys = new Set();
@@ -3267,6 +3402,16 @@
     if (activeTab === 'stats') renderStats();
   });
 
+  const sleepGoalInput = document.getElementById('sleepGoalInput');
+  sleepGoalInput.value = store.settings.sleepGoalHours;
+  sleepGoalInput.addEventListener('change', () => {
+    const value = parseFloat(sleepGoalInput.value);
+    store.settings.sleepGoalHours = (!isNaN(value) && value > 0) ? value : 8;
+    sleepGoalInput.value = store.settings.sleepGoalHours;
+    saveStore();
+    if (activeTab === 'stats') renderStats();
+  });
+
   /* ============ AJUSTES panel / Peso corporal ============ */
   const tracksPesoToggle = document.getElementById('tracksPesoToggle');
   tracksPesoToggle.checked = pesoEnabled();
@@ -3588,6 +3733,15 @@
 
   renderGoalManageList();
 
+  /* ============ AJUSTES panel / Modo viaje ============ */
+  const travelModeToggle = document.getElementById('travelModeToggle');
+  travelModeToggle.checked = store.settings.travelModeActive;
+  travelModeToggle.addEventListener('change', () => {
+    store.settings.travelModeActive = travelModeToggle.checked;
+    saveStore();
+    renderHoy();
+  });
+
   /* ============ AJUSTES panel / Notifications ============ */
   const reminderToggle = document.getElementById('reminderToggle');
   const reminderTime = document.getElementById('reminderTime');
@@ -3805,9 +3959,83 @@
     });
   }
 
+  /* ============ Orden de tarjetas (arrastrar) ============ */
+  function applyStoredCardOrder(panel, panelKey) {
+    const order = store.settings.cardOrder[panelKey];
+    const cards = Array.from(panel.querySelectorAll(':scope > .card[id]'));
+    if (!order || !order.length) return;
+    const byId = {};
+    cards.forEach((c) => { byId[c.id] = c; });
+    order.forEach((id) => { if (byId[id]) panel.appendChild(byId[id]); });
+    cards.forEach((c) => { if (!order.includes(c.id)) panel.appendChild(c); });
+  }
+
+  function attachCardDragHandlers(handle, card, panel, panelKey) {
+    let dragging = false;
+
+    function onPointerMove(e) {
+      if (!dragging) return;
+      const siblings = Array.from(panel.querySelectorAll(':scope > .card[id]')).filter((c) => c !== card);
+      const pointerY = e.clientY;
+      for (const sib of siblings) {
+        const rect = sib.getBoundingClientRect();
+        const mid = rect.top + rect.height / 2;
+        const cardIsAfter = !!(sib.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING);
+        if (pointerY < mid && cardIsAfter) {
+          panel.insertBefore(card, sib);
+          break;
+        } else if (pointerY > mid && !cardIsAfter) {
+          panel.insertBefore(card, sib.nextSibling);
+          break;
+        }
+      }
+    }
+
+    function endDrag() {
+      if (!dragging) return;
+      dragging = false;
+      card.classList.remove('is-dragging');
+      document.removeEventListener('pointermove', onPointerMove);
+      document.removeEventListener('pointerup', endDrag);
+      document.removeEventListener('pointercancel', endDrag);
+      const newOrder = Array.from(panel.querySelectorAll(':scope > .card[id]')).map((c) => c.id);
+      store.settings.cardOrder[panelKey] = newOrder;
+      saveStore();
+    }
+
+    handle.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      dragging = true;
+      card.classList.add('is-dragging');
+      document.addEventListener('pointermove', onPointerMove);
+      document.addEventListener('pointerup', endDrag);
+      document.addEventListener('pointercancel', endDrag);
+    });
+  }
+
+  function initCardReordering() {
+    const REORDER_PANELS = ['hoy', 'objetivos', 'comidas', 'consumo', 'stats'];
+    REORDER_PANELS.forEach((panelKey) => {
+      const panel = document.querySelector(`.tab-panel[data-panel="${panelKey}"]`);
+      if (!panel) return;
+      applyStoredCardOrder(panel, panelKey);
+      Array.from(panel.querySelectorAll(':scope > .card[id]')).forEach((card) => {
+        if (card.querySelector(':scope > .card-drag-handle')) return;
+        const handle = document.createElement('button');
+        handle.type = 'button';
+        handle.className = 'card-drag-handle';
+        handle.setAttribute('aria-label', 'Reordenar tarjeta');
+        handle.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="8" cy="6" r="1.4"/><circle cx="16" cy="6" r="1.4"/><circle cx="8" cy="12" r="1.4"/><circle cx="16" cy="12" r="1.4"/><circle cx="8" cy="18" r="1.4"/><circle cx="16" cy="18" r="1.4"/></svg>';
+        card.insertBefore(handle, card.firstChild);
+        attachCardDragHandlers(handle, card, panel, panelKey);
+      });
+    });
+  }
+
   renderAll();
   checkReminder();
   checkCycleNotice();
+  initCardReordering();
 
   const splashEl = document.getElementById('splash');
   if (splashEl) {

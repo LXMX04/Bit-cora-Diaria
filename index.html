@@ -74,12 +74,17 @@
       <p class="daily-quote" id="dailyQuote"></p>
       <p class="streak-badge" id="streakBadge" hidden></p>
 
-      <div class="card">
+      <div class="card" id="yearAgoCard" hidden>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,7.5 L12,12 L15,14" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Hace un año</h2>
+        <div id="yearAgoBody"></div>
+      </div>
+
+      <div class="card" id="dailyTasksCard">
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.5,4.5 L14.5,4.5 L13.2,7.2 L10.8,7.2 Z"/><path d="M10.8,7.2 L13.2,7.2 L14.3,13.5 L12,19 L9.7,13.5 Z"/></svg></span>Hábitos diarios</h2>
         <ul class="habit-list" id="dailyTaskList"></ul>
       </div>
 
-      <div class="card">
+      <div class="card" id="weeklyTasksCard">
         <div class="card-title-row">
           <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="13" r="7.5"/><path d="M12,8.5 L12,13 L15,15" stroke-linecap="round" stroke-linejoin="round"/><path d="M9,3.5 L15,3.5" stroke-linecap="round"/></svg></span>Tareas semanales</h2>
           <span class="week-range" id="weekRange">–</span>
@@ -119,13 +124,13 @@
         <p class="hint-text">Estimación orientativa a partir de tu historial, no sustituye asesoramiento médico.</p>
       </div>
 
-      <div class="card">
+      <div class="card" id="badHabitsCard">
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6,6 L18,18 M6,18 L18,6" stroke-linecap="round"/><circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/></svg></span>Malos hábitos</h2>
         <ul class="habit-list" id="badHabitList"></ul>
         <p class="hint-text">Márcalo si hoy has hecho esto que quieres evitar. Resta puntos del Total y se refleja en Stats.</p>
       </div>
 
-      <div class="card reflection-card">
+      <div class="card reflection-card" id="reflectionCard">
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5,19 L8,18 L17,9 C18,8 18,6.5 17,5.5 C16,4.5 14.5,4.5 13.5,5.5 L4.5,14.5 Z" stroke-linejoin="round"/><path d="M12,7 L15,10"/></svg></span>Reflexión del día</h2>
         <div class="reflection-quote-mark" aria-hidden="true">&#8220;</div>
         <textarea id="reflectionInput" class="reflection-box" rows="5" placeholder="¿Cómo ha ido el día? ¿Qué destacarías?"></textarea>
@@ -299,7 +304,7 @@
 
     <!-- COMIDAS -->
     <section class="tab-panel" id="panel-comidas" data-panel="comidas" hidden>
-      <div class="card meal-card" data-meal="desayuno">
+      <div class="card meal-card" id="mealDesayunoCard" data-meal="desayuno">
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5,17 L19,17" stroke-linecap="round"/><path d="M7,17 A5,5 0 0 1 17,17"/><path d="M12,7 L12,4.5 M6,10 L4.3,8.6 M18,10 L19.7,8.6" stroke-linecap="round"/></svg></span>Desayuno</h2>
         <div class="meal-row">
           <label class="meal-label" for="time-desayuno">Hora</label>
@@ -318,7 +323,7 @@
         </div>
       </div>
 
-      <div class="card meal-card" data-meal="comida">
+      <div class="card meal-card" id="mealComidaCard" data-meal="comida">
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4.5"/><path d="M12,3.5 L12,5.2 M12,18.8 L12,20.5 M3.5,12 L5.2,12 M18.8,12 L20.5,12 M6,6 L7.2,7.2 M16.8,16.8 L18,18 M18,6 L16.8,7.2 M7.2,16.8 L6,18" stroke-linecap="round"/></svg></span>Comida</h2>
         <div class="meal-row">
           <label class="meal-label" for="time-comida">Hora</label>
@@ -337,7 +342,7 @@
         </div>
       </div>
 
-      <div class="card meal-card" data-meal="cena">
+      <div class="card meal-card" id="mealCenaCard" data-meal="cena">
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M18,13 A6.5,6.5 0 1 1 11,5 A5,5 0 0 0 18,13 Z" stroke-linejoin="round"/><path d="M18.5,5.5 L19.2,7.2 L20.9,7.9 L19.2,8.6 L18.5,10.3 L17.8,8.6 L16.1,7.9 L17.8,7.2 Z" fill="currentColor" stroke="none"/></svg></span>Cena</h2>
         <div class="meal-row">
           <label class="meal-label" for="time-cena">Hora</label>
@@ -445,7 +450,7 @@
         <p class="hint-text" id="purchaseEmptyHint" hidden>No tienes artículos de compra. Añade uno en Ajustes.</p>
       </div>
 
-      <div class="card">
+      <div class="card" id="consumoGastoCard">
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,7.5 L12,16.5 M9.7,9.3 C9.7,8.2 10.7,7.5 12,7.5 C13.4,7.5 14.3,8.3 14.3,9.3 C14.3,11.7 9.7,10.8 9.7,13.2 C9.7,14.3 10.6,15 12,15 C13.4,15 14.3,14.3 14.3,13.2" stroke-linecap="round"/></svg></span>Gasto total</h2>
         <div id="spendGroups"></div>
         <p class="hint-text" id="spendHintConsumo">Lucky rojo 5,50 € · Lucky blanco 6,30 € por paquete · Joints 4,50 € cada 4 porros.</p>
@@ -460,9 +465,10 @@
           <span class="month-label" id="monthLabel">–</span>
           <button class="day-nav" id="nextMonth" aria-label="Mes siguiente">›</button>
         </div>
+        <input type="month" id="monthJumpInput" class="month-jump-input" aria-label="Saltar a un mes" />
       </div>
 
-      <div class="card">
+      <div class="card" id="progresoMensualCard">
         <div class="card-title-row">
           <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,3.5 L12,5.2 M12,18.8 L12,20.5 M3.5,12 L5.2,12 M18.8,12 L20.5,12" stroke-linecap="round"/></svg></span>Progreso mensual</h2>
           <button class="link-btn" id="toggleHeatmapView">Ver tabla</button>
@@ -473,7 +479,7 @@
         <p class="hint-text" id="heatmapHint">Toca un día para abrirlo. Las tareas semanales se marcan en toda la semana al cumplirse. Alimentación es la media de salud (1-5) de las comidas registradas ese día. En Cigarros, Joints y paquetes, cuanto más intenso el color, mayor fue el consumo ese día.</p>
       </div>
 
-      <div class="card">
+      <div class="card" id="habitosDelMesCard">
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,3.5 L12,5.2 M12,18.8 L12,20.5 M3.5,12 L5.2,12 M18.8,12 L20.5,12" stroke-linecap="round"/></svg></span>Hábitos del mes</h2>
         <div class="rings-grid" id="ringsGrid"></div>
       </div>
@@ -501,6 +507,7 @@
             <span class="avg-label">calidad media</span>
           </div>
         </div>
+        <p class="hint-text" id="sleepDebtHint"></p>
       </div>
 
       <div class="card" id="pesoStatsCard" hidden>
@@ -569,7 +576,7 @@
         <div class="bars-list" id="goalsBars"></div>
       </div>
 
-      <div class="card">
+      <div class="card" id="alimentacionStatsCard">
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,3.5 L12,5.2 M12,18.8 L12,20.5 M3.5,12 L5.2,12 M18.8,12 L20.5,12" stroke-linecap="round"/></svg></span>Alimentación</h2>
         <div class="food-avg-tile" id="foodAvgTile">
           <span class="food-avg-value" id="foodAvgValue">–</span>
@@ -586,7 +593,7 @@
         </div>
       </div>
 
-      <div class="card">
+      <div class="card" id="tareasSemanalesStatsCard">
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="13" r="7.5"/><path d="M12,8.5 L12,13 L15,15" stroke-linecap="round" stroke-linejoin="round"/><path d="M9,3.5 L15,3.5" stroke-linecap="round"/></svg></span>Tareas semanales</h2>
         <div class="bars-list" id="weeklyBars"></div>
       </div>
@@ -614,6 +621,13 @@
           <div class="budget-bar-track"><div class="budget-bar-fill" id="budgetBarFill"></div></div>
           <p class="hint-text" id="budgetHint"></p>
         </div>
+      </div>
+
+      <div class="card" id="reflectionSearchCard" hidden>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10.5" cy="10.5" r="6"/><path d="M15,15 L20,20" stroke-linecap="round"/></svg></span>Reflexiones</h2>
+        <p class="hint-text" style="margin-top:0">Busca por palabra o por #etiqueta en tus reflexiones pasadas.</p>
+        <input type="text" id="reflectionSearchInput" class="task-add-input" placeholder="Buscar… (ej. trabajo o #viaje)" />
+        <div id="reflectionSearchResults"></div>
       </div>
     </section>
 
@@ -652,6 +666,23 @@
             <input type="number" id="profileWeightInput" class="profile-input" min="0" max="400" step="0.1" placeholder="kg" />
           </div>
           <p class="hint-text">Se guarda solo en este dispositivo. Tu nombre se usa en el saludo de la pestaña Hoy.</p>
+        </div>
+      </div>
+
+      <div class="card accordion-card">
+        <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M8,12 L16,12 M8,9 L13,9 M8,15 L14,15" stroke-linecap="round"/></svg></span>Modo viaje</h2>
+          <span class="accordion-chevron">›</span>
+        </button>
+        <div class="accordion-body" hidden>
+          <div class="setting-row">
+            <span>Activar modo viaje</span>
+            <label class="switch">
+              <input type="checkbox" id="travelModeToggle" />
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+          <p class="hint-text">Mientras está activo, cada día cuenta como "pausado": no rompe tu racha aunque no completes tus hábitos. Actívalo antes de un viaje y desactívalo cuando vuelvas.</p>
         </div>
       </div>
 
@@ -835,6 +866,11 @@
             </label>
           </div>
           <p class="hint-text">Registra horas dormidas y calidad del sueño (1-5). Se refleja en Stats.</p>
+          <div class="setting-row">
+            <span>Objetivo de sueño (horas)</span>
+            <input type="number" id="sleepGoalInput" min="1" max="14" step="0.5" value="8" />
+          </div>
+          <p class="hint-text">Se usa para calcular tu deuda de sueño acumulada en Stats.</p>
         </div>
       </div>
 
