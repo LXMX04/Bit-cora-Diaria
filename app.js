@@ -1731,19 +1731,211 @@
     return stripAccents(str.toLowerCase().trim()).replace(/\s+/g, ' ');
   }
 
+  function longestPhraseMatch(words, dict) {
+    for (let size = words.length; size >= 1; size--) {
+      for (let start = 0; start + size <= words.length; start++) {
+        const phrase = words.slice(start, start + size).join(' ');
+        if (dict[phrase]) return dict[phrase];
+      }
+    }
+    return null;
+  }
+
   function lookupIngredientTranslation(text) {
     const norm = normalizeEs(text);
     if (ES_EN_INGREDIENTS[norm]) return ES_EN_INGREDIENTS[norm];
     const stripped = norm.replace(/^(el|la|los|las|un|una|unos|unas)\s+/, '').trim();
     if (stripped && ES_EN_INGREDIENTS[stripped]) return ES_EN_INGREDIENTS[stripped];
-    const words = stripped.split(' ');
-    for (let size = words.length; size >= 1; size--) {
-      for (let start = 0; start + size <= words.length; start++) {
-        const phrase = words.slice(start, start + size).join(' ');
-        if (ES_EN_INGREDIENTS[phrase]) return ES_EN_INGREDIENTS[phrase];
-      }
-    }
-    return null;
+    return longestPhraseMatch(stripped.split(' '), ES_EN_INGREDIENTS);
+  }
+
+  // English -> Spanish, for translating recipe results that come back from TheMealDB.
+  const EN_ES_INGREDIENTS = {
+    // Carnes y aves
+    chicken: 'pollo', 'chicken breast': 'pechuga de pollo', 'chicken breasts': 'pechugas de pollo',
+    'chicken thigh': 'muslo de pollo', 'chicken thighs': 'muslos de pollo', 'chicken drumsticks': 'contramuslos de pollo',
+    'chicken wings': 'alitas de pollo', 'chicken mince': 'pollo picado', 'minced chicken': 'pollo picado',
+    beef: 'ternera', 'beef mince': 'carne picada de ternera', 'minced beef': 'carne picada', 'ground beef': 'carne picada',
+    steak: 'filete', 'sirloin steak': 'filete de solomillo', pork: 'cerdo', 'pork chops': 'chuletas de cerdo',
+    'pork belly': 'panceta de cerdo', 'pork loin': 'lomo de cerdo', 'ground pork': 'carne de cerdo picada',
+    bacon: 'panceta', 'streaky bacon': 'panceta', 'back bacon': 'bacon', ham: 'jamón', lamb: 'cordero',
+    'lamb chops': 'chuletas de cordero', 'leg of lamb': 'pierna de cordero', turkey: 'pavo',
+    'turkey breast': 'pechuga de pavo', duck: 'pato', 'duck breast': 'pechuga de pato', rabbit: 'conejo',
+    chorizo: 'chorizo', sausage: 'salchicha', sausages: 'salchichas', 'sausage meat': 'carne de salchicha',
+    mince: 'carne picada', 'minced meat': 'carne picada', veal: 'ternera',
+    // Pescados y mariscos
+    salmon: 'salmón', 'salmon fillets': 'filetes de salmón', 'smoked salmon': 'salmón ahumado',
+    tuna: 'atún', 'canned tuna': 'atún en lata', 'tuna steaks': 'filetes de atún', cod: 'bacalao',
+    'cod fillets': 'filetes de bacalao', haddock: 'eglefino', hake: 'merluza', shrimp: 'gambas',
+    prawns: 'gambas', 'king prawns': 'langostinos', 'tiger prawns': 'langostinos tigre', squid: 'calamar',
+    octopus: 'pulpo', mussels: 'mejillones', clams: 'almejas', sardines: 'sardinas', trout: 'trucha',
+    anchovies: 'anchoas', scallops: 'vieiras', crab: 'cangrejo', 'crab meat': 'carne de cangrejo', lobster: 'langosta',
+    'white fish': 'pescado blanco', 'fish fillets': 'filetes de pescado',
+    // Lacteos y huevos
+    egg: 'huevo', eggs: 'huevos', 'egg yolk': 'yema de huevo', 'egg yolks': 'yemas de huevo',
+    'egg white': 'clara de huevo', 'egg whites': 'claras de huevo', milk: 'leche', buttermilk: 'suero de leche',
+    'condensed milk': 'leche condensada', 'evaporated milk': 'leche evaporada', 'coconut milk': 'leche de coco',
+    'coconut cream': 'crema de coco', butter: 'mantequilla', margarine: 'margarina', cheese: 'queso',
+    'parmesan cheese': 'queso parmesano', parmesan: 'parmesano', 'mozzarella cheese': 'queso mozzarella',
+    mozzarella: 'mozzarella', 'cheddar cheese': 'queso cheddar', cheddar: 'cheddar',
+    'cream cheese': 'queso crema', 'feta cheese': 'queso feta', feta: 'feta', 'goat cheese': 'queso de cabra',
+    'ricotta cheese': 'queso ricotta', ricotta: 'ricotta', 'cottage cheese': 'requesón',
+    cream: 'nata', 'double cream': 'nata para montar', 'single cream': 'nata líquida',
+    'sour cream': 'nata agria', 'creme fraiche': 'crema fresca', 'greek yogurt': 'yogur griego',
+    yogurt: 'yogur', yoghurt: 'yogur',
+    // Verduras
+    onion: 'cebolla', onions: 'cebollas', 'spring onion': 'cebolleta', 'spring onions': 'cebolletas',
+    'red onion': 'cebolla roja', 'red onions': 'cebollas rojas', garlic: 'ajo', 'garlic clove': 'diente de ajo',
+    'garlic cloves': 'dientes de ajo', tomato: 'tomate', tomatoes: 'tomates', 'cherry tomatoes': 'tomates cherry',
+    'tomato puree': 'puré de tomate', 'tomato paste': 'concentrado de tomate', passata: 'tomate triturado',
+    potato: 'patata', potatoes: 'patatas', 'sweet potato': 'boniato', 'sweet potatoes': 'boniatos',
+    carrot: 'zanahoria', carrots: 'zanahorias', 'bell pepper': 'pimiento', 'bell peppers': 'pimientos',
+    'red pepper': 'pimiento rojo', 'green pepper': 'pimiento verde',
+    'chili pepper': 'guindilla', 'chilli pepper': 'guindilla', chili: 'chile', chilli: 'chile',
+    'chili flakes': 'copos de chile', 'chilli flakes': 'copos de chile', zucchini: 'calabacín',
+    courgette: 'calabacín', courgettes: 'calabacines', eggplant: 'berenjena', aubergine: 'berenjena',
+    broccoli: 'brócoli', cauliflower: 'coliflor', spinach: 'espinacas', lettuce: 'lechuga',
+    rocket: 'rúcula', arugula: 'rúcula', cucumber: 'pepino', celery: 'apio', peas: 'guisantes',
+    mangetout: 'tirabeques', 'green beans': 'judías verdes', 'broad beans': 'habas',
+    corn: 'maíz', sweetcorn: 'maíz dulce', mushroom: 'champiñón', mushrooms: 'champiñones',
+    cabbage: 'col', 'red cabbage': 'lombarda', 'brussels sprouts': 'coles de bruselas',
+    beetroot: 'remolacha', radish: 'rábano', asparagus: 'espárragos', artichoke: 'alcachofa',
+    leek: 'puerro', leeks: 'puerros', ginger: 'jengibre', avocado: 'aguacate', pumpkin: 'calabaza',
+    swede: 'colinabo', turnip: 'nabo', parsnip: 'chirivía',
+    // Legumbres y cereales
+    rice: 'arroz', lentils: 'lentejas', chickpeas: 'garbanzos', beans: 'alubias', 'kidney beans': 'alubias rojas',
+    'black beans': 'alubias negras', pasta: 'pasta', spaghetti: 'espaguetis', macaroni: 'macarrones',
+    noodles: 'fideos', flour: 'harina', 'plain flour': 'harina de trigo', 'self-raising flour': 'harina con levadura',
+    'self raising flour': 'harina con levadura', cornflour: 'maicena', cornstarch: 'maicena', bread: 'pan',
+    breadcrumbs: 'pan rallado', 'panko breadcrumbs': 'panko', oats: 'avena', quinoa: 'quinoa',
+    couscous: 'cuscús',
+    // Frutas
+    lemon: 'limón', lemons: 'limones', 'lemon juice': 'zumo de limón', 'lemon zest': 'ralladura de limón',
+    lime: 'lima', limes: 'limas', orange: 'naranja', oranges: 'naranjas', apple: 'manzana', apples: 'manzanas',
+    banana: 'plátano', bananas: 'plátanos', strawberry: 'fresa', strawberries: 'fresas', grape: 'uva',
+    grapes: 'uvas', pineapple: 'piña', mango: 'mango', watermelon: 'sandía', melon: 'melón', pear: 'pera',
+    peach: 'melocotón', peaches: 'melocotones', cherry: 'cereza', cherries: 'cerezas', plum: 'ciruela',
+    coconut: 'coco', kiwi: 'kiwi', blueberries: 'arándanos', blackberry: 'mora', blackberries: 'moras',
+    pomegranate: 'granada', fig: 'higo', raisins: 'pasas', dates: 'dátiles',
+    // Especias y hierbas
+    salt: 'sal', 'sea salt': 'sal marina', pepper: 'pimienta', 'black pepper': 'pimienta negra',
+    oregano: 'orégano', basil: 'albahaca', 'basil leaves': 'hojas de albahaca', parsley: 'perejil',
+    coriander: 'cilantro', cilantro: 'cilantro', cumin: 'comino', cinnamon: 'canela',
+    'cinnamon stick': 'rama de canela', paprika: 'pimentón', 'smoked paprika': 'pimentón ahumado',
+    'nutmeg': 'nuez moscada', 'bay leaf': 'hoja de laurel', 'bay leaves': 'hojas de laurel',
+    thyme: 'tomillo', rosemary: 'romero', turmeric: 'cúrcuma', curry: 'curry', saffron: 'azafrán',
+    vanilla: 'vainilla', 'vanilla extract': 'extracto de vainilla', 'vanilla essence': 'esencia de vainilla',
+    'cayenne pepper': 'pimienta de cayena', cayenne: 'cayena',
+    // Aceites, salsas y condimentos
+    oil: 'aceite', 'olive oil': 'aceite de oliva', 'vegetable oil': 'aceite vegetal',
+    'sesame oil': 'aceite de sésamo', vinegar: 'vinagre', 'balsamic vinegar': 'vinagre balsámico',
+    'soy sauce': 'salsa de soja', 'fish sauce': 'salsa de pescado', 'oyster sauce': 'salsa de ostras',
+    'worcestershire sauce': 'salsa worcestershire', mustard: 'mostaza', mayonnaise: 'mayonesa',
+    ketchup: 'kétchup', honey: 'miel', sugar: 'azúcar', 'brown sugar': 'azúcar moreno',
+    'caster sugar': 'azúcar extrafino', 'icing sugar': 'azúcar glas', 'powdered sugar': 'azúcar glas',
+    'peanut butter': 'mantequilla de cacahuete', tahini: 'tahini', stock: 'caldo', broth: 'caldo',
+    'chicken stock': 'caldo de pollo', 'beef stock': 'caldo de carne', 'vegetable stock': 'caldo de verduras',
+    'stock cube': 'pastilla de caldo', wine: 'vino', 'white wine': 'vino blanco', 'red wine': 'vino tinto',
+    beer: 'cerveza', water: 'agua', 'sesame seeds': 'semillas de sésamo',
+    // Frutos secos
+    almonds: 'almendras', walnuts: 'nueces', hazelnuts: 'avellanas', pistachios: 'pistachos',
+    peanuts: 'cacahuetes', 'pine nuts': 'piñones', cashews: 'anacardos',
+    // Panadería / repostería
+    chocolate: 'chocolate', 'dark chocolate': 'chocolate negro', 'milk chocolate': 'chocolate con leche',
+    'white chocolate': 'chocolate blanco', cocoa: 'cacao', 'cocoa powder': 'cacao en polvo',
+    yeast: 'levadura', 'baking powder': 'levadura en polvo', 'baking soda': 'bicarbonato de sodio',
+    'bicarbonate of soda': 'bicarbonato de sodio', gelatin: 'gelatina', gelatine: 'gelatina',
+    'golden syrup': 'sirope dorado', 'maple syrup': 'sirope de arce', 'puff pastry': 'hojaldre',
+    'shortcrust pastry': 'masa quebrada', 'filo pastry': 'pasta filo'
+  };
+
+  // English -> Spanish measurement/unit vocabulary, used to translate the free-text
+  // "measure" field TheMealDB returns (e.g. "2 tbsp", "1 cup", "a pinch").
+  const EN_ES_UNITS = {
+    cup: 'taza', cups: 'tazas', tablespoon: 'cucharada', tablespoons: 'cucharadas', tbsp: 'cucharada',
+    tbsps: 'cucharadas', tbs: 'cucharada', teaspoon: 'cucharadita', teaspoons: 'cucharaditas',
+    tsp: 'cucharadita', tsps: 'cucharaditas', ounce: 'onza', ounces: 'onzas', oz: 'onza',
+    pound: 'libra', pounds: 'libras', lb: 'libra', lbs: 'libras', gram: 'gramo', grams: 'gramos',
+    g: 'g', kilogram: 'kilogramo', kilograms: 'kilogramos', kg: 'kg', milliliter: 'mililitro',
+    milliliters: 'mililitros', millilitre: 'mililitro', millilitres: 'mililitros', ml: 'ml',
+    liter: 'litro', liters: 'litros', litre: 'litro', litres: 'litros', l: 'l', pinch: 'pizca',
+    pinches: 'pizcas', clove: 'diente', cloves: 'dientes', slice: 'rodaja', slices: 'rodajas',
+    can: 'lata', cans: 'latas', package: 'paquete', packages: 'paquetes', packet: 'paquete',
+    packets: 'paquetes', pkg: 'paquete', stick: 'barra', sticks: 'barras', handful: 'puñado',
+    handfuls: 'puñados', sprig: 'ramita', sprigs: 'ramitas', bunch: 'manojo', bunches: 'manojos',
+    quart: 'cuarto de galón', quarts: 'cuartos de galón', pint: 'pinta', pints: 'pintas',
+    dash: 'pizca', dashes: 'pizcas', drop: 'gota', drops: 'gotas', piece: 'trozo', pieces: 'trozos',
+    rasher: 'loncha', rashers: 'lonchas', fillet: 'filete', fillets: 'filetes', sheet: 'lámina',
+    sheets: 'láminas', knob: 'nuez', splash: 'chorrito', large: 'grande', medium: 'mediano',
+    small: 'pequeño', whole: 'entero', half: 'medio', quarter: 'cuarto', third: 'tercio',
+    fresh: 'fresco', dried: 'seco', frozen: 'congelado', canned: 'en lata', tinned: 'en lata',
+    chopped: 'picado', diced: 'en cubos', sliced: 'en rodajas', minced: 'picado', grated: 'rallado',
+    shredded: 'desmenuzado', crushed: 'triturado', ground: 'molido', peeled: 'pelado',
+    deseeded: 'sin semillas', seeded: 'sin semillas', deveined: 'sin venas', boneless: 'sin hueso',
+    skinless: 'sin piel', cooked: 'cocido', uncooked: 'crudo', raw: 'crudo', ripe: 'maduro',
+    softened: 'ablandado', melted: 'derretido', beaten: 'batido', sifted: 'tamizado',
+    crumbled: 'desmenuzado', zest: 'ralladura', juice: 'zumo', rind: 'corteza', optional: 'opcional',
+    'to taste': 'al gusto', 'as needed': 'según se necesite', 'for garnish': 'para decorar',
+    'room temperature': 'a temperatura ambiente', 'finely chopped': 'picado fino',
+    'roughly chopped': 'picado grueso'
+  };
+
+  const EN_ES_CATEGORIES = {
+    beef: 'Ternera', chicken: 'Pollo', dessert: 'Postre', lamb: 'Cordero', miscellaneous: 'Variado',
+    pasta: 'Pasta', pork: 'Cerdo', seafood: 'Marisco', side: 'Guarnición', starter: 'Entrante',
+    vegan: 'Vegano', vegetarian: 'Vegetariano', breakfast: 'Desayuno', goat: 'Cabra'
+  };
+
+  const EN_ES_AREAS = {
+    american: 'Estadounidense', british: 'Británica', canadian: 'Canadiense', chinese: 'China',
+    croatian: 'Croata', dutch: 'Holandesa', egyptian: 'Egipcia', filipino: 'Filipina',
+    french: 'Francesa', greek: 'Griega', indian: 'India', irish: 'Irlandesa', italian: 'Italiana',
+    jamaican: 'Jamaicana', japanese: 'Japonesa', kenyan: 'Keniana', malaysian: 'Malaya',
+    mexican: 'Mexicana', moroccan: 'Marroquí', polish: 'Polaca', portuguese: 'Portuguesa',
+    russian: 'Rusa', spanish: 'Española', thai: 'Tailandesa', tunisian: 'Tunecina',
+    turkish: 'Turca', unknown: 'Desconocida', vietnamese: 'Vietnamita'
+  };
+
+  // Translate a short English phrase (ingredient name, category, area) using a static
+  // dictionary. Tries the whole phrase first, then falls back to per-word matching so
+  // partially-known phrases ("fresh coriander leaves") still get partially translated.
+  function translateWithDictionary(text, dict) {
+    const trimmed = (text || '').trim();
+    if (!trimmed) return null;
+    const norm = trimmed.toLowerCase().replace(/\s+/g, ' ');
+    if (dict[norm]) return dict[norm];
+    const whole = longestPhraseMatch(norm.split(' '), dict);
+    if (whole) return whole;
+    const words = norm.split(' ');
+    let anyMatched = false;
+    const translatedWords = words.map((w) => {
+      const cleaned = w.replace(/[(),.]/g, '');
+      let t = dict[cleaned];
+      if (!t && cleaned.endsWith('s') && dict[cleaned.slice(0, -1)]) t = dict[cleaned.slice(0, -1)];
+      if (t) { anyMatched = true; return t; }
+      return w;
+    });
+    return anyMatched ? translatedWords.join(' ') : null;
+  }
+
+  // Translate a free-text measure ("2 tbsp", "1/2 tsp", "a pinch") word by word,
+  // keeping numbers/fractions/unknown words untouched.
+  function translateMeasureToSpanish(measure) {
+    const trimmed = (measure || '').trim();
+    if (!trimmed) return trimmed;
+    const norm = trimmed.toLowerCase().replace(/\s+/g, ' ');
+    // Only accept a whole-phrase dictionary hit when the phrase has no leading
+    // quantity (e.g. "to taste", "a pinch") - otherwise word-by-word below keeps numbers intact.
+    if (EN_ES_UNITS[norm] && !/\d/.test(norm)) return EN_ES_UNITS[norm];
+    const tokens = trimmed.split(/(\s+)/);
+    return tokens.map((tok) => {
+      if (!tok || /^\s+$/.test(tok)) return tok;
+      const cleaned = tok.replace(/[(),.]/g, '').toLowerCase();
+      if (!cleaned) return tok;
+      let translated = EN_ES_UNITS[cleaned];
+      if (!translated && cleaned.endsWith('s') && EN_ES_UNITS[cleaned.slice(0, -1)]) translated = EN_ES_UNITS[cleaned.slice(0, -1)];
+      return translated || tok;
+    }).join('');
   }
 
   async function translateToEnglish(text) {
@@ -1784,36 +1976,51 @@
   async function translateMealToSpanish(meal) {
     const pairs = buildIngredientPairs(meal);
     const cookTimeMin = extractCookTimeMinutes(meal.strInstructions);
-    try {
-      const [nameEs, instructionsEs, categoryEs, areaEs, ...ingredientNamesEs] = await Promise.all([
-        translateToSpanish(meal.strMeal || ''),
-        translateToSpanish(meal.strInstructions || ''),
-        translateToSpanish(meal.strCategory || ''),
-        translateToSpanish(meal.strArea || ''),
-        ...pairs.map((p) => translateToSpanish(p.ing))
-      ]);
-      return {
-        meal,
-        name: nameEs || meal.strMeal || 'Receta',
-        instructions: instructionsEs || meal.strInstructions || '',
-        category: categoryEs || meal.strCategory || '',
-        area: areaEs || meal.strArea || '',
-        cookTimeMin,
-        ingredientsList: pairs.map((p, i) => `${p.measure} ${ingredientNamesEs[i] || p.ing}`.trim()),
-        translated: true
-      };
-    } catch (err) {
-      return {
-        meal,
-        name: meal.strMeal || 'Receta',
-        instructions: meal.strInstructions || '',
-        category: meal.strCategory || '',
-        area: meal.strArea || '',
-        cookTimeMin,
-        ingredientsList: pairs.map((p) => `${p.measure} ${p.ing}`.trim()),
-        translated: false
-      };
-    }
+
+    // Category and area come from a small, fixed TheMealDB vocabulary, so they're
+    // always resolved statically - no network call, no chance of failure.
+    const categoryEs = translateWithDictionary(meal.strCategory, EN_ES_CATEGORIES) || meal.strCategory || '';
+    const areaEs = translateWithDictionary(meal.strArea, EN_ES_AREAS) || meal.strArea || '';
+
+    // Ingredient names + measures: try the static dictionary first (instant, reliable).
+    // Only ingredients the dictionary doesn't recognize fall back to the live API,
+    // and only for that one ingredient - not the whole recipe.
+    const ingredientStatic = pairs.map((p) => translateWithDictionary(p.ing, EN_ES_INGREDIENTS));
+    const measuresEs = pairs.map((p) => translateMeasureToSpanish(p.measure));
+    const pendingIngredientIndexes = pairs.reduce((acc, p, i) => {
+      if (!ingredientStatic[i]) acc.push(i);
+      return acc;
+    }, []);
+
+    const settled = await Promise.allSettled([
+      translateToSpanish(meal.strMeal || ''),
+      translateToSpanish(meal.strInstructions || ''),
+      ...pendingIngredientIndexes.map((i) => translateToSpanish(pairs[i].ing))
+    ]);
+    const [nameSettled, instructionsSettled, ...ingredientApiSettled] = settled;
+
+    const nameEs = nameSettled.status === 'fulfilled' ? nameSettled.value : '';
+    const instructionsEs = instructionsSettled.status === 'fulfilled' ? instructionsSettled.value : '';
+
+    const ingredientNamesEs = ingredientStatic.slice();
+    pendingIngredientIndexes.forEach((idx, j) => {
+      const r = ingredientApiSettled[j];
+      ingredientNamesEs[idx] = (r && r.status === 'fulfilled' && r.value) ? r.value : null;
+    });
+
+    const allIngredientsTranslated = ingredientNamesEs.every(Boolean);
+    const fullyTranslated = Boolean(nameEs) && Boolean(instructionsEs) && allIngredientsTranslated;
+
+    return {
+      meal,
+      name: nameEs || meal.strMeal || 'Receta',
+      instructions: instructionsEs || meal.strInstructions || '',
+      category: categoryEs,
+      area: areaEs,
+      cookTimeMin,
+      ingredientsList: pairs.map((p, i) => `${measuresEs[i]} ${ingredientNamesEs[i] || p.ing}`.trim()),
+      translated: fullyTranslated
+    };
   }
 
   const ingredientChipList = document.getElementById('ingredientChipList');
