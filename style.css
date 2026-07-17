@@ -1622,6 +1622,46 @@ select.profile-input {
   font-size: 12px;
   opacity: 0.92;
 }
+.usual-meal-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.usual-meal-chips:empty {
+  display: none;
+  margin-bottom: 0;
+}
+.usual-meal-chip {
+  display: inline-flex;
+  align-items: stretch;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  overflow: hidden;
+}
+.usual-meal-chip-select {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 6px 4px 6px 12px;
+}
+.usual-meal-chip-remove {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1;
+  padding: 6px 10px 6px 4px;
+  opacity: 0.6;
+}
+.usual-meal-chip-remove:active { opacity: 1; }
+.usual-meal-save-btn {
+  display: block;
+  margin-top: 4px;
+}
 .gratitude-list {
   display: flex;
   flex-direction: column;

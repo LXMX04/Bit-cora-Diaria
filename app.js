@@ -33,6 +33,7 @@
       tracksGratitud: false,
       tracksEnergia: false,
       tracksRopa: false,
+      usualMeals: { desayuno: [], comida: [], cena: [] },
       monthlyBudget: null,
       travelModeActive: false,
       cardOrder: {},
@@ -161,6 +162,14 @@
       if (typeof parsed.settings.tracksRopa !== 'boolean') {
         parsed.settings.tracksRopa = false;
       }
+      if (!parsed.settings.usualMeals || typeof parsed.settings.usualMeals !== 'object') {
+        parsed.settings.usualMeals = defaultSettings().usualMeals;
+      }
+      ['desayuno', 'comida', 'cena'].forEach((meal) => {
+        if (!Array.isArray(parsed.settings.usualMeals[meal])) {
+          parsed.settings.usualMeals[meal] = [];
+        }
+      });
       if (parsed.settings.monthlyBudget !== null && typeof parsed.settings.monthlyBudget !== 'number') {
         parsed.settings.monthlyBudget = null;
       }
@@ -1435,6 +1444,59 @@
     });
   });
 
+  function generateUsualMealId() {
+    return `um_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+  }
+
+  function renderUsualMealChips(meal) {
+    const list = store.settings.usualMeals[meal] || [];
+    const wrap = document.getElementById(`usualChips-${meal}`);
+    wrap.innerHTML = list.map((u) => `
+      <span class="usual-meal-chip">
+        <button type="button" class="usual-meal-chip-select" data-usual-select="${meal}:${u.id}">${escapeHtml(u.desc)}</button>
+        <button type="button" class="usual-meal-chip-remove" data-usual-remove="${meal}:${u.id}" aria-label="Quitar de habituales">×</button>
+      </span>`).join('');
+  }
+
+  ['desayuno', 'comida', 'cena'].forEach((meal) => {
+    document.getElementById(`usualChips-${meal}`).addEventListener('click', (e) => {
+      const selectBtn = e.target.closest('[data-usual-select]');
+      const removeBtn = e.target.closest('[data-usual-remove]');
+      if (selectBtn) {
+        const [mealType, id] = selectBtn.dataset.usualSelect.split(':');
+        const usual = (store.settings.usualMeals[mealType] || []).find((u) => u.id === id);
+        if (!usual) return;
+        const key = dateKey(currentDate);
+        const entry = ensureEntry(key);
+        entry.meals[mealType].desc = usual.desc;
+        if (usual.health) entry.meals[mealType].health = usual.health;
+        saveStore();
+        renderComidas();
+      } else if (removeBtn) {
+        const [mealType, id] = removeBtn.dataset.usualRemove.split(':');
+        store.settings.usualMeals[mealType] = (store.settings.usualMeals[mealType] || []).filter((u) => u.id !== id);
+        saveStore();
+        renderUsualMealChips(mealType);
+      }
+    });
+  });
+
+  document.querySelectorAll('[data-save-usual]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const meal = btn.dataset.saveUsual;
+      const key = dateKey(currentDate);
+      const entry = ensureEntry(key);
+      const desc = (entry.meals[meal].desc || '').trim();
+      if (!desc) return;
+      const list = store.settings.usualMeals[meal] || (store.settings.usualMeals[meal] = []);
+      const already = list.some((u) => u.desc.trim().toLowerCase() === desc.toLowerCase());
+      if (already) return;
+      list.push({ id: generateUsualMealId(), desc, health: entry.meals[meal].health || 0 });
+      saveStore();
+      renderUsualMealChips(meal);
+    });
+  });
+
   function renderComidas() {
     const key = dateKey(currentDate);
     const entry = getEntry(key) || emptyEntry();
@@ -1445,6 +1507,7 @@
       document.querySelectorAll(`.health-scale[data-health="${meal}"] .health-btn`).forEach((btn) => {
         btn.classList.toggle('is-active', parseInt(btn.dataset.value, 10) === health);
       });
+      renderUsualMealChips(meal);
     });
     renderSnacks(entry);
     renderSavedRecipes();
