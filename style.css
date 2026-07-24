@@ -1046,15 +1046,30 @@ main {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.heatmap-label--gap {
-  margin-top: 7px;
-  padding-top: 6px;
-  border-top: 1px dashed var(--border);
+.heatmap-section-label {
+  height: 25px;
+  margin-top: 8px;
+  display: flex;
+  align-items: flex-end;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1.15;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--accent-2);
+  white-space: normal;
+  overflow: hidden;
 }
-.heatmap-row--gap {
-  margin-top: 7px;
-  padding-top: 6px;
-  border-top: 1px dashed var(--border);
+.heatmap-labels > .heatmap-section-label:first-child {
+  margin-top: 0;
+}
+.heatmap-section-spacer {
+  height: 25px;
+  margin-top: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.heatmap-scroll > .heatmap-section-spacer:first-child {
+  margin-top: 0;
 }
 .heatmap-scroll {
   flex: 1;

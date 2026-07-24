@@ -3111,18 +3111,29 @@
     heatmapLegend.innerHTML = legendHtml;
 
     // Grid
-    const labelsHtml = HEATMAP_ROWS.map((r) => `<div class="heatmap-label${r.groupStart ? ' heatmap-label--gap' : ''}" title="${r.label}">${r.label}</div>`).join('');
+    let lastGridSection = null;
+    let labelsHtml = '';
+    let rowsHtml = '';
+    HEATMAP_ROWS.forEach((r) => {
+      if (r.section && r.section !== lastGridSection) {
+        labelsHtml += `<div class="heatmap-section-label">${escapeHtml(r.section)}</div>`;
+        rowsHtml += `<div class="heatmap-section-spacer"></div>`;
+        lastGridSection = r.section;
+      }
+      labelsHtml += `<div class="heatmap-label" title="${escapeHtml(r.label)}">${escapeHtml(r.label)}</div>`;
+      rowsHtml += `
+        <div class="heatmap-row">
+          ${days.map((d) => {
+            const isFuture = d.day > lastDay;
+            const style = isFuture ? '' : heatmapCellStyle(r, d, maxByKey);
+            return `<button type="button" class="heatmap-cell${isFuture ? ' is-future' : ''}" style="${style}" data-day="${d.day}" data-year="${year}" data-month="${monthIndex}" ${isFuture ? 'disabled' : ''} aria-label="${escapeHtml(r.label)} día ${d.day}"></button>`;
+          }).join('')}
+        </div>`;
+    });
     heatmapWrap.innerHTML = `
       <div class="heatmap-labels">${labelsHtml}</div>
       <div class="heatmap-scroll">
-        ${HEATMAP_ROWS.map((r) => `
-          <div class="heatmap-row${r.groupStart ? ' heatmap-row--gap' : ''}">
-            ${days.map((d) => {
-              const isFuture = d.day > lastDay;
-              const style = isFuture ? '' : heatmapCellStyle(r, d, maxByKey);
-              return `<button type="button" class="heatmap-cell${isFuture ? ' is-future' : ''}" style="${style}" data-day="${d.day}" data-year="${year}" data-month="${monthIndex}" ${isFuture ? 'disabled' : ''} aria-label="${r.label} día ${d.day}"></button>`;
-            }).join('')}
-          </div>`).join('')}
+        ${rowsHtml}
         <div class="heatmap-daynums">
           ${days.map((d) => `<span class="heatmap-daynum">${d.day % 5 === 0 || d.day === 1 ? d.day : ''}</span>`).join('')}
         </div>
