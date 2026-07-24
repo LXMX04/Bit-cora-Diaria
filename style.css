@@ -32,7 +32,13 @@
   --h-pack-rojo: #8f2f3a;
   --h-pack-blanco: #7a8189;
   --h-ciclo: #c25490;
+
+  --season-tint: transparent;
 }
+:root[data-season="invierno"] { --season-tint: rgba(120, 140, 170, 0.05); }
+:root[data-season="primavera"] { --season-tint: rgba(150, 190, 140, 0.045); }
+:root[data-season="verano"] { --season-tint: rgba(230, 190, 110, 0.05); }
+:root[data-season="otono"] { --season-tint: rgba(190, 120, 70, 0.05); }
 
 :root[data-theme="dark"] {
   --bg: #16151a;
@@ -224,7 +230,9 @@ html, body {
 
 body {
   background:
-    repeating-linear-gradient(135deg, rgba(127, 127, 127, 0.05) 0px, rgba(127, 127, 127, 0.05) 1px, transparent 1px, transparent 7px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, transparent 45%, rgba(0, 0, 0, 0.02) 100%),
+    repeating-linear-gradient(45deg, rgba(127, 127, 127, 0.045) 0px, rgba(127, 127, 127, 0.045) 1px, transparent 1px, transparent 9px),
+    repeating-linear-gradient(-45deg, rgba(127, 127, 127, 0.045) 0px, rgba(127, 127, 127, 0.045) 1px, transparent 1px, transparent 9px),
     var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
@@ -240,8 +248,22 @@ body {
   flex-direction: column;
   position: relative;
   background:
-    repeating-linear-gradient(135deg, rgba(127, 127, 127, 0.05) 0px, rgba(127, 127, 127, 0.05) 1px, transparent 1px, transparent 7px),
+    linear-gradient(180deg, var(--season-tint), transparent 55%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, transparent 45%, rgba(0, 0, 0, 0.02) 100%),
+    repeating-linear-gradient(45deg, rgba(127, 127, 127, 0.045) 0px, rgba(127, 127, 127, 0.045) 1px, transparent 1px, transparent 9px),
+    repeating-linear-gradient(-45deg, rgba(127, 127, 127, 0.045) 0px, rgba(127, 127, 127, 0.045) 1px, transparent 1px, transparent 9px),
     var(--bg);
+}
+#app::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background-image: repeating-linear-gradient(0deg, var(--accent-2) 0 4px, transparent 4px 10px);
+  opacity: 0.3;
+  pointer-events: none;
 }
 
 /* ---------- Topbar ---------- */
@@ -413,6 +435,24 @@ main {
 .tab-panel[hidden] {
   display: none;
 }
+.tab-panel[data-panel="hoy"] {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M10.3,7.2 L13.7,7.2 L12.9,9.4 L11.1,9.4 Z' fill='%23888' fill-opacity='0.07'/%3E%3Cpath d='M11.1,9.4 L12.9,9.4 L13.6,13.4 L12,17.3 L10.4,13.4 Z' fill='%23888' fill-opacity='0.07'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(0deg, rgba(127, 127, 127, 0.05) 0px, rgba(127, 127, 127, 0.05) 1px, transparent 1px, transparent 26px);
+  background-repeat: no-repeat, repeat;
+  background-position: center 60px, top left;
+  background-size: 220px 220px, auto;
+}
+.tab-panel[data-panel="comidas"] {
+  background-image:
+    repeating-linear-gradient(60deg, rgba(127, 127, 127, 0.05) 0px, rgba(127, 127, 127, 0.05) 1px, transparent 1px, transparent 10px),
+    repeating-linear-gradient(-60deg, rgba(127, 127, 127, 0.05) 0px, rgba(127, 127, 127, 0.05) 1px, transparent 1px, transparent 10px);
+}
+.tab-panel[data-panel="stats"] {
+  background-image:
+    repeating-linear-gradient(0deg, rgba(127, 127, 127, 0.05) 0px, rgba(127, 127, 127, 0.05) 1px, transparent 1px, transparent 24px),
+    repeating-linear-gradient(90deg, rgba(127, 127, 127, 0.05) 0px, rgba(127, 127, 127, 0.05) 1px, transparent 1px, transparent 24px);
+}
 
 .card {
   position: relative;
@@ -421,6 +461,15 @@ main {
   border-radius: var(--radius);
   padding: 16px;
   box-shadow: var(--shadow);
+}
+.tab-panel[data-panel="consumo"] .card {
+  background: linear-gradient(165deg, color-mix(in srgb, var(--claret) 5%, var(--surface)), var(--surface) 65%);
+}
+.tab-panel[data-panel="comidas"] .card {
+  background: linear-gradient(165deg, color-mix(in srgb, var(--accent-2) 6%, var(--surface)), var(--surface) 65%);
+}
+.tab-panel[data-panel="objetivos"] .card {
+  background: linear-gradient(165deg, color-mix(in srgb, var(--accent) 5%, var(--surface)), var(--surface) 65%);
 }
 .card::after {
   content: "";
@@ -431,6 +480,19 @@ main {
   height: 16px;
   background: linear-gradient(135deg, transparent 50%, var(--surface-alt) 50%);
   border-bottom-right-radius: var(--radius);
+  pointer-events: none;
+}
+.card:not(.meal-card)::before {
+  content: "";
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  left: 0;
+  width: 3px;
+  background-image:
+    repeating-linear-gradient(0deg, var(--text-muted) 0 1px, transparent 1px 6px),
+    repeating-linear-gradient(0deg, var(--accent-2) 0 1.5px, transparent 1.5px 18px);
+  opacity: 0.35;
   pointer-events: none;
 }
 .card-drag-handle {
@@ -471,8 +533,11 @@ main {
 }
 .card-title-icon {
   flex: none;
-  width: 15px;
-  height: 15px;
+  width: 22px;
+  height: 22px;
+  padding: 3.5px;
+  background: var(--accent-2-soft);
+  border-radius: 6px;
   color: var(--accent);
 }
 .card-title-icon svg {
@@ -1087,16 +1152,28 @@ main {
   align-items: center;
 }
 .heatmap-cell {
+  position: relative;
   width: 15px;
   height: 15px;
   border-radius: 4px;
-  background: var(--surface-alt);
+  background-color: var(--surface-alt);
+  background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.07) 0px, rgba(255, 255, 255, 0.07) 1px, transparent 1px, transparent 3px);
   border: none;
   padding: 0;
   flex: none;
 }
 .heatmap-cell.is-future {
   opacity: 0.35;
+}
+.heatmap-cell[data-type="weekly"] {
+  border-radius: 2px;
+}
+.heatmap-cell[data-type="badHabit"] {
+  border-radius: 4px 0 4px 0;
+}
+.heatmap-cell[data-type="total"],
+.heatmap-cell[data-type="health"] {
+  border-radius: 50%;
 }
 .heatmap-cell:not(.is-future):not(.is-empty) {
   cursor: pointer;
@@ -1158,12 +1235,23 @@ main {
 .heatmap-table-cell {
   border-radius: 4px;
   background-color: var(--surface-alt);
+  background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.07) 0px, rgba(255, 255, 255, 0.07) 1px, transparent 1px, transparent 3px);
   font-size: 8px;
   font-weight: 700;
   color: #fff;
 }
 .heatmap-table-cell.is-future {
   opacity: 0.35;
+}
+.heatmap-table-cell[data-type="weekly"] {
+  border-radius: 2px;
+}
+.heatmap-table-cell[data-type="badHabit"] {
+  border-radius: 4px 0 4px 0;
+}
+.heatmap-table-cell[data-type="total"],
+.heatmap-table-cell[data-type="health"] {
+  border-radius: 50%;
 }
 
 .food-avg-tile {

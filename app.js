@@ -3049,24 +3049,24 @@
 
   function heatmapCellStyle(row, dayInfo, maxByKey) {
     if (row.type === 'daily' || row.type === 'weekly' || row.type === 'badHabit') {
-      return dayInfo[row.key] ? `background:${row.color}` : '';
+      return dayInfo[row.key] ? `background-color:${row.color}` : '';
     }
     if (row.type === 'total') {
       if (dayInfo.total === 0) return '';
       const totalMax = store.settings.dailyTasks.length + (teethEnabled() ? 1 : 0);
       const pct = 25 + (dayInfo.total / totalMax) * 75;
-      return `background:color-mix(in srgb, ${row.color} ${pct.toFixed(0)}%, var(--surface-alt))`;
+      return `background-color:color-mix(in srgb, ${row.color} ${pct.toFixed(0)}%, var(--surface-alt))`;
     }
     if (row.type === 'health') {
       if (!dayInfo.health) return '';
-      return `background:${healthColor(dayInfo.health)}`;
+      return `background-color:${healthColor(dayInfo.health)}`;
     }
     // consumo
     const max = maxByKey[row.key] || 0;
     const val = dayInfo[row.key];
     if (!val || max <= 0) return '';
     const pct = 25 + (val / max) * 75;
-    return `background:color-mix(in srgb, ${row.color} ${pct.toFixed(0)}%, var(--surface-alt))`;
+    return `background-color:color-mix(in srgb, ${row.color} ${pct.toFixed(0)}%, var(--surface-alt))`;
   }
 
   function heatmapCellText(row, dayInfo) {
@@ -3126,7 +3126,7 @@
           ${days.map((d) => {
             const isFuture = d.day > lastDay;
             const style = isFuture ? '' : heatmapCellStyle(r, d, maxByKey);
-            return `<button type="button" class="heatmap-cell${isFuture ? ' is-future' : ''}" style="${style}" data-day="${d.day}" data-year="${year}" data-month="${monthIndex}" ${isFuture ? 'disabled' : ''} aria-label="${escapeHtml(r.label)} día ${d.day}"></button>`;
+            return `<button type="button" class="heatmap-cell${isFuture ? ' is-future' : ''}" style="${style}" data-type="${r.type}" data-day="${d.day}" data-year="${year}" data-month="${monthIndex}" ${isFuture ? 'disabled' : ''} aria-label="${escapeHtml(r.label)} día ${d.day}"></button>`;
           }).join('')}
         </div>`;
     });
@@ -3142,16 +3142,18 @@
     // Table
     const theadDays = days.map((d) => `<th>${d.day}</th>`).join('');
     let lastSection = null;
+    let tableSectionIndex = 0;
     const tbodyRows = HEATMAP_ROWS.map((r) => {
       let sectionHtml = '';
       if (r.section && r.section !== lastSection) {
-        sectionHtml = `<tr class="heatmap-table-section"><th colspan="${days.length + 1}">${escapeHtml(r.section)}</th></tr>`;
+        tableSectionIndex++;
+        sectionHtml = `<tr class="heatmap-table-section"><th colspan="${days.length + 1}">Pieza ${pad2(tableSectionIndex)} — ${escapeHtml(r.section)}</th></tr>`;
         lastSection = r.section;
       }
       const cellsHtml = days.map((d) => {
         const isFuture = d.day > lastDay;
         const style = isFuture ? '' : heatmapCellStyle(r, d, maxByKey);
-        return `<td class="heatmap-table-cell${isFuture ? ' is-future' : ''}" style="${style}">${isFuture ? '' : heatmapCellText(r, d)}</td>`;
+        return `<td class="heatmap-table-cell${isFuture ? ' is-future' : ''}" style="${style}" data-type="${r.type}">${isFuture ? '' : heatmapCellText(r, d)}</td>`;
       }).join('');
       return `${sectionHtml}<tr><th>${escapeHtml(r.label)}</th>${cellsHtml}</tr>`;
     }).join('');
@@ -4632,10 +4634,21 @@
     });
   }
 
+  function applySeasonalAccent() {
+    const month = new Date().getMonth();
+    let season;
+    if (month === 11 || month === 0 || month === 1) season = 'invierno';
+    else if (month >= 2 && month <= 4) season = 'primavera';
+    else if (month >= 5 && month <= 7) season = 'verano';
+    else season = 'otono';
+    document.documentElement.dataset.season = season;
+  }
+
   renderAll();
   checkReminder();
   checkCycleNotice();
   initCardReordering();
+  applySeasonalAccent();
 
   const splashEl = document.getElementById('splash');
   if (splashEl) {
