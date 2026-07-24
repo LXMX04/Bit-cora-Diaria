@@ -632,25 +632,48 @@
   const weeklyTaskList = document.getElementById('weeklyTaskList');
   const dailyTaskList = document.getElementById('dailyTaskList');
 
+  const STREAK_MILESTONES = [7, 14, 30, 60, 100, 150, 200, 365, 500, 1000];
+
   function playCompletionStamp() {
     const badge = document.getElementById('streakBadge');
     if (!badge || badge.hidden) return;
-    badge.classList.remove('stamp-pulse');
+    badge.classList.remove('stamp-pulse', 'milestone-burst');
     void badge.offsetWidth;
     badge.classList.add('stamp-pulse');
+  }
+
+  function playMilestoneCelebration() {
+    const badge = document.getElementById('streakBadge');
+    if (!badge || badge.hidden) return;
+    badge.classList.remove('stamp-pulse', 'milestone-burst');
+    void badge.offsetWidth;
+    badge.classList.add('milestone-burst');
+  }
+
+  function handleDayCompletionFeedback(wasComplete, streakBefore) {
+    if (wasComplete) return;
+    const entry = getEntry(dateKey(currentDate));
+    if (!isDayComplete(entry)) return;
+    const streakAfter = currentStreak();
+    if (streakAfter !== streakBefore && STREAK_MILESTONES.includes(streakAfter)) {
+      playMilestoneCelebration();
+    } else {
+      playCompletionStamp();
+    }
   }
 
   dailyTaskList.addEventListener('click', (e) => {
     const key = dateKey(currentDate);
     const entry = ensureEntry(key);
     const wasComplete = isDayComplete(entry);
+    const streakBefore = currentStreak();
     const checkBtn = e.target.closest('[data-check]');
     if (checkBtn) {
       const field = checkBtn.dataset.check;
       entry[field] = !entry[field];
       saveStore();
       renderHoy();
-      if (!wasComplete && isDayComplete(entry)) playCompletionStamp();
+      handleDayCompletionFeedback(wasComplete, streakBefore);
       return;
     }
     const stepBtn = e.target.closest('[data-step]');
@@ -659,7 +682,7 @@
       entry.teeth = Math.max(0, (entry.teeth || 0) + delta);
       saveStore();
       renderHoy();
-      if (!wasComplete && isDayComplete(entry)) playCompletionStamp();
+      handleDayCompletionFeedback(wasComplete, streakBefore);
     }
   });
 
@@ -3078,7 +3101,7 @@
         itemHtml = `<span class="legend-item"><span class="legend-gradient" style="background:${gradient}"></span>${r.label} (nada → muy saludable)</span>`;
       } else {
         const suffix = r.type === 'weekly' ? ' (semanal)' : '';
-        itemHtml = `<span class="legend-item"><span class="dot" style="background:${r.color}"></span>${r.label}${suffix}</span>`;
+        itemHtml = `<span class="legend-item"><span class="dot" style="background-color:${r.color}"></span>${r.label}${suffix}</span>`;
       }
       if (i === 0) legendHtml += '<div class="legend-group">';
       else if (r.groupStart) legendHtml += '</div><div class="legend-group legend-group--gap">';
