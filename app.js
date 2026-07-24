@@ -2940,37 +2940,37 @@
 
   function buildHeatmapRows() {
     const dailyRows = store.settings.dailyTasks.map((t, i) => ({
-      key: t.id, label: t.label, type: 'daily', color: dailyTaskColor(i)
+      key: t.id, label: t.label, type: 'daily', color: dailyTaskColor(i), section: 'Hábitos diarios'
     }));
     const weeklyRows = store.settings.weeklyTasks.map((t, i) => ({
-      key: t.id, label: t.label, type: 'weekly', color: weeklyTaskColor(i), groupStart: i === 0
+      key: t.id, label: t.label, type: 'weekly', color: weeklyTaskColor(i), groupStart: i === 0, section: 'Tareas semanales'
     }));
     const badHabitRows = store.settings.badHabits.map((b, i) => ({
-      key: b.id, label: b.label, type: 'badHabit', color: 'var(--danger)', groupStart: i === 0
+      key: b.id, label: b.label, type: 'badHabit', color: 'var(--danger)', groupStart: i === 0, section: 'Malos hábitos'
     }));
     const supplementRows = supplementsEnabled() ? store.settings.supplements.map((s, i) => ({
-      key: s.id, label: s.label, type: 'daily', color: supplementColor(i), groupStart: i === 0
+      key: s.id, label: s.label, type: 'daily', color: supplementColor(i), groupStart: i === 0, section: 'Suplementos'
     })) : [];
     const exerciseRows = workoutsEnabled() ? store.settings.exercises.map((ex, i) => ({
-      key: ex.id, label: ex.label, type: 'daily', color: exerciseColor(i), groupStart: i === 0
+      key: ex.id, label: ex.label, type: 'daily', color: exerciseColor(i), groupStart: i === 0, section: 'Ejercicio'
     })) : [];
     return [
       ...dailyRows,
-      ...(teethEnabled() ? [{ key: 'teeth', label: 'Dientes', type: 'daily', color: 'var(--h-teeth)' }] : []),
+      ...(teethEnabled() ? [{ key: 'teeth', label: 'Dientes', type: 'daily', color: 'var(--h-teeth)', section: 'Hábitos diarios' }] : []),
       ...supplementRows,
       ...exerciseRows,
-      ...(cicloEnabled() ? [{ key: 'periodDay', label: 'Ciclo', type: 'daily', color: 'var(--h-ciclo)', groupStart: true }] : []),
-      { key: 'health', label: 'Alimentación', type: 'health', groupStart: true },
+      ...(cicloEnabled() ? [{ key: 'periodDay', label: 'Ciclo', type: 'daily', color: 'var(--h-ciclo)', groupStart: true, section: 'Ciclo' }] : []),
+      { key: 'health', label: 'Alimentación', type: 'health', groupStart: true, section: 'Alimentación' },
       ...weeklyRows,
       ...badHabitRows,
-      { key: 'total', label: 'Total', type: 'total', color: 'var(--h-total)', groupStart: true },
+      { key: 'total', label: 'Total', type: 'total', color: 'var(--h-total)', groupStart: true, section: 'Total' },
       ...(consumoEnabled() ? [
         ...(jointsEnabled() ? [
-          { key: 'cigarettes', label: 'Cigarros', type: 'consumo', color: 'var(--h-cig)', groupStart: true },
-          { key: 'joints', label: 'Joints', type: 'consumo', color: 'var(--h-joint)' }
+          { key: 'cigarettes', label: 'Cigarros', type: 'consumo', color: 'var(--h-cig)', groupStart: true, section: 'Consumo' },
+          { key: 'joints', label: 'Joints', type: 'consumo', color: 'var(--h-joint)', section: 'Consumo' }
         ] : []),
         ...store.settings.purchaseItems.map((item, i) => ({
-          key: item.id, label: item.label, type: 'consumo', color: purchaseColor(i), groupStart: (!jointsEnabled() && i === 0)
+          key: item.id, label: item.label, type: 'consumo', color: purchaseColor(i), groupStart: (!jointsEnabled() && i === 0), section: 'Consumo'
         }))
       ] : [])
     ];
@@ -3130,8 +3130,20 @@
 
     // Table
     const theadDays = days.map((d) => `<th>${d.day}</th>`).join('');
-    const tbodyRows = HEATMAP_ROWS.map((r) => `
-      <tr><th>${r.label}</th>${days.map((d) => `<td>${heatmapCellText(r, d)}</td>`).join('')}</tr>`).join('');
+    let lastSection = null;
+    const tbodyRows = HEATMAP_ROWS.map((r) => {
+      let sectionHtml = '';
+      if (r.section && r.section !== lastSection) {
+        sectionHtml = `<tr class="heatmap-table-section"><th colspan="${days.length + 1}">${escapeHtml(r.section)}</th></tr>`;
+        lastSection = r.section;
+      }
+      const cellsHtml = days.map((d) => {
+        const isFuture = d.day > lastDay;
+        const style = isFuture ? '' : heatmapCellStyle(r, d, maxByKey);
+        return `<td class="heatmap-table-cell${isFuture ? ' is-future' : ''}" style="${style}">${isFuture ? '' : heatmapCellText(r, d)}</td>`;
+      }).join('');
+      return `${sectionHtml}<tr><th>${escapeHtml(r.label)}</th>${cellsHtml}</tr>`;
+    }).join('');
     heatmapTableWrap.innerHTML = `
       <table class="heatmap-table">
         <thead><tr><th></th>${theadDays}</tr></thead>

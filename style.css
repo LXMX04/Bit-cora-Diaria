@@ -1106,19 +1106,49 @@ main {
   border-collapse: collapse;
   font-size: 10px;
 }
-.heatmap-table th, .heatmap-table td {
+.heatmap-table th {
   padding: 3px 5px;
   text-align: center;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
-.heatmap-table th:first-child, .heatmap-table td:first-child {
+.heatmap-table th:first-child {
   position: sticky;
   left: 0;
   background: var(--surface);
   text-align: left;
   font-weight: 600;
   color: var(--text-muted);
+  z-index: 1;
+}
+.heatmap-table-section th {
+  position: static;
+  background: var(--surface-alt);
+  color: var(--accent-2);
+  text-align: left;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 10px 6px 5px;
+  white-space: normal;
+}
+.heatmap-table td {
+  width: 17px;
+  height: 17px;
+  min-width: 17px;
+  padding: 1px;
+  text-align: center;
+  border-bottom: 2px solid var(--surface);
+}
+.heatmap-table-cell {
+  border-radius: 4px;
+  background-color: var(--surface-alt);
+  font-size: 8px;
+  font-weight: 700;
+  color: #fff;
+}
+.heatmap-table-cell.is-future {
+  opacity: 0.35;
 }
 
 .food-avg-tile {
