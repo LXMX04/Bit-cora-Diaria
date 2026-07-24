@@ -525,6 +525,13 @@
   const MONTHS_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
   const WEEKDAYS_LONG = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 
+  // Shared small icons (replace bare unicode glyphs so every checkmark/star reads as
+  // part of the same drawn icon set as the rest of the app).
+  const CHECK_TICK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12.5l4.3 4.3L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const CROSS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" stroke-linecap="round"/></svg>';
+  const RIBBON_OUTLINE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 4.5h10a1 1 0 0 1 1 1V20l-6-3.8-6 3.8V5.5a1 1 0 0 1 1-1Z" stroke-linejoin="round"/></svg>';
+  const RIBBON_FILLED_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5h10a1 1 0 0 1 1 1V20l-6-3.8-6 3.8V5.5a1 1 0 0 1 1-1Z"/></svg>';
+
   function daysInMonth(year, monthIndex) {
     return new Date(year, monthIndex + 1, 0).getDate();
   }
@@ -599,13 +606,23 @@
     dayLabelSub.textContent = `${currentDate.getDate()} de ${MONTHS_LONG[currentDate.getMonth()]}`;
   }
 
+  function playDayTurn(direction) {
+    const panel = document.querySelector('.tab-panel:not([hidden])');
+    if (!panel) return;
+    panel.classList.remove('day-turn-prev', 'day-turn-next');
+    void panel.offsetWidth;
+    panel.classList.add(direction === 'prev' ? 'day-turn-prev' : 'day-turn-next');
+  }
+
   document.getElementById('prevDay').addEventListener('click', () => {
     currentDate = new Date(currentDate.getTime() - DAY_MS);
     renderAll();
+    playDayTurn('prev');
   });
   document.getElementById('nextDay').addEventListener('click', () => {
     currentDate = new Date(currentDate.getTime() + DAY_MS);
     renderAll();
+    playDayTurn('next');
   });
 
   /* ============ HOY panel ============ */
@@ -615,15 +632,25 @@
   const weeklyTaskList = document.getElementById('weeklyTaskList');
   const dailyTaskList = document.getElementById('dailyTaskList');
 
+  function playCompletionStamp() {
+    const badge = document.getElementById('streakBadge');
+    if (!badge || badge.hidden) return;
+    badge.classList.remove('stamp-pulse');
+    void badge.offsetWidth;
+    badge.classList.add('stamp-pulse');
+  }
+
   dailyTaskList.addEventListener('click', (e) => {
     const key = dateKey(currentDate);
     const entry = ensureEntry(key);
+    const wasComplete = isDayComplete(entry);
     const checkBtn = e.target.closest('[data-check]');
     if (checkBtn) {
       const field = checkBtn.dataset.check;
       entry[field] = !entry[field];
       saveStore();
       renderHoy();
+      if (!wasComplete && isDayComplete(entry)) playCompletionStamp();
       return;
     }
     const stepBtn = e.target.closest('[data-step]');
@@ -632,6 +659,7 @@
       entry.teeth = Math.max(0, (entry.teeth || 0) + delta);
       saveStore();
       renderHoy();
+      if (!wasComplete && isDayComplete(entry)) playCompletionStamp();
     }
   });
 
@@ -1262,7 +1290,7 @@
     const dailyItemsHtml = store.settings.dailyTasks.map((t) => `
       <li class="habit-row" data-habit="${t.id}">
         <button class="check-btn" data-check="${t.id}" aria-pressed="${!!entry[t.id]}">
-          <span class="check-icon">✓</span>
+          <span class="check-icon">${CHECK_TICK_SVG}</span>
         </button>
         <div class="habit-text">
           <span class="habit-name">${t.label}</span>
@@ -1289,7 +1317,7 @@
     weeklyTaskList.innerHTML = tasks.length ? tasks.map((t) => `
       <li class="habit-row" data-habit="${t.id}">
         <button class="check-btn" data-check-week="${t.id}" aria-pressed="${!!week[t.id]}">
-          <span class="check-icon">✓</span>
+          <span class="check-icon">${CHECK_TICK_SVG}</span>
         </button>
         <div class="habit-text">
           <span class="habit-name">${t.label}</span>
@@ -1303,7 +1331,7 @@
     badHabitList.innerHTML = badHabits.length ? badHabits.map((b) => `
       <li class="habit-row" data-habit="${b.id}">
         <button class="check-btn check-btn--bad" data-check-bad="${b.id}" aria-pressed="${!!entryBadHabits[b.id]}">
-          <span class="check-icon">✗</span>
+          <span class="check-icon">${CROSS_SVG}</span>
         </button>
         <div class="habit-text">
           <span class="habit-name">${b.label}</span>
@@ -1316,7 +1344,7 @@
     supplementList.innerHTML = supplements.length ? supplements.map((s) => `
       <li class="habit-row" data-habit="${s.id}">
         <button class="check-btn" data-check-supplement="${s.id}" aria-pressed="${!!entrySupplements[s.id]}">
-          <span class="check-icon">✓</span>
+          <span class="check-icon">${CHECK_TICK_SVG}</span>
         </button>
         <div class="habit-text">
           <span class="habit-name">${s.label}</span>
@@ -1402,7 +1430,7 @@
     goalsList.innerHTML = goals.map((g) => `
       <li class="habit-row" data-habit="${g.id}">
         <button class="check-btn" data-check-goal="${g.id}" aria-pressed="${!!entryGoals[g.id]}">
-          <span class="check-icon">✓</span>
+          <span class="check-icon">${CHECK_TICK_SVG}</span>
         </button>
         <div class="habit-text">
           <span class="habit-name">${g.label}</span>
@@ -2156,7 +2184,7 @@
         </button>
         <div class="recipe-card-body" hidden>
           <div class="recipe-meta">${badges}</div>
-          <button type="button" class="secondary-btn recipe-save-btn" data-save-recipe="${idx}" aria-pressed="${isSaved}">${isSaved ? '★ Guardada' : '☆ Guardar receta'}</button>
+          <button type="button" class="secondary-btn recipe-save-btn" data-save-recipe="${idx}" aria-pressed="${isSaved}">${isSaved ? `<span class="btn-icon">${RIBBON_FILLED_SVG}</span>Guardada` : `<span class="btn-icon">${RIBBON_OUTLINE_SVG}</span>Guardar receta`}</button>
           <h3 class="recipe-section-title">Ingredientes</h3>
           <ul class="recipe-ingredient-list">${d.ingredientsList.map((x) => `<li>${escapeHtml(x)}</li>`).join('')}</ul>
           <h3 class="recipe-section-title">Instrucciones</h3>
@@ -2185,7 +2213,7 @@
 
   searchRecipesBtn.addEventListener('click', async () => {
     if (searchIngredients.length === 0) return;
-    recipeResults.innerHTML = '<p class="hint-text">Buscando recetas…</p>';
+    recipeResults.innerHTML = '<p class="hint-text recipe-loading"><span class="stitch-line" aria-hidden="true"></span>Buscando recetas…</p>';
     searchRecipesBtn.disabled = true;
     try {
       const englishIngredients = await Promise.all(searchIngredients.map((ing) => translateToEnglish(ing)));
@@ -2194,7 +2222,7 @@
         renderRecipeResults([]);
         return;
       }
-      recipeResults.innerHTML = '<p class="hint-text">Traduciendo recetas…</p>';
+      recipeResults.innerHTML = '<p class="hint-text recipe-loading"><span class="stitch-line" aria-hidden="true"></span>Traduciendo recetas…</p>';
       const displayMeals = [];
       for (const meal of meals) {
         displayMeals.push(await translateMealToSpanish(meal));
