@@ -142,9 +142,9 @@
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,4 C9,7 7,10 7,13 C7,16.9 9.2,19 12,19 C14.8,19 17,16.9 17,13 C17,10 15,7 12,4 Z"/><path d="M12,8 C10.5,10 10,12 10,13.5" stroke-linecap="round"/></svg></span>Gratitud</h2>
         <p class="hint-text" style="margin-top:0">Tres cosas de hoy por las que estés agradecido.</p>
         <div class="gratitude-list">
-          <input type="text" class="gratitude-input" data-gratitude-index="0" maxlength="80" placeholder="1." />
-          <input type="text" class="gratitude-input" data-gratitude-index="1" maxlength="80" placeholder="2." />
-          <input type="text" class="gratitude-input" data-gratitude-index="2" maxlength="80" placeholder="3." />
+          <input type="text" class="gratitude-input" data-gratitude-index="0" maxlength="80" placeholder="1." aria-label="Primera cosa por la que estás agradecido" />
+          <input type="text" class="gratitude-input" data-gratitude-index="1" maxlength="80" placeholder="2." aria-label="Segunda cosa por la que estás agradecido" />
+          <input type="text" class="gratitude-input" data-gratitude-index="2" maxlength="80" placeholder="3." aria-label="Tercera cosa por la que estás agradecido" />
         </div>
       </div>
 
@@ -312,7 +312,7 @@
           <input type="time" id="time-desayuno" class="meal-time" data-meal-time="desayuno" />
         </div>
         <div class="usual-meal-chips" id="usualChips-desayuno"></div>
-        <textarea class="meal-desc" id="desc-desayuno" data-meal-desc="desayuno" rows="2" placeholder="¿Qué has comido?"></textarea>
+        <textarea class="meal-desc" id="desc-desayuno" data-meal-desc="desayuno" rows="2" placeholder="¿Qué has comido?" aria-label="Qué has comido en el desayuno"></textarea>
         <div class="health-row">
           <span class="health-label">Salud</span>
           <div class="health-scale" data-health="desayuno">
@@ -333,7 +333,7 @@
           <input type="time" id="time-comida" class="meal-time" data-meal-time="comida" />
         </div>
         <div class="usual-meal-chips" id="usualChips-comida"></div>
-        <textarea class="meal-desc" id="desc-comida" data-meal-desc="comida" rows="2" placeholder="¿Qué has comido?"></textarea>
+        <textarea class="meal-desc" id="desc-comida" data-meal-desc="comida" rows="2" placeholder="¿Qué has comido?" aria-label="Qué has comido en la comida"></textarea>
         <div class="health-row">
           <span class="health-label">Salud</span>
           <div class="health-scale" data-health="comida">
@@ -354,7 +354,7 @@
           <input type="time" id="time-cena" class="meal-time" data-meal-time="cena" />
         </div>
         <div class="usual-meal-chips" id="usualChips-cena"></div>
-        <textarea class="meal-desc" id="desc-cena" data-meal-desc="cena" rows="2" placeholder="¿Qué has comido?"></textarea>
+        <textarea class="meal-desc" id="desc-cena" data-meal-desc="cena" rows="2" placeholder="¿Qué has comido?" aria-label="Qué has comido en la cena"></textarea>
         <div class="health-row">
           <span class="health-label">Salud</span>
           <div class="health-scale" data-health="cena">
@@ -372,7 +372,7 @@
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,4 C9,7 7,10 7,13 C7,16.9 9.2,19 12,19 C14.8,19 17,16.9 17,13 C17,10 15,7 12,4 Z"/></svg></span>Snacks</h2>
         <ul class="task-manage-list" id="snackList"><li class="task-empty-hint">Sin snacks registrados hoy.</li></ul>
         <div class="task-add-row">
-          <input type="text" id="newSnackInput" class="task-add-input" placeholder="Qué has picado…" maxlength="40" />
+          <input type="text" id="newSnackInput" class="task-add-input" placeholder="Qué has picado…" maxlength="40" aria-label="Qué has picado" />
           <button class="secondary-btn task-add-btn" id="addSnackBtn">Añadir</button>
         </div>
       </div>
@@ -381,7 +381,7 @@
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10.5" cy="10.5" r="6"/><path d="M15,15 L20,20" stroke-linecap="round"/></svg></span>Buscador de recetas</h2>
         <p class="hint-text" style="margin-top:0">Añade los ingredientes que tienes, en español o inglés, y busca recetas online que los usen. Los resultados se traducen automáticamente al español.</p>
         <div class="task-add-row">
-          <input type="text" id="newIngredientInput" class="task-add-input" placeholder="Ingrediente… (ej. pollo, arroz)" maxlength="30" />
+          <input type="text" id="newIngredientInput" class="task-add-input" placeholder="Ingrediente… (ej. pollo, arroz)" maxlength="30" aria-label="Añadir ingrediente para buscar recetas" />
           <button class="secondary-btn task-add-btn" id="addIngredientBtn">Añadir</button>
         </div>
         <ul class="task-manage-list" id="ingredientChipList">
@@ -400,7 +400,7 @@
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M9,9 C9,9 9.3,7.5 12,7.5 C14.7,7.5 15,9 15,9 M6,12 L18,12 M6,15 L18,15" stroke-linecap="round"/></svg></span>Lista de la compra</h2>
         <ul class="task-manage-list" id="shoppingListItems"><li class="task-empty-hint">Vacía. Añade artículos o genera una desde una receta guardada.</li></ul>
         <div class="task-add-row">
-          <input type="text" id="newShoppingItemInput" class="task-add-input" placeholder="Añadir artículo…" maxlength="40" />
+          <input type="text" id="newShoppingItemInput" class="task-add-input" placeholder="Añadir artículo…" maxlength="40" aria-label="Añadir artículo a la lista de la compra" />
           <button class="secondary-btn task-add-btn" id="addShoppingItemBtn">Añadir</button>
         </div>
         <button class="secondary-btn" id="clearShoppingListBtn">Vaciar lista</button>
@@ -642,7 +642,7 @@
       <div class="card" id="reflectionSearchCard" hidden>
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10.5" cy="10.5" r="6"/><path d="M15,15 L20,20" stroke-linecap="round"/></svg></span>Reflexiones</h2>
         <p class="hint-text" style="margin-top:0">Busca por palabra o por #etiqueta en tus reflexiones pasadas.</p>
-        <input type="text" id="reflectionSearchInput" class="task-add-input" placeholder="Buscar… (ej. trabajo o #viaje)" />
+        <input type="text" id="reflectionSearchInput" class="task-add-input" placeholder="Buscar… (ej. trabajo o #viaje)" aria-label="Buscar en tus reflexiones" />
         <div id="reflectionSearchResults"></div>
       </div>
     </section>
@@ -656,11 +656,11 @@
         </button>
         <div class="accordion-body" hidden>
           <div class="setting-row">
-            <span>Nombre</span>
+            <label for="profileNameInput">Nombre</label>
             <input type="text" id="profileNameInput" class="profile-input" placeholder="Tu nombre" maxlength="30" />
           </div>
           <div class="setting-row">
-            <span>Sexo</span>
+            <label for="profileSexInput">Sexo</label>
             <select id="profileSexInput" class="profile-input">
               <option value="">Prefiero no decirlo</option>
               <option value="hombre">Hombre</option>
@@ -669,16 +669,16 @@
             </select>
           </div>
           <div class="setting-row">
-            <span>Fecha de nacimiento</span>
+            <label for="profileBirthdateInput">Fecha de nacimiento</label>
             <input type="date" id="profileBirthdateInput" class="profile-input" />
           </div>
           <p class="hint-text" id="profileAgeHint" hidden></p>
           <div class="setting-row">
-            <span>Altura</span>
+            <label for="profileHeightInput">Altura</label>
             <input type="number" id="profileHeightInput" class="profile-input" min="0" max="260" placeholder="cm" />
           </div>
           <div class="setting-row">
-            <span>Peso</span>
+            <label for="profileWeightInput">Peso</label>
             <input type="number" id="profileWeightInput" class="profile-input" min="0" max="400" step="0.1" placeholder="kg" />
           </div>
           <p class="hint-text">Se guarda solo en este dispositivo. Tu nombre se usa en el saludo de la pestaña Hoy.</p>
@@ -694,7 +694,7 @@
           <div class="setting-row">
             <span>Activar modo viaje</span>
             <label class="switch">
-              <input type="checkbox" id="travelModeToggle" />
+              <input type="checkbox" id="travelModeToggle" aria-label="Activar modo viaje" />
               <span class="switch-slider"></span>
             </label>
           </div>
@@ -711,12 +711,12 @@
           <div class="setting-row">
             <span>Notificación activada</span>
             <label class="switch">
-              <input type="checkbox" id="reminderToggle" />
+              <input type="checkbox" id="reminderToggle" aria-label="Activar notificación de recordatorio diario" />
               <span class="switch-slider"></span>
             </label>
           </div>
           <div class="setting-row">
-            <span>Hora del recordatorio</span>
+            <label for="reminderTime">Hora del recordatorio</label>
             <input type="time" id="reminderTime" value="21:00" />
           </div>
           <button class="primary-btn" id="enableNotifBtn">Permitir notificaciones</button>
@@ -734,7 +734,7 @@
           <div class="setting-row">
             <span>Activar pestaña de Consumo</span>
             <label class="switch">
-              <input type="checkbox" id="tracksConsumoToggle" checked />
+              <input type="checkbox" id="tracksConsumoToggle" checked aria-label="Activar pestaña de Consumo" />
               <span class="switch-slider"></span>
             </label>
           </div>
@@ -743,14 +743,14 @@
             <div class="setting-row">
               <span>Registrar cigarros y joints</span>
               <label class="switch">
-                <input type="checkbox" id="tracksJointsToggle" />
+                <input type="checkbox" id="tracksJointsToggle" aria-label="Registrar cigarros y joints" />
                 <span class="switch-slider"></span>
               </label>
             </div>
             <p class="hint-text">Actívalo si fumas tabaco y/o joints, para que aparezcan en Consumo y en Stats. Si lo desactivas, ambos desaparecen.</p>
             <div id="jointPriceGroup">
               <div class="setting-row">
-                <span>Precio de joints (€ cada 4 porros)</span>
+                <label for="jointPriceInput">Precio de joints (€ cada 4 porros)</label>
                 <input type="number" id="jointPriceInput" min="0" step="0.01" value="4.50" inputmode="decimal" />
               </div>
               <p class="hint-text">Se usa para calcular el gasto en Consumo y Stats.</p>
@@ -758,13 +758,13 @@
           </div>
           <ul class="task-manage-list" id="purchaseManageList"></ul>
           <div class="task-add-row">
-            <input type="text" id="newPurchaseLabelInput" class="task-add-input" placeholder="Nuevo artículo…" maxlength="30" />
-            <input type="number" id="newPurchasePriceInput" class="purchase-price-input" placeholder="€" min="0" step="0.01" />
+            <input type="text" id="newPurchaseLabelInput" class="task-add-input" placeholder="Nuevo artículo…" maxlength="30" aria-label="Nombre del nuevo artículo de compra" />
+            <input type="number" id="newPurchasePriceInput" class="purchase-price-input" placeholder="€" min="0" step="0.01" aria-label="Precio por unidad en euros" />
             <button class="secondary-btn task-add-btn" id="addPurchaseBtn">Añadir</button>
           </div>
           <p class="hint-text">Cada artículo aparece en Consumo con su propio contador y en Gasto total con su propia categoría.</p>
           <div class="setting-row">
-            <span>Presupuesto mensual (€)</span>
+            <label for="monthlyBudgetInput">Presupuesto mensual (€)</label>
             <input type="number" id="monthlyBudgetInput" min="0" step="1" placeholder="Sin límite" />
           </div>
           <p class="hint-text">Si lo rellenas, en Stats → Gasto total verás cuánto llevas gastado frente a tu presupuesto.</p>
@@ -780,14 +780,14 @@
           <div class="setting-row">
             <span>Registrar lavado de dientes</span>
             <label class="switch">
-              <input type="checkbox" id="tracksTeethToggle" />
+              <input type="checkbox" id="tracksTeethToggle" aria-label="Registrar lavado de dientes" />
               <span class="switch-slider"></span>
             </label>
           </div>
           <p class="hint-text">"Lavarme los dientes" se cuenta por veces y va aparte de la lista de abajo. Desactívalo si no quieres registrarlo.</p>
           <ul class="task-manage-list" id="dailyTaskManageList"></ul>
           <div class="task-add-row">
-            <input type="text" id="newDailyTaskInput" class="task-add-input" placeholder="Nueva tarea diaria…" maxlength="40" />
+            <input type="text" id="newDailyTaskInput" class="task-add-input" placeholder="Nueva tarea diaria…" maxlength="40" aria-label="Nombre de la nueva tarea diaria" />
             <button class="secondary-btn task-add-btn" id="addDailyTaskBtn">Añadir</button>
           </div>
           <p class="hint-text">Se guardan solo en este dispositivo.</p>
@@ -802,7 +802,7 @@
         <div class="accordion-body" hidden>
           <ul class="task-manage-list" id="weeklyTaskManageList"></ul>
           <div class="task-add-row">
-            <input type="text" id="newWeeklyTaskInput" class="task-add-input" placeholder="Nueva tarea semanal…" maxlength="40" />
+            <input type="text" id="newWeeklyTaskInput" class="task-add-input" placeholder="Nueva tarea semanal…" maxlength="40" aria-label="Nombre de la nueva tarea semanal" />
             <button class="secondary-btn task-add-btn" id="addWeeklyTaskBtn">Añadir</button>
           </div>
           <p class="hint-text">Se guardan solo en este dispositivo — cada persona que use la app puede tener sus propias tareas semanales.</p>
@@ -817,7 +817,7 @@
         <div class="accordion-body" hidden>
           <ul class="task-manage-list" id="badHabitManageList"></ul>
           <div class="task-add-row">
-            <input type="text" id="newBadHabitInput" class="task-add-input" placeholder="Nuevo mal hábito…" maxlength="40" />
+            <input type="text" id="newBadHabitInput" class="task-add-input" placeholder="Nuevo mal hábito…" maxlength="40" aria-label="Nombre del nuevo mal hábito" />
             <button class="secondary-btn task-add-btn" id="addBadHabitBtn">Añadir</button>
           </div>
           <p class="hint-text">Ej. "Beber alcohol", "Más de 30 min de Instagram". Marcarlos en Hoy resta puntos del Total y baja su color en el mapa de Stats.</p>
@@ -833,14 +833,14 @@
           <div class="setting-row">
             <span>Activar suplementos en Hoy</span>
             <label class="switch">
-              <input type="checkbox" id="tracksSupplementsToggle" />
+              <input type="checkbox" id="tracksSupplementsToggle" aria-label="Activar suplementos en Hoy" />
               <span class="switch-slider"></span>
             </label>
           </div>
           <p class="hint-text">Añade tus pastillas o vitaminas (ej. "ZZEN Focus", "ZZEN Calm", "ZZEN Sleep") para marcar los días que las tomas.</p>
           <ul class="task-manage-list" id="supplementManageList"></ul>
           <div class="task-add-row">
-            <input type="text" id="newSupplementInput" class="task-add-input" placeholder="Nuevo suplemento…" maxlength="30" />
+            <input type="text" id="newSupplementInput" class="task-add-input" placeholder="Nuevo suplemento…" maxlength="30" aria-label="Nombre del nuevo suplemento" />
             <button class="secondary-btn task-add-btn" id="addSupplementBtn">Añadir</button>
           </div>
           <p class="hint-text">Se guardan solo en este dispositivo. Se reflejan en Stats.</p>
@@ -856,12 +856,12 @@
           <div class="setting-row">
             <span>Activar en Hoy</span>
             <label class="switch">
-              <input type="checkbox" id="tracksAguaToggle" />
+              <input type="checkbox" id="tracksAguaToggle" aria-label="Activar seguimiento de agua en Hoy" />
               <span class="switch-slider"></span>
             </label>
           </div>
           <div class="setting-row">
-            <span>Objetivo diario (vasos)</span>
+            <label for="aguaGoalInput">Objetivo diario (vasos)</label>
             <input type="number" id="aguaGoalInput" min="1" max="20" step="1" value="8" />
           </div>
           <p class="hint-text">Se guarda solo en este dispositivo. Se refleja en Stats.</p>
@@ -877,13 +877,13 @@
           <div class="setting-row">
             <span>Activar en Hoy</span>
             <label class="switch">
-              <input type="checkbox" id="tracksSuenoToggle" />
+              <input type="checkbox" id="tracksSuenoToggle" aria-label="Activar seguimiento de sueño en Hoy" />
               <span class="switch-slider"></span>
             </label>
           </div>
           <p class="hint-text">Registra horas dormidas y calidad del sueño (1-5). Se refleja en Stats.</p>
           <div class="setting-row">
-            <span>Objetivo de sueño (horas)</span>
+            <label for="sleepGoalInput">Objetivo de sueño (horas)</label>
             <input type="number" id="sleepGoalInput" min="1" max="14" step="0.5" value="8" />
           </div>
           <p class="hint-text">Se usa para calcular tu deuda de sueño acumulada en Stats.</p>
@@ -899,7 +899,7 @@
           <div class="setting-row">
             <span>Activar en Hoy</span>
             <label class="switch">
-              <input type="checkbox" id="tracksPesoToggle" />
+              <input type="checkbox" id="tracksPesoToggle" aria-label="Activar seguimiento de peso corporal en Hoy" />
               <span class="switch-slider"></span>
             </label>
           </div>
@@ -916,7 +916,7 @@
           <div class="setting-row">
             <span>Activar en Hoy</span>
             <label class="switch">
-              <input type="checkbox" id="tracksAyunoToggle" />
+              <input type="checkbox" id="tracksAyunoToggle" aria-label="Activar seguimiento de ayuno intermitente en Hoy" />
               <span class="switch-slider"></span>
             </label>
           </div>
@@ -933,14 +933,14 @@
           <div class="setting-row">
             <span>Meditación</span>
             <label class="switch">
-              <input type="checkbox" id="tracksMeditacionToggle" />
+              <input type="checkbox" id="tracksMeditacionToggle" aria-label="Activar meditación en Hoy" />
               <span class="switch-slider"></span>
             </label>
           </div>
           <div class="setting-row">
             <span>Lectura</span>
             <label class="switch">
-              <input type="checkbox" id="tracksLecturaToggle" />
+              <input type="checkbox" id="tracksLecturaToggle" aria-label="Activar lectura en Hoy" />
               <span class="switch-slider"></span>
             </label>
           </div>
@@ -957,7 +957,7 @@
           <div class="setting-row">
             <span>Activar en Comidas</span>
             <label class="switch">
-              <input type="checkbox" id="tracksSnacksToggle" />
+              <input type="checkbox" id="tracksSnacksToggle" aria-label="Activar registro de snacks en Comidas" />
               <span class="switch-slider"></span>
             </label>
           </div>
@@ -974,7 +974,7 @@
           <div class="setting-row">
             <span>Activar en Hoy</span>
             <label class="switch">
-              <input type="checkbox" id="tracksGratitudToggle" />
+              <input type="checkbox" id="tracksGratitudToggle" aria-label="Activar diario de gratitud en Hoy" />
               <span class="switch-slider"></span>
             </label>
           </div>
@@ -991,7 +991,7 @@
           <div class="setting-row">
             <span>Activar en Hoy</span>
             <label class="switch">
-              <input type="checkbox" id="tracksEnergiaToggle" />
+              <input type="checkbox" id="tracksEnergiaToggle" aria-label="Activar energía y estrés en Hoy" />
               <span class="switch-slider"></span>
             </label>
           </div>
@@ -1008,7 +1008,7 @@
           <div class="setting-row">
             <span>Activar en Hoy</span>
             <label class="switch">
-              <input type="checkbox" id="tracksRopaToggle" />
+              <input type="checkbox" id="tracksRopaToggle" aria-label="Activar ropa del día en Hoy" />
               <span class="switch-slider"></span>
             </label>
           </div>
@@ -1025,16 +1025,16 @@
           <div class="setting-row">
             <span>Activar en Hoy</span>
             <label class="switch">
-              <input type="checkbox" id="tracksCicloToggle" />
+              <input type="checkbox" id="tracksCicloToggle" aria-label="Activar seguimiento de ciclo menstrual en Hoy" />
               <span class="switch-slider"></span>
             </label>
           </div>
           <div class="setting-row">
-            <span>Duración media del ciclo (días)</span>
+            <label for="cicloAvgLengthInput">Duración media del ciclo (días)</label>
             <input type="number" id="cicloAvgLengthInput" min="15" max="60" step="1" value="28" />
           </div>
           <div class="setting-row">
-            <span>Duración media de la regla (días)</span>
+            <label for="cicloAvgPeriodInput">Duración media de la regla (días)</label>
             <input type="number" id="cicloAvgPeriodInput" min="1" max="15" step="1" value="5" />
           </div>
           <p class="hint-text">Marca los días de regla, el flujo y los síntomas. La app estima tu día de ciclo, fase y próxima regla — usa tu historial real en cuanto registres 2 ciclos, y estos valores medios mientras tanto.</p>
@@ -1050,28 +1050,28 @@
           <div class="setting-row">
             <span>Activar en Objetivos</span>
             <label class="switch">
-              <input type="checkbox" id="tracksWorkoutsToggle" />
+              <input type="checkbox" id="tracksWorkoutsToggle" aria-label="Activar ejercicio en Objetivos" />
               <span class="switch-slider"></span>
             </label>
           </div>
           <p class="hint-text">Registra peso, repeticiones y si llegaste al fallo en cada ejercicio. Se refleja en Stats.</p>
           <ul class="task-manage-list" id="exerciseManageList"></ul>
           <div class="task-add-row">
-            <input type="text" id="newExerciseInput" class="task-add-input" placeholder="Nuevo ejercicio…" maxlength="30" />
+            <input type="text" id="newExerciseInput" class="task-add-input" placeholder="Nuevo ejercicio…" maxlength="30" aria-label="Nombre del nuevo ejercicio" />
             <select id="newExerciseGroupSelect" class="template-select"></select>
             <button class="secondary-btn task-add-btn" id="addExerciseBtn">Añadir</button>
           </div>
           <p class="hint-text">Ej. "Press banca", "Sentadilla". Se guardan solo en este dispositivo.</p>
 
           <div class="setting-row">
-            <span>Descanso entre series (segundos)</span>
+            <label for="restTimerSecondsInput">Descanso entre series (segundos)</label>
             <input type="number" id="restTimerSecondsInput" min="10" max="600" step="5" value="90" />
           </div>
 
           <p class="hint-text" style="margin-bottom:6px"><strong>Rutinas</strong> — agrupa ejercicios para elegir "rutina de hoy" en Objetivos.</p>
           <ul class="task-manage-list" id="templateManageList"></ul>
           <div class="task-add-row">
-            <input type="text" id="newTemplateInput" class="task-add-input" placeholder="Nueva rutina… (ej. Push)" maxlength="30" />
+            <input type="text" id="newTemplateInput" class="task-add-input" placeholder="Nueva rutina… (ej. Push)" maxlength="30" aria-label="Nombre de la nueva rutina" />
             <button class="secondary-btn task-add-btn" id="addTemplateBtn">Añadir</button>
           </div>
           <div id="templateExercisePicker"></div>
@@ -1087,8 +1087,8 @@
           <p class="hint-text">Ej. "Hacer ejercicio 20 días este mes". Márcala en Hoy cada día que la cumplas.</p>
           <ul class="task-manage-list" id="goalManageList"></ul>
           <div class="task-add-row">
-            <input type="text" id="newGoalLabelInput" class="task-add-input" placeholder="Nueva meta…" maxlength="40" />
-            <input type="number" id="newGoalTargetInput" class="purchase-price-input" placeholder="n°/mes" min="1" step="1" />
+            <input type="text" id="newGoalLabelInput" class="task-add-input" placeholder="Nueva meta…" maxlength="40" aria-label="Nombre de la nueva meta" />
+            <input type="number" id="newGoalTargetInput" class="purchase-price-input" placeholder="n°/mes" min="1" step="1" aria-label="Objetivo: número de veces al mes" />
             <button class="secondary-btn task-add-btn" id="addGoalBtn">Añadir</button>
           </div>
           <p class="hint-text">El progreso se muestra en Stats comparado con el objetivo mensual.</p>

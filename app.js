@@ -483,6 +483,21 @@
     return store.entries[key] || null;
   }
 
+  // Reused across every Stats sub-render (rings, agua, sueño, gasto, gráficos…) so a
+  // single month's entries aren't re-fetched from scratch by each section. Keyed by
+  // year+month+day (not just day) since some helpers (yearPurchaseSpend, etc.) query
+  // several different months within one renderStats() pass. Reset at the top of
+  // renderStats() so it never serves data from before the last edit.
+  let statsEntryCache = null;
+  function getEntryForDay(year, monthIndex, day) {
+    if (!statsEntryCache) return getEntry(dateKey(new Date(year, monthIndex, day)));
+    const cacheKey = `${year}-${monthIndex}-${day}`;
+    if (statsEntryCache.has(cacheKey)) return statsEntryCache.get(cacheKey);
+    const entry = getEntry(dateKey(new Date(year, monthIndex, day)));
+    statsEntryCache.set(cacheKey, entry);
+    return entry;
+  }
+
   function ensureEntry(key) {
     if (!store.entries[key]) store.entries[key] = emptyEntry();
     return store.entries[key];
@@ -2342,7 +2357,7 @@
   function monthPurchaseSpend(itemId, price, year, monthIndex, lastDay) {
     let sum = 0;
     for (let d = 1; d <= lastDay; d++) {
-      const entry = getEntry(dateKey(new Date(year, monthIndex, d)));
+      const entry = getEntryForDay(year, monthIndex, d);
       if (!entry) continue;
       sum += ((entry.purchases && entry.purchases[itemId]) || 0) * price;
     }
@@ -2377,7 +2392,7 @@
   function monthJointsSpend(year, monthIndex, lastDay) {
     let joints = 0;
     for (let d = 1; d <= lastDay; d++) {
-      const entry = getEntry(dateKey(new Date(year, monthIndex, d)));
+      const entry = getEntryForDay(year, monthIndex, d);
       if (!entry) continue;
       joints += entry.joints || 0;
     }
@@ -2400,8 +2415,7 @@
     const lastDay = isCurrentMonth ? today.getDate() : daysInMonth(year, monthIndex);
     let sum = 0, count = 0;
     for (let d = 1; d <= lastDay; d++) {
-      const key = dateKey(new Date(year, monthIndex, d));
-      const entry = getEntry(key);
+      const entry = getEntryForDay(year, monthIndex, d);
       if (entry) { sum += entry[field] || 0; count++; }
     }
     return { avg: count > 0 ? sum / count : 0, count };
@@ -2567,8 +2581,7 @@
     supplements.forEach((s) => {
       let done = 0;
       for (let d = 1; d <= lastDay; d++) {
-        const key = dateKey(new Date(year, monthIndex, d));
-        const entry = getEntry(key);
+        const entry = getEntryForDay(year, monthIndex, d);
         if (!entry) continue;
         if (entry.supplements && entry.supplements[s.id]) done++;
       }
@@ -2588,7 +2601,7 @@
     const goal = aguaGoal();
     let daysMet = 0, sum = 0, count = 0;
     for (let d = 1; d <= lastDay; d++) {
-      const entry = getEntry(dateKey(new Date(year, monthIndex, d)));
+      const entry = getEntryForDay(year, monthIndex, d);
       if (!entry) continue;
       const v = entry.agua || 0;
       if (v > 0) { sum += v; count++; }
@@ -2605,7 +2618,7 @@
     card.hidden = false;
     let sumHours = 0, countHours = 0, sumQuality = 0, countQuality = 0;
     for (let d = 1; d <= lastDay; d++) {
-      const entry = getEntry(dateKey(new Date(year, monthIndex, d)));
+      const entry = getEntryForDay(year, monthIndex, d);
       if (!entry) continue;
       if (entry.sleepHours) { sumHours += entry.sleepHours; countHours++; }
       if (entry.sleepQuality) { sumQuality += entry.sleepQuality; countQuality++; }
@@ -2638,7 +2651,7 @@
     const hint = document.getElementById('weightChangeHint');
     const points = [];
     for (let d = 1; d <= lastDay; d++) {
-      const entry = getEntry(dateKey(new Date(year, monthIndex, d)));
+      const entry = getEntryForDay(year, monthIndex, d);
       if (entry && entry.weight != null) points.push({ d, w: entry.weight });
     }
     if (points.length === 0) {
@@ -2682,7 +2695,7 @@
     card.hidden = false;
     let sum = 0, count = 0;
     for (let d = 1; d <= lastDay; d++) {
-      const entry = getEntry(dateKey(new Date(year, monthIndex, d)));
+      const entry = getEntryForDay(year, monthIndex, d);
       if (!entry) continue;
       const fh = fastingHours(entry);
       if (fh > 0) { sum += fh; count++; }
@@ -2699,7 +2712,7 @@
     document.getElementById('lecturaAvgTile').hidden = !showRead;
     let sumMed = 0, countMed = 0, sumRead = 0, countRead = 0;
     for (let d = 1; d <= lastDay; d++) {
-      const entry = getEntry(dateKey(new Date(year, monthIndex, d)));
+      const entry = getEntryForDay(year, monthIndex, d);
       if (!entry) continue;
       if (entry.meditationMin) { sumMed += entry.meditationMin; countMed++; }
       if (entry.readingMin) { sumRead += entry.readingMin; countRead++; }
@@ -2780,7 +2793,7 @@
     card.hidden = false;
     let count = 0;
     for (let d = 1; d <= lastDay; d++) {
-      const entry = getEntry(dateKey(new Date(year, monthIndex, d)));
+      const entry = getEntryForDay(year, monthIndex, d);
       if (entry && entry.periodDay) count++;
     }
     document.getElementById('periodDaysCount').textContent = count;
@@ -2818,7 +2831,7 @@
 
     let trainedDays = 0;
     for (let d = 1; d <= lastDay; d++) {
-      const entry = getEntry(dateKey(new Date(year, monthIndex, d)));
+      const entry = getEntryForDay(year, monthIndex, d);
       if (!entry || !entry.workout) continue;
       const w = entry.workout;
       const anyExercise = w.exercises && Object.values(w.exercises).some((log) => log.reps > 0 || (log.weight != null && log.weight > 0));
@@ -2835,7 +2848,7 @@
     list.innerHTML = exercises.map((ex) => {
       let sessions = 0, maxWeight = null, totalReps = 0, failureCount = 0;
       for (let d = 1; d <= lastDay; d++) {
-        const entry = getEntry(dateKey(new Date(year, monthIndex, d)));
+        const entry = getEntryForDay(year, monthIndex, d);
         const log = entry && entry.workout && entry.workout.exercises && entry.workout.exercises[ex.id];
         if (!log) continue;
         const hasData = log.reps > 0 || (log.weight != null && log.weight > 0);
@@ -2860,7 +2873,7 @@
     progressList.innerHTML = exercises.map((ex, i) => {
       const weights = [];
       for (let d = 1; d <= lastDay; d++) {
-        const entry = getEntry(dateKey(new Date(year, monthIndex, d)));
+        const entry = getEntryForDay(year, monthIndex, d);
         const log = entry && entry.workout && entry.workout.exercises && entry.workout.exercises[ex.id];
         weights.push(log && log.weight != null && log.weight > 0 ? log.weight : null);
       }
@@ -2883,7 +2896,7 @@
     goals.forEach((g) => {
       let done = 0;
       for (let d = 1; d <= lastDay; d++) {
-        const entry = getEntry(dateKey(new Date(year, monthIndex, d)));
+        const entry = getEntryForDay(year, monthIndex, d);
         if (entry && entry.goals && entry.goals[g.id]) done++;
       }
       const pct = g.target > 0 ? Math.min(100, (done / g.target) * 100) : 0;
@@ -3184,8 +3197,7 @@
   function monthFoodHealthAverage(year, monthIndex, lastDay) {
     let sum = 0, count = 0;
     for (let d = 1; d <= lastDay; d++) {
-      const key = dateKey(new Date(year, monthIndex, d));
-      const entry = getEntry(key);
+      const entry = getEntryForDay(year, monthIndex, d);
       if (!entry || !entry.meals) continue;
       ['desayuno', 'comida', 'cena'].forEach((meal) => {
         const h = entry.meals[meal] && entry.meals[meal].health;
@@ -3215,6 +3227,7 @@
   }
 
   function renderStats() {
+    statsEntryCache = new Map();
     const year = statsMonth.getFullYear(), monthIndex = statsMonth.getMonth();
     monthLabel.textContent = `${MONTHS_LONG[monthIndex]} ${year}`;
 
@@ -3232,8 +3245,7 @@
     habitsList.forEach((h) => {
       let done = 0;
       for (let d = 1; d <= lastDay; d++) {
-        const key = dateKey(new Date(year, monthIndex, d));
-        const entry = getEntry(key);
+        const entry = getEntryForDay(year, monthIndex, d);
         if (!entry) continue;
         let ok;
         if (h.field === 'teeth') ok = entry.teeth > 0;
@@ -3525,8 +3537,7 @@
     let sumTotal = 0, countLogged = 0;
     for (let d = 1; d <= totalDays; d++) {
       if (d > lastDay) { data.push(null); continue; }
-      const key = dateKey(new Date(year, monthIndex, d));
-      const entry = getEntry(key);
+      const entry = getEntryForDay(year, monthIndex, d);
       if (entry) {
         const cig = entry.cigarettes || 0, joint = showJoints ? (entry.joints || 0) : 0;
         data.push({ cig, joint });
@@ -4452,34 +4463,100 @@
   });
 
   /* ============ Exportar CSV / PDF ============ */
-  function buildExportRows() {
+  // Prevents CSV formula injection: a cell whose value starts with = + - @ (or a tab/CR)
+  // can be interpreted as a live formula by Excel/Sheets when the file is opened, so a
+  // literal apostrophe is prepended to force it to be read as plain text.
+  function csvSafeCell(v) {
+    let s = String(v == null ? '' : v);
+    if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+
+  // One column per tracked feature that's actually enabled, so the export always
+  // mirrors whatever is switched on in Ajustes instead of a fixed subset of fields.
+  function buildExportColumns() {
+    const cols = [];
     const dailyTotal = store.settings.dailyTasks.length + (teethEnabled() ? 1 : 0);
-    return Object.keys(store.entries).sort().map((key) => {
-      const e = store.entries[key];
+    cols.push({ header: 'Hábitos', get: (e) => {
+      if (dailyTotal === 0) return '';
       let done = 0;
       store.settings.dailyTasks.forEach((t) => { if (e[t.id]) done++; });
       if (teethEnabled() && e.teeth > 0) done++;
-      return {
-        fecha: key,
-        habitos: `${done}/${dailyTotal}`,
-        reflexion: (e.reflection || '').replace(/[\r\n]+/g, ' '),
-        suenoHoras: e.sleepHours || '',
-        suenoCalidad: e.sleepQuality || '',
-        peso: e.weight != null ? e.weight : '',
-        cigarrillos: e.cigarettes || 0,
-        joints: e.joints || 0,
-        regla: e.periodDay ? 'Sí' : '',
-        energia: e.energyLevel || '',
-        estres: e.stressLevel || ''
-      };
-    });
+      return `${done}/${dailyTotal}`;
+    } });
+    if (store.settings.supplements.length > 0) {
+      cols.push({ header: 'Suplementos', get: (e) => {
+        const es = e.supplements || {};
+        let done = 0;
+        store.settings.supplements.forEach((s) => { if (es[s.id]) done++; });
+        return `${done}/${store.settings.supplements.length}`;
+      } });
+    }
+    if (store.settings.badHabits.length > 0) {
+      cols.push({ header: 'Malos hábitos', get: (e) => {
+        const eb = e.badHabits || {};
+        let count = 0;
+        store.settings.badHabits.forEach((b) => { if (eb[b.id]) count++; });
+        return String(count);
+      } });
+    }
+    if (aguaEnabled()) cols.push({ header: 'Agua (vasos)', get: (e) => e.agua || 0 });
+    if (suenoEnabled()) {
+      cols.push({ header: 'Horas sueño', get: (e) => e.sleepHours || '' });
+      cols.push({ header: 'Calidad sueño', get: (e) => e.sleepQuality || '' });
+    }
+    if (pesoEnabled()) cols.push({ header: 'Peso (kg)', get: (e) => (e.weight != null ? e.weight : '') });
+    if (ayunoEnabled()) cols.push({ header: 'Ayuno (h)', get: (e) => { const h = fastingHours(e); return h > 0 ? h.toFixed(1) : ''; } });
+    if (meditacionEnabled()) cols.push({ header: 'Meditación (min)', get: (e) => e.meditationMin || 0 });
+    if (lecturaEnabled()) cols.push({ header: 'Lectura (min)', get: (e) => e.readingMin || 0 });
+    if (workoutsEnabled()) cols.push({ header: 'Ejercicio (min)', get: (e) => (e.workout && e.workout.durationMin) || 0 });
+    if (cicloEnabled()) cols.push({ header: 'Día de regla', get: (e) => (e.periodDay ? 'Sí' : '') });
+    if (gratitudEnabled()) cols.push({ header: 'Gratitud', get: (e) => (e.gratitude || []).filter(Boolean).join(' | ') });
+    if (energiaEnabled()) {
+      cols.push({ header: 'Energía', get: (e) => e.energyLevel || '' });
+      cols.push({ header: 'Estrés', get: (e) => e.stressLevel || '' });
+    }
+    if (ropaEnabled()) cols.push({ header: 'Ropa preparada', get: (e) => (e.outfitPlanned ? 'Sí' : '') });
+    if (snacksEnabled()) cols.push({ header: 'Snacks', get: (e) => (e.snacks || []).join(' | ') });
+    if (consumoEnabled()) {
+      cols.push({ header: 'Cigarrillos', get: (e) => e.cigarettes || 0 });
+      if (jointsEnabled()) cols.push({ header: 'Joints', get: (e) => e.joints || 0 });
+      store.settings.purchaseItems.forEach((item) => {
+        cols.push({ header: item.label || 'Artículo', get: (e) => (e.purchases && e.purchases[item.id]) || 0 });
+      });
+      cols.push({ header: 'Gasto (€)', get: (e) => {
+        let spend = 0;
+        store.settings.purchaseItems.forEach((item) => { spend += ((e.purchases && e.purchases[item.id]) || 0) * item.price; });
+        if (jointsEnabled()) spend += ((e.joints || 0) / 4) * jointPricePer4();
+        return spend.toFixed(2);
+      } });
+    }
+    if (store.settings.goals.length > 0) {
+      cols.push({ header: 'Metas cumplidas', get: (e) => {
+        const eg = e.goals || {};
+        let count = 0;
+        store.settings.goals.forEach((g) => { if (eg[g.id]) count++; });
+        return `${count}/${store.settings.goals.length}`;
+      } });
+    }
+    cols.push({ header: 'Reflexión', get: (e) => (e.reflection || '').replace(/[\r\n]+/g, ' ') });
+    return cols;
+  }
+
+  function buildExportData() {
+    const cols = buildExportColumns();
+    const rows = Object.keys(store.entries).sort().map((key) => ({
+      fecha: key,
+      values: cols.map((c) => c.get(store.entries[key]))
+    }));
+    return { cols, rows };
   }
 
   document.getElementById('exportCsvBtn').addEventListener('click', () => {
-    const rows = buildExportRows();
-    const header = ['Fecha', 'Hábitos', 'Reflexión', 'Horas sueño', 'Calidad sueño', 'Peso', 'Cigarrillos', 'Joints', 'Día de regla', 'Energía', 'Estrés'];
-    const lines = [header, ...rows.map((r) => [r.fecha, r.habitos, r.reflexion, r.suenoHoras, r.suenoCalidad, r.peso, r.cigarrillos, r.joints, r.regla, r.energia, r.estres])];
-    const csv = lines.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+    const { cols, rows } = buildExportData();
+    const header = ['Fecha', ...cols.map((c) => c.header)];
+    const lines = [header, ...rows.map((r) => [r.fecha, ...r.values])];
+    const csv = lines.map((r) => r.map((v) => csvSafeCell(v)).join(',')).join('\r\n');
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -4492,21 +4569,23 @@
   });
 
   document.getElementById('exportPdfBtn').addEventListener('click', () => {
-    const rows = buildExportRows();
-    const bodyRows = rows.map((r) => `<tr><td>${escapeHtml(r.fecha)}</td><td>${escapeHtml(r.habitos)}</td><td>${escapeHtml(String(r.suenoHoras))}</td><td>${escapeHtml(String(r.peso))}</td><td>${escapeHtml(String(r.cigarrillos))}</td><td>${escapeHtml(String(r.joints))}</td><td>${escapeHtml(r.regla)}</td></tr>`).join('');
+    const { cols, rows } = buildExportData();
+    const headerCells = ['Fecha', ...cols.map((c) => c.header)].map((h) => `<th>${escapeHtml(h)}</th>`).join('');
+    const bodyRows = rows.map((r) => `<tr><td>${escapeHtml(r.fecha)}</td>${r.values.map((v) => `<td>${escapeHtml(String(v))}</td>`).join('')}</tr>`).join('');
     const html = `<!doctype html><html lang="es"><head><meta charset="UTF-8"><title>Bitácora Diaria — resumen</title>
 <style>
+  @page { size: landscape; margin: 12mm; }
   body{font-family:-apple-system,sans-serif;padding:24px;color:#171b26;}
   h1{font-size:20px;margin-bottom:4px;}
   p{color:#5b6270;font-size:13px;}
-  table{border-collapse:collapse;width:100%;font-size:12px;margin-top:16px;}
-  th,td{border:1px solid #ccc;padding:5px 8px;text-align:left;}
+  table{border-collapse:collapse;width:100%;font-size:10px;margin-top:16px;}
+  th,td{border:1px solid #ccc;padding:4px 6px;text-align:left;white-space:nowrap;}
   th{background:#eee;}
   @media print { body{padding:0;} }
 </style></head><body>
 <h1>Bitácora Diaria — resumen de datos</h1>
 <p>Generado el ${new Date().toLocaleDateString('es-ES')} · ${rows.length} días registrados</p>
-<table><thead><tr><th>Fecha</th><th>Hábitos</th><th>Sueño (h)</th><th>Peso</th><th>Cigarrillos</th><th>Joints</th><th>Regla</th></tr></thead>
+<table><thead><tr>${headerCells}</tr></thead>
 <tbody>${bodyRows}</tbody></table>
 </body></html>`;
     const win = window.open('', '_blank');
@@ -4625,6 +4704,26 @@
       document.addEventListener('pointerup', endDrag);
       document.addEventListener('pointercancel', endDrag);
     });
+
+    // Keyboard alternative to pointer-drag: arrow keys move the card one slot at a
+    // time and persist the new order the same way a completed drag does.
+    function moveCard(direction) {
+      const siblings = Array.from(panel.querySelectorAll(':scope > .card[id]'));
+      const idx = siblings.indexOf(card);
+      const targetIdx = idx + direction;
+      if (targetIdx < 0 || targetIdx >= siblings.length) return;
+      if (direction < 0) panel.insertBefore(card, siblings[targetIdx]);
+      else panel.insertBefore(card, siblings[targetIdx].nextSibling);
+      const newOrder = Array.from(panel.querySelectorAll(':scope > .card[id]')).map((c) => c.id);
+      store.settings.cardOrder[panelKey] = newOrder;
+      saveStore();
+      handle.focus();
+    }
+
+    handle.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowUp') { e.preventDefault(); moveCard(-1); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); moveCard(1); }
+    });
   }
 
   function initCardReordering() {
@@ -4638,7 +4737,7 @@
         const handle = document.createElement('button');
         handle.type = 'button';
         handle.className = 'card-drag-handle';
-        handle.setAttribute('aria-label', 'Reordenar tarjeta');
+        handle.setAttribute('aria-label', 'Reordenar tarjeta: arrastra, o usa las flechas arriba/abajo');
         handle.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="8" cy="6" r="1.4"/><circle cx="16" cy="6" r="1.4"/><circle cx="8" cy="12" r="1.4"/><circle cx="16" cy="12" r="1.4"/><circle cx="8" cy="18" r="1.4"/><circle cx="16" cy="18" r="1.4"/></svg>';
         card.insertBefore(handle, card.firstChild);
         attachCardDragHandlers(handle, card, panel, panelKey);
