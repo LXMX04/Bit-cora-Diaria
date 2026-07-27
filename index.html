@@ -484,13 +484,13 @@
       <div class="card" id="monthWrappedCard" hidden>
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,3.5 L13.6,9 L19,9 L14.7,12.3 L16.3,18 L12,14.5 L7.7,18 L9.3,12.3 L5,9 L10.4,9 Z" stroke-linejoin="round"/></svg></span><span id="monthWrappedTitle">Resumen del mes</span></h2>
         <div class="wrapped-tiles" id="monthWrappedTiles"></div>
-        <button type="button" class="secondary-btn wrapped-share-btn" id="shareMonthWrappedBtn"><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2,10.8 L15.8,6.2 M8.2,13.2 L15.8,17.8" stroke-linecap="round"/></svg></span>Compartir resumen</button>
+        <button type="button" class="primary-btn wrapped-play-btn" id="playMonthWrappedBtn"><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8,5.5 L19,12 L8,18.5 Z"/></svg></span>Ver resumen animado</button>
       </div>
 
       <div class="card" id="yearWrappedCard" hidden>
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,3.5 L13.6,9 L19,9 L14.7,12.3 L16.3,18 L12,14.5 L7.7,18 L9.3,12.3 L5,9 L10.4,9 Z" stroke-linejoin="round"/></svg></span><span id="yearWrappedTitle">Resumen del año</span></h2>
         <div class="wrapped-tiles" id="yearWrappedTiles"></div>
-        <button type="button" class="secondary-btn wrapped-share-btn" id="shareYearWrappedBtn"><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2,10.8 L15.8,6.2 M8.2,13.2 L15.8,17.8" stroke-linecap="round"/></svg></span>Compartir resumen</button>
+        <button type="button" class="primary-btn wrapped-play-btn" id="playYearWrappedBtn"><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8,5.5 L19,12 L8,18.5 Z"/></svg></span>Ver resumen animado</button>
       </div>
 
       <div class="card" id="progresoMensualCard">
@@ -1226,6 +1226,21 @@
       <button type="button" class="checkin-close-btn" id="checkinCloseBtn" aria-label="Cerrar check-in">×</button>
     </div>
     <ul class="checkin-list" id="checkinList"></ul>
+  </div>
+</div>
+
+<div class="story-overlay" id="storyOverlay" hidden>
+  <div class="story-progress" id="storyProgress"></div>
+  <div class="story-topbar">
+    <button type="button" class="story-icon-btn" id="storyShareBtn" aria-label="Compartir como imagen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2,10.8 L15.8,6.2 M8.2,13.2 L15.8,17.8" stroke-linecap="round"/></svg>
+    </button>
+    <button type="button" class="story-icon-btn" id="storyCloseBtn" aria-label="Cerrar resumen animado">×</button>
+  </div>
+  <div class="story-slide" id="storySlide"></div>
+  <div class="story-tap-zones">
+    <button type="button" class="story-tap-zone" id="storyPrevZone" aria-label="Anterior"></button>
+    <button type="button" class="story-tap-zone" id="storyNextZone" aria-label="Siguiente"></button>
   </div>
 </div>
 

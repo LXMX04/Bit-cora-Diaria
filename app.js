@@ -3697,43 +3697,83 @@
     };
   }
 
-  function wrappedTileData(color, value, label) {
-    return { color, value, label };
+  function wrappedTileData(color, value, label, kind, raw) {
+    return { color, value, label, kind: kind || null, raw: raw != null ? raw : null };
   }
 
   function buildWrappedTileList(stats) {
     const tiles = [];
     if (store.settings.dailyTasks.length > 0) {
-      tiles.push(wrappedTileData('var(--accent)', `${Math.round(stats.completePct)}%`, 'días completos'));
+      tiles.push(wrappedTileData('var(--accent)', `${Math.round(stats.completePct)}%`, 'días completos', 'completePct', stats.completePct));
       if (stats.longestStreak > 0) {
-        tiles.push(wrappedTileData('var(--claret)', `${stats.longestStreak}`, stats.longestStreak === 1 ? 'día de racha máxima' : 'días de racha máxima'));
+        tiles.push(wrappedTileData('var(--claret)', `${stats.longestStreak}`, stats.longestStreak === 1 ? 'día de racha máxima' : 'días de racha máxima', 'streak', stats.longestStreak));
       }
       if (stats.bestHabit) {
-        tiles.push(wrappedTileData('var(--accent-2)', escapeHtml(stats.bestHabit.label), 'tu hábito más constante'));
+        tiles.push(wrappedTileData('var(--accent-2)', escapeHtml(stats.bestHabit.label), 'tu hábito más constante', 'bestHabit', stats.bestHabit.count));
       }
     }
     if (stats.foodAvg > 0) {
-      tiles.push(wrappedTileData(healthColor(stats.foodAvg), `${stats.foodAvg.toFixed(1)} / 5`, 'alimentación media'));
+      tiles.push(wrappedTileData(healthColor(stats.foodAvg), `${stats.foodAvg.toFixed(1)} / 5`, 'alimentación media', 'foodAvg', stats.foodAvg));
     }
     if (suenoEnabled() && stats.sleepAvg > 0) {
-      tiles.push(wrappedTileData('var(--h-total)', `${stats.sleepAvg.toFixed(1)} h`, 'sueño medio'));
+      tiles.push(wrappedTileData('var(--h-total)', `${stats.sleepAvg.toFixed(1)} h`, 'sueño medio', 'sleepAvg', stats.sleepAvg));
     }
     if (workoutsEnabled() && stats.workoutDays > 0) {
-      tiles.push(wrappedTileData('var(--h-teeth)', `${stats.workoutDays}`, stats.workoutDays === 1 ? 'día entrenado' : 'días entrenados'));
+      tiles.push(wrappedTileData('var(--h-teeth)', `${stats.workoutDays}`, stats.workoutDays === 1 ? 'día entrenado' : 'días entrenados', 'workoutDays', stats.workoutDays));
     }
     if (pesoEnabled() && stats.weightDiff != null && Math.abs(stats.weightDiff) >= 0.1) {
-      tiles.push(wrappedTileData('var(--accent)', `${stats.weightDiff > 0 ? '+' : ''}${stats.weightDiff.toFixed(1)} kg`, 'cambio de peso'));
+      tiles.push(wrappedTileData('var(--accent)', `${stats.weightDiff > 0 ? '+' : ''}${stats.weightDiff.toFixed(1)} kg`, 'cambio de peso', 'weightDiff', stats.weightDiff));
     }
     if (consumoEnabled() && (stats.cig > 0 || stats.joints > 0)) {
-      tiles.push(wrappedTileData('var(--h-cig)', formatEuro(stats.spend), 'gasto en consumo'));
+      tiles.push(wrappedTileData('var(--h-cig)', formatEuro(stats.spend), 'gasto en consumo', 'spend', stats.spend));
     }
     if (cicloEnabled() && stats.periodDays > 0) {
-      tiles.push(wrappedTileData('var(--h-ciclo)', `${stats.periodDays}`, stats.periodDays === 1 ? 'día de regla' : 'días de regla'));
+      tiles.push(wrappedTileData('var(--h-ciclo)', `${stats.periodDays}`, stats.periodDays === 1 ? 'día de regla' : 'días de regla', 'periodDays', stats.periodDays));
     }
     if (tiles.length === 0) {
       tiles.push(wrappedTileData('var(--surface-alt)', '–', 'Todavía sin datos suficientes'));
     }
     return tiles;
+  }
+
+  // A short, encouraging line per stat tile, tiered by how good the number actually
+  // is — this is what turns "48%" into something that explains why it matters.
+  function wrappedInsightMessage(t) {
+    switch (t.kind) {
+      case 'completePct':
+        if (t.raw >= 90) return 'Casi perfecto. Muy pocas personas mantienen este nivel de constancia — enhorabuena.';
+        if (t.raw >= 70) return 'Un ritmo sólido: la mayoría de los días le ganaste a la pereza.';
+        if (t.raw >= 40) return 'Vas a mitad de camino — cada día que sumas cuenta más de lo que parece.';
+        return 'Un periodo difícil, pero está registrado — y eso ya es el primer paso para el que viene.';
+      case 'streak':
+        if (t.raw >= 14) return 'Dos semanas seguidas sin fallar. Así es como un hábito se vuelve automático.';
+        if (t.raw >= 7) return 'Una semana entera de racha — la constancia empieza a notarse.';
+        return 'El primer tramo de una racha siempre es el más difícil de sostener. Ya lo tienes.';
+      case 'bestHabit':
+        return `Fue el hábito que menos te costó mantener — ${t.raw} ${t.raw === 1 ? 'día marcado' : 'días marcados'} en total.`;
+      case 'foodAvg':
+        if (t.raw >= 4) return 'Alimentación muy saludable de media. Se nota en el resto de tus datos.';
+        if (t.raw >= 3) return 'Un equilibrio razonable, con margen para subir un punto más.';
+        return 'Un periodo flojo en alimentación — los datos ya te lo están diciendo.';
+      case 'sleepAvg':
+        if (t.raw >= 7.5) return 'Duermes lo que tu cuerpo necesita. La base de todo lo demás.';
+        if (t.raw >= 6) return 'Cerca del objetivo — un poco más de sueño y notarás la diferencia.';
+        return 'Menos horas de las recomendadas. El sueño es la palanca más infravalorada.';
+      case 'workoutDays':
+        if (t.raw >= 20) return 'Entrenaste la mayoría de los días. Un nivel de compromiso poco común.';
+        if (t.raw >= 8) return 'Más de un entreno cada tres días — un ritmo que se puede mantener en el tiempo.';
+        return 'Empezaste a moverte. Lo difícil ya está hecho, ahora toca sumar constancia.';
+      case 'weightDiff':
+        return t.raw < 0
+          ? `Bajaste ${Math.abs(t.raw).toFixed(1)} kg en este periodo, siguiendo tu tendencia.`
+          : `Subiste ${t.raw.toFixed(1)} kg — dato a tener en cuenta según tu objetivo.`;
+      case 'spend':
+        return 'Esto es lo que costó tu consumo este periodo. Mirarlo de frente ya es el primer cambio.';
+      case 'periodDays':
+        return 'Días de regla registrados — así tu ciclo se estima cada vez con más precisión.';
+      default:
+        return 'Sigue registrando tus días — cuantos más datos, más útil se vuelve este resumen.';
+    }
   }
 
   function wrappedTilesHtml(tileList) {
@@ -3903,11 +3943,129 @@
 
   let lastMonthWrappedShare = null;
   let lastYearWrappedShare = null;
-  document.getElementById('shareMonthWrappedBtn').addEventListener('click', () => {
-    if (lastMonthWrappedShare) shareWrappedImage(lastMonthWrappedShare.title, lastMonthWrappedShare.tiles);
+
+  /* ============ Resumen animado (stories) ============ */
+  const storyOverlay = document.getElementById('storyOverlay');
+  const storySlideEl = document.getElementById('storySlide');
+  const storyProgressEl = document.getElementById('storyProgress');
+  const storyTapZonesEl = document.querySelector('.story-tap-zones');
+  const STORY_LOGO_MS = 3000;
+  const STORY_STAT_MS = 5000;
+  let storySlides = [];
+  let storyIndex = 0;
+  let storyTimer = null;
+  let storyCurrentShare = null;
+
+  function storySlideDurationMs(slide) {
+    if (slide.type === 'logo') return STORY_LOGO_MS;
+    if (slide.type === 'stat') return STORY_STAT_MS;
+    return 0; // final slide: no auto-advance
+  }
+
+  function storyLogoSlideHtml(title) {
+    return `
+      <svg class="story-logo-mark" viewBox="0 0 24 24" aria-hidden="true">
+        <circle class="story-logo-circle" cx="12" cy="12" r="9.5" />
+        <path class="story-logo-tie" d="M10.3,7.2 L13.7,7.2 L12.9,9.4 L11.1,9.4 Z" />
+        <path class="story-logo-tie" d="M11.1,9.4 L12.9,9.4 L13.6,13.4 L12,17.3 L10.4,13.4 Z" />
+      </svg>
+      <div class="story-wordmark">S U I T&nbsp;&nbsp;U P</div>
+      <div class="story-logo-title">${escapeHtml(title)}</div>
+      <div class="story-logo-sub">Tu resumen, en detalle</div>`;
+  }
+
+  function storyStatSlideHtml(tile) {
+    return `
+      <div class="story-stat-swatch" style="background:${tile.color}"></div>
+      <div class="story-stat-value">${tile.value}</div>
+      <div class="story-stat-label">${escapeHtml(tile.label)}</div>
+      <div class="story-stat-why">${escapeHtml(wrappedInsightMessage(tile))}</div>`;
+  }
+
+  function storyFinalSlideHtml(title, tileList) {
+    const rows = tileList.map((t) => `<li><span>${escapeHtml(t.label)}</span><span class="story-final-value">${t.value}</span></li>`).join('');
+    return `
+      <div class="story-final-title">Eso ha sido ${escapeHtml(title)}</div>
+      <ul class="story-final-list">${rows}</ul>
+      <div class="story-final-actions">
+        <button type="button" class="story-final-share" id="storyFinalShareBtn">Compartir imagen</button>
+        <button type="button" class="story-final-close" id="storyFinalCloseBtn">Cerrar</button>
+      </div>`;
+  }
+
+  function updateStoryProgress() {
+    storyProgressEl.innerHTML = storySlides.map((s, i) => {
+      const dur = storySlideDurationMs(s);
+      const cls = i < storyIndex ? 'is-done' : (i === storyIndex ? 'is-active' : '');
+      return `<div class="story-progress-seg ${cls}"><div class="story-progress-fill" style="--story-duration:${dur}ms"></div></div>`;
+    }).join('');
+  }
+
+  function showStorySlide(index) {
+    clearTimeout(storyTimer);
+    storyIndex = index;
+    const slide = storySlides[index];
+    let html;
+    if (slide.type === 'logo') html = storyLogoSlideHtml(slide.title);
+    else if (slide.type === 'stat') html = storyStatSlideHtml(slide.tile);
+    else html = storyFinalSlideHtml(slide.title, slide.tileList);
+    storySlideEl.innerHTML = `<div class="story-slide-inner">${html}</div>`;
+    // The final slide has its own real buttons (share/close), so the invisible
+    // prev/next tap zones — which otherwise sit above the slide content to catch
+    // taps anywhere — must step aside instead of swallowing those clicks.
+    storyTapZonesEl.style.pointerEvents = slide.type === 'final' ? 'none' : '';
+    updateStoryProgress();
+    const duration = storySlideDurationMs(slide);
+    if (duration > 0) {
+      storyTimer = setTimeout(() => advanceStory(1), duration);
+    }
+  }
+
+  function advanceStory(delta) {
+    const next = storyIndex + delta;
+    if (next < 0) return;
+    if (next >= storySlides.length) { closeStory(); return; }
+    showStorySlide(next);
+  }
+
+  function openStory(title, tileList) {
+    storyCurrentShare = { title, tiles: tileList };
+    storySlides = [{ type: 'logo', title }, ...tileList.map((t) => ({ type: 'stat', tile: t })), { type: 'final', title, tileList }];
+    storyOverlay.hidden = false;
+    showStorySlide(0);
+  }
+
+  function closeStory() {
+    clearTimeout(storyTimer);
+    storyOverlay.hidden = true;
+  }
+
+  document.getElementById('playMonthWrappedBtn').addEventListener('click', () => {
+    if (lastMonthWrappedShare) openStory(lastMonthWrappedShare.title, lastMonthWrappedShare.tiles);
   });
-  document.getElementById('shareYearWrappedBtn').addEventListener('click', () => {
-    if (lastYearWrappedShare) shareWrappedImage(lastYearWrappedShare.title, lastYearWrappedShare.tiles);
+  document.getElementById('playYearWrappedBtn').addEventListener('click', () => {
+    if (lastYearWrappedShare) openStory(lastYearWrappedShare.title, lastYearWrappedShare.tiles);
+  });
+  document.getElementById('storyPrevZone').addEventListener('click', () => advanceStory(-1));
+  document.getElementById('storyNextZone').addEventListener('click', () => advanceStory(1));
+  document.getElementById('storyCloseBtn').addEventListener('click', closeStory);
+  document.getElementById('storyShareBtn').addEventListener('click', () => {
+    if (storyCurrentShare) shareWrappedImage(storyCurrentShare.title, storyCurrentShare.tiles);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (storyOverlay.hidden) return;
+    if (e.key === 'Escape') closeStory();
+    else if (e.key === 'ArrowLeft') advanceStory(-1);
+    else if (e.key === 'ArrowRight') advanceStory(1);
+  });
+  // The final slide's buttons are re-created on every render, so they're handled
+  // via delegation instead of a direct listener that would be lost each time.
+  storySlideEl.addEventListener('click', (e) => {
+    if (e.target.closest('#storyFinalShareBtn')) {
+      if (storyCurrentShare) shareWrappedImage(storyCurrentShare.title, storyCurrentShare.tiles);
+    } else if (e.target.closest('#storyFinalCloseBtn')) {
+      closeStory();
+    }
   });
 
   function renderMonthWrapped(year, monthIndex, lastDay) {
