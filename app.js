@@ -3750,36 +3750,109 @@
     return getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim() || '#8a1f31';
   }
 
+  // Draws a scaled-up version of the brand-mark SVG (circle + necktie) so the share
+  // card reads as unmistakably "Suit Up" rather than a generic stats screenshot.
+  function drawBrandMark(ctx, cx, cy, r) {
+    const s = r / 9.5; // brand-mark SVG viewBox uses a r=9.5 circle
+    const pt = (px, py) => ({ x: cx + (px - 12) * s, y: cy + (py - 12) * s });
+    const poly = (pts) => {
+      ctx.beginPath();
+      pts.forEach((p, i) => { const c = pt(p[0], p[1]); if (i === 0) ctx.moveTo(c.x, c.y); else ctx.lineTo(c.x, c.y); });
+      ctx.closePath();
+    };
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.lineWidth = Math.max(1.5, r * 0.09);
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = '#c1495b';
+    poly([[10.3, 7.2], [13.7, 7.2], [12.9, 9.4], [11.1, 9.4]]);
+    ctx.fill();
+    poly([[11.1, 9.4], [12.9, 9.4], [13.6, 13.4], [12, 17.3], [10.4, 13.4]]);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Fine diagonal crosshatch, echoing the same subtle texture used across the app's
+  // own backgrounds, so the share card doesn't read as a plain flat gradient.
+  function drawCrosshatch(ctx, w, h) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+    ctx.lineWidth = 1;
+    const step = 20;
+    for (let x = -h; x < w + h; x += step) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + h, h); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x - h, h); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawStitchLine(ctx, x1, y, x2, color) {
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = 0.55;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 6]);
+    ctx.beginPath();
+    ctx.moveTo(x1, y);
+    ctx.lineTo(x2, y);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Tape-measure tick strip along a tile's left edge, matching the .card::before
+  // ticks used throughout the app — minor ticks every 6px, a longer one every 18px.
+  function drawTapeTicks(ctx, x, top, bottom, minorColor, majorColor) {
+    ctx.save();
+    ctx.globalAlpha = 0.6;
+    for (let y = top, i = 0; y <= bottom; y += 6, i++) {
+      const major = i % 3 === 0;
+      ctx.strokeStyle = major ? majorColor : minorColor;
+      ctx.lineWidth = major ? 3 : 1.5;
+      const len = major ? 14 : 7;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + len, y);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   async function shareWrappedImage(title, tiles) {
     const W = 1080, H = 1350;
     const canvas = document.createElement('canvas');
     canvas.width = W;
     canvas.height = H;
     const ctx = canvas.getContext('2d');
-    const bg = resolveColor('var(--bg)');
+    const navy = resolveColor('var(--accent)');
+    const navyStrong = resolveColor('var(--accent-strong)');
     const surface = resolveColor('var(--surface)');
     const text = resolveColor('var(--text)');
     const textMuted = resolveColor('var(--text-muted)');
-    const accent2 = resolveColor('var(--accent-2)');
+    const brass = resolveColor('var(--accent-2)');
 
-    const grad = ctx.createLinearGradient(0, 0, 0, H);
-    grad.addColorStop(0, resolveColor('var(--accent)'));
-    grad.addColorStop(1, bg);
+    const grad = ctx.createLinearGradient(0, 0, W, H);
+    grad.addColorStop(0, navyStrong);
+    grad.addColorStop(1, navy);
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, W, H);
+    drawCrosshatch(ctx, W, H);
 
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '700 30px ui-rounded, -apple-system, sans-serif';
     ctx.textBaseline = 'alphabetic';
-    ctx.fillText('SUIT UP', 60, 100);
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.font = '600 46px ui-rounded, -apple-system, sans-serif';
-    ctx.fillText(title, 60, 160);
+    drawBrandMark(ctx, 96, 92, 40);
+    ctx.fillStyle = brass;
+    ctx.font = '700 26px -apple-system, sans-serif';
+    ctx.fillText('S U I T   U P', 156, 82);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 52px Georgia, "Iowan Old Style", "Palatino Linotype", serif';
+    ctx.fillText(title, 156, 132);
+    drawStitchLine(ctx, 60, 176, W - 60, brass);
 
     const cols = 2;
     const gap = 24;
     const marginX = 60;
-    const gridTop = 240;
+    const gridTop = 220;
     const tileW = (W - marginX * 2 - gap * (cols - 1)) / cols;
     const tileH = 200;
     tiles.forEach((t, i) => {
@@ -3788,23 +3861,23 @@
       const y = gridTop + row * (tileH + gap);
       ctx.fillStyle = surface;
       ctx.beginPath();
-      if (ctx.roundRect) ctx.roundRect(x, y, tileW, tileH, 22);
+      if (ctx.roundRect) ctx.roundRect(x, y, tileW, tileH, 18);
       else ctx.rect(x, y, tileW, tileH);
       ctx.fill();
-      ctx.fillStyle = resolveColor(t.color);
-      ctx.fillRect(x, y, 8, tileH);
+      drawTapeTicks(ctx, x + 6, y + 18, y + tileH - 18, textMuted, resolveColor(t.color));
       ctx.fillStyle = text;
-      ctx.font = '700 54px ui-rounded, -apple-system, sans-serif';
+      ctx.font = '700 50px Georgia, "Iowan Old Style", "Palatino Linotype", serif';
       const valueText = String(t.value).length > 10 ? `${String(t.value).slice(0, 10)}…` : String(t.value);
-      ctx.fillText(valueText, x + 32, y + 100);
+      ctx.fillText(valueText, x + 34, y + 100);
       ctx.fillStyle = textMuted;
-      ctx.font = '400 26px -apple-system, sans-serif';
-      ctx.fillText(t.label, x + 32, y + 140, tileW - 64);
+      ctx.font = '400 24px -apple-system, sans-serif';
+      ctx.fillText(t.label.toUpperCase(), x + 34, y + 138, tileW - 66);
     });
 
-    ctx.fillStyle = accent2;
+    drawStitchLine(ctx, 60, H - 80, W - 60, brass);
+    ctx.fillStyle = brass;
     ctx.font = '400 24px -apple-system, sans-serif';
-    ctx.fillText(`Generado el ${new Date().toLocaleDateString('es-ES')}`, 60, H - 60);
+    ctx.fillText(`Generado el ${new Date().toLocaleDateString('es-ES')}`, 60, H - 46);
 
     const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
     if (!blob) return;
