@@ -49,12 +49,8 @@
     };
   }
 
-  function loadStore() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return { entries: {}, weeks: {}, settings: defaultSettings(), lastNotifiedDate: null };
-      const parsed = JSON.parse(raw);
-      parsed.entries = parsed.entries || {};
+  function normalizeStore(parsed) {
+      parsed.entries = (parsed.entries && typeof parsed.entries === 'object') ? parsed.entries : {};
       parsed.weeks = parsed.weeks || {};
       parsed.settings = parsed.settings || defaultSettings();
       if (!Array.isArray(parsed.settings.weeklyTasks)) {
@@ -82,6 +78,7 @@
         ];
         Object.keys(parsed.entries).forEach((key) => {
           const entry = parsed.entries[key];
+          if (!entry || typeof entry !== 'object') return;
           entry.purchases = entry.purchases || {};
           if (entry.packRojo) entry.purchases.packRojo = entry.packRojo;
           if (entry.packBlanco) entry.purchases.packBlanco = entry.packBlanco;
@@ -186,13 +183,28 @@
         parsed.settings.jointPricePer4 = 4.50;
       }
       return parsed;
+  }
+
+  function loadStore() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return { entries: {}, weeks: {}, settings: defaultSettings(), lastNotifiedDate: null };
+      return normalizeStore(JSON.parse(raw));
     } catch (e) {
       return { entries: {}, weeks: {}, settings: defaultSettings(), lastNotifiedDate: null };
     }
   }
 
+  let storageWarned = false;
   function saveStore() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+    } catch (e) {
+      if (!storageWarned) {
+        storageWarned = true;
+        alert('No se ha podido guardar. El almacenamiento del dispositivo está lleno o no disponible; los últimos cambios podrían no conservarse.');
+      }
+    }
   }
 
   const store = loadStore();
@@ -452,7 +464,7 @@
       const labelStyle = g.color ? ` style="color:${g.color}"` : '';
       return `
       <div class="spend-group${g.isTotal ? ' spend-group--total' : ''}">
-        <div class="spend-group-label"${labelStyle}>${g.label}</div>
+        <div class="spend-group-label"${labelStyle}>${escapeHtml(g.label)}</div>
         <div class="avg-grid">
           <div class="avg-tile"${tileStyle}>
             <span class="avg-value">${formatEuro(g.month)}</span>
@@ -1250,7 +1262,7 @@
     const hour = new Date().getHours();
     const salute = hour < 6 ? 'Buenas noches' : hour < 13 ? 'Buenos días' : hour < 20 ? 'Buenas tardes' : 'Buenas noches';
     const name = (store.settings.profile && store.settings.profile.name || '').trim();
-    const lead = name ? `${salute} ${name}` : salute;
+    const lead = name ? `${salute} ${escapeHtml(name)}` : salute;
     const sep = name ? ',' : ' —';
     const dailyTotal = store.settings.dailyTasks.length + (teethEnabled() ? 1 : 0);
     if (dailyTotal === 0) {
@@ -1316,7 +1328,7 @@
           <span class="check-icon">${CHECK_TICK_SVG}</span>
         </button>
         <div class="habit-text">
-          <span class="habit-name">${t.label}</span>
+          <span class="habit-name">${escapeHtml(t.label)}</span>
         </div>
       </li>`).join('');
     const teethHtml = teethEnabled() ? `
@@ -1343,7 +1355,7 @@
           <span class="check-icon">${CHECK_TICK_SVG}</span>
         </button>
         <div class="habit-text">
-          <span class="habit-name">${t.label}</span>
+          <span class="habit-name">${escapeHtml(t.label)}</span>
           <span class="habit-meta">esta semana</span>
         </div>
       </li>`).join('') : '<li class="task-empty-hint">No tienes tareas semanales. Añade una en Ajustes.</li>';
@@ -1357,7 +1369,7 @@
           <span class="check-icon">${CROSS_SVG}</span>
         </button>
         <div class="habit-text">
-          <span class="habit-name">${b.label}</span>
+          <span class="habit-name">${escapeHtml(b.label)}</span>
         </div>
       </li>`).join('') : '<li class="task-empty-hint">No tienes malos hábitos registrados. Añade uno en Ajustes.</li>';
 
@@ -1370,7 +1382,7 @@
           <span class="check-icon">${CHECK_TICK_SVG}</span>
         </button>
         <div class="habit-text">
-          <span class="habit-name">${s.label}</span>
+          <span class="habit-name">${escapeHtml(s.label)}</span>
         </div>
       </li>`).join('') : '<li class="task-empty-hint">No tienes suplementos registrados. Añade uno en Ajustes.</li>';
 
@@ -1456,7 +1468,7 @@
           <span class="check-icon">${CHECK_TICK_SVG}</span>
         </button>
         <div class="habit-text">
-          <span class="habit-name">${g.label}</span>
+          <span class="habit-name">${escapeHtml(g.label)}</span>
           <span class="habit-meta">objetivo: ${g.target}/mes</span>
         </div>
       </li>`).join('');
@@ -2315,13 +2327,13 @@
       return `
       <div class="consumo-row consumo-row--item" style="background:color-mix(in srgb, ${color} 13%, var(--surface))">
         <div class="consumo-label">
-          <span class="consumo-name"><span class="consumo-swatch" style="background:${color}"></span>${item.label}</span>
+          <span class="consumo-name"><span class="consumo-swatch" style="background:${color}"></span>${escapeHtml(item.label)}</span>
           <span class="consumo-price">${formatEuro(item.price)}/unidad</span>
         </div>
         <div class="stepper stepper--lg" data-stepper="${item.id}">
-          <button class="stepper-btn" data-step="-1" aria-label="Restar ${item.label}">–</button>
+          <button class="stepper-btn" data-step="-1" aria-label="Restar ${escapeHtml(item.label)}">–</button>
           <span class="stepper-value">${(entry.purchases && entry.purchases[item.id]) || 0}</span>
-          <button class="stepper-btn" data-step="1" aria-label="Sumar ${item.label}">+</button>
+          <button class="stepper-btn" data-step="1" aria-label="Sumar ${escapeHtml(item.label)}">+</button>
         </div>
       </div>`;
     }).join('');
@@ -2563,7 +2575,7 @@
       const pct = lastDay > 0 ? (done / lastDay) * 100 : 0;
       const tile = document.createElement('div');
       tile.className = 'ring-tile ring-tile--lg';
-      tile.innerHTML = `${ringSVGLarge(pct)}<span class="ring-pct ring-pct--lg">${Math.round(pct)}%</span><span class="ring-name"><span class="ring-icon">${ICONS.pill}</span>${s.label}</span>`;
+      tile.innerHTML = `${ringSVGLarge(pct)}<span class="ring-pct ring-pct--lg">${Math.round(pct)}%</span><span class="ring-name"><span class="ring-icon">${ICONS.pill}</span>${escapeHtml(s.label)}</span>`;
       grid.appendChild(tile);
     });
   }
@@ -2839,7 +2851,7 @@
       if (failureCount > 0) parts.push(`${failureCount} al fallo`);
       return `
       <div class="exercise-stat-row">
-        <div class="exercise-stat-name">${ex.label}</div>
+        <div class="exercise-stat-name">${escapeHtml(ex.label)}</div>
         <div class="exercise-stat-detail">${sessions > 0 ? parts.join(' · ') : 'Sin datos este mes'}</div>
       </div>`;
     }).join('');
@@ -2874,12 +2886,12 @@
         const entry = getEntry(dateKey(new Date(year, monthIndex, d)));
         if (entry && entry.goals && entry.goals[g.id]) done++;
       }
-      const pct = Math.min(100, (done / g.target) * 100);
+      const pct = g.target > 0 ? Math.min(100, (done / g.target) * 100) : 0;
       const row = document.createElement('div');
       row.className = 'bar-row';
       row.innerHTML = `
         <div class="bar-row-top">
-          <span class="bar-name">${g.label}</span>
+          <span class="bar-name">${escapeHtml(g.label)}</span>
           <span class="bar-frac">${done}/${g.target}</span>
         </div>
         <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>`;
@@ -3098,10 +3110,10 @@
       let itemHtml;
       if (r.type === 'health') {
         const gradient = `linear-gradient(to right, ${healthColor(1)}, ${healthColor(3)}, ${healthColor(5)})`;
-        itemHtml = `<span class="legend-item"><span class="legend-gradient" style="background:${gradient}"></span>${r.label} (nada → muy saludable)</span>`;
+        itemHtml = `<span class="legend-item"><span class="legend-gradient" style="background:${gradient}"></span>${escapeHtml(r.label)} (nada → muy saludable)</span>`;
       } else {
         const suffix = r.type === 'weekly' ? ' (semanal)' : '';
-        itemHtml = `<span class="legend-item"><span class="dot" style="background-color:${r.color}"></span>${r.label}${suffix}</span>`;
+        itemHtml = `<span class="legend-item"><span class="dot" style="background-color:${r.color}"></span>${escapeHtml(r.label)}${suffix}</span>`;
       }
       if (i === 0) legendHtml += '<div class="legend-group">';
       else if (r.groupStart) legendHtml += '</div><div class="legend-group legend-group--gap">';
@@ -3233,7 +3245,7 @@
       const pct = lastDay > 0 ? (done / lastDay) * 100 : 0;
       const tile = document.createElement('div');
       tile.className = 'ring-tile';
-      tile.innerHTML = `${ringSVG(pct)}<span class="ring-pct">${Math.round(pct)}%</span><span class="ring-name"><span class="ring-icon">${h.icon}</span>${h.name}</span>`;
+      tile.innerHTML = `${ringSVG(pct)}<span class="ring-pct">${Math.round(pct)}%</span><span class="ring-name"><span class="ring-icon">${h.icon}</span>${escapeHtml(h.name)}</span>`;
       ringsGrid.appendChild(tile);
     });
 
@@ -3268,7 +3280,7 @@
       row.className = 'bar-row';
       row.innerHTML = `
         <div class="bar-row-top">
-          <span class="bar-name">${w.label}</span>
+          <span class="bar-name">${escapeHtml(w.label)}</span>
           <span class="bar-frac">${done}/${total}</span>
         </div>
         <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>`;
@@ -3623,8 +3635,8 @@
     const tasks = store.settings.dailyTasks;
     dailyTaskManageList.innerHTML = tasks.length ? tasks.map((t) => `
       <li class="task-manage-item" data-task-id="${t.id}">
-        <span class="task-manage-label">${t.label}</span>
-        <button type="button" class="task-remove-btn" data-remove-task="${t.id}" aria-label="Eliminar ${t.label}">×</button>
+        <span class="task-manage-label">${escapeHtml(t.label)}</span>
+        <button type="button" class="task-remove-btn" data-remove-task="${t.id}" aria-label="Eliminar ${escapeHtml(t.label)}">×</button>
       </li>`).join('') : '<li class="task-empty-hint">No tienes tareas diarias todavía.</li>';
   }
 
@@ -3673,8 +3685,8 @@
     const tasks = store.settings.weeklyTasks;
     weeklyTaskManageList.innerHTML = tasks.length ? tasks.map((t) => `
       <li class="task-manage-item" data-task-id="${t.id}">
-        <span class="task-manage-label">${t.label}</span>
-        <button type="button" class="task-remove-btn" data-remove-task="${t.id}" aria-label="Eliminar ${t.label}">×</button>
+        <span class="task-manage-label">${escapeHtml(t.label)}</span>
+        <button type="button" class="task-remove-btn" data-remove-task="${t.id}" aria-label="Eliminar ${escapeHtml(t.label)}">×</button>
       </li>`).join('') : '<li class="task-empty-hint">No tienes tareas semanales todavía.</li>';
   }
 
@@ -3714,8 +3726,8 @@
     const habits = store.settings.badHabits;
     badHabitManageList.innerHTML = habits.length ? habits.map((h) => `
       <li class="task-manage-item" data-task-id="${h.id}">
-        <span class="task-manage-label">${h.label}</span>
-        <button type="button" class="task-remove-btn" data-remove-task="${h.id}" aria-label="Eliminar ${h.label}">×</button>
+        <span class="task-manage-label">${escapeHtml(h.label)}</span>
+        <button type="button" class="task-remove-btn" data-remove-task="${h.id}" aria-label="Eliminar ${escapeHtml(h.label)}">×</button>
       </li>`).join('') : '<li class="task-empty-hint">No tienes malos hábitos todavía.</li>';
   }
 
@@ -3766,8 +3778,8 @@
     const supplements = store.settings.supplements;
     supplementManageList.innerHTML = supplements.length ? supplements.map((s) => `
       <li class="task-manage-item" data-task-id="${s.id}">
-        <span class="task-manage-label">${s.label}</span>
-        <button type="button" class="task-remove-btn" data-remove-task="${s.id}" aria-label="Eliminar ${s.label}">×</button>
+        <span class="task-manage-label">${escapeHtml(s.label)}</span>
+        <button type="button" class="task-remove-btn" data-remove-task="${s.id}" aria-label="Eliminar ${escapeHtml(s.label)}">×</button>
       </li>`).join('') : '<li class="task-empty-hint">No tienes suplementos todavía.</li>';
   }
 
@@ -3846,9 +3858,9 @@
     const items = store.settings.purchaseItems;
     purchaseManageList.innerHTML = items.length ? items.map((p) => `
       <li class="task-manage-item" data-task-id="${p.id}">
-        <span class="task-manage-label">${p.label}</span>
+        <span class="task-manage-label">${escapeHtml(p.label)}</span>
         <input type="number" class="purchase-price-input" data-price-item="${p.id}" value="${p.price.toFixed(2)}" min="0" step="0.01" />
-        <button type="button" class="task-remove-btn" data-remove-task="${p.id}" aria-label="Eliminar ${p.label}">×</button>
+        <button type="button" class="task-remove-btn" data-remove-task="${p.id}" aria-label="Eliminar ${escapeHtml(p.label)}">×</button>
       </li>`).join('') : '<li class="task-empty-hint">No tienes artículos de compra todavía.</li>';
   }
 
@@ -4286,9 +4298,9 @@
     const goals = store.settings.goals;
     goalManageList.innerHTML = goals.length ? goals.map((g) => `
       <li class="task-manage-item" data-task-id="${g.id}">
-        <span class="task-manage-label">${g.label}</span>
+        <span class="task-manage-label">${escapeHtml(g.label)}</span>
         <input type="number" class="purchase-price-input" data-target-goal="${g.id}" value="${g.target}" min="1" step="1" />
-        <button type="button" class="task-remove-btn" data-remove-task="${g.id}" aria-label="Eliminar ${g.label}">×</button>
+        <button type="button" class="task-remove-btn" data-remove-task="${g.id}" aria-label="Eliminar ${escapeHtml(g.label)}">×</button>
       </li>`).join('') : '<li class="task-empty-hint">No tienes metas todavía.</li>';
   }
 
@@ -4526,11 +4538,11 @@
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const data = JSON.parse(reader.result);
+        const data = normalizeStore(JSON.parse(reader.result));
         if (!confirm('Esto reemplazará los datos actuales por los del archivo importado. ¿Continuar?')) return;
-        store.entries = data.entries || {};
-        store.weeks = data.weeks || {};
-        store.settings = data.settings || store.settings;
+        store.entries = data.entries;
+        store.weeks = data.weeks;
+        store.settings = data.settings;
         saveStore();
         renderAll();
         reminderToggle.checked = !!store.settings.reminderEnabled;
