@@ -75,8 +75,10 @@
       <p class="daily-quote" id="dailyQuote"></p>
       <p class="streak-badge" id="streakBadge" hidden></p>
 
+      <button type="button" class="secondary-btn checkin-open-btn" id="checkinOpenBtn"><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13,3 L5,14 L11,14 L10,21 L19,10 L13,10 Z" stroke-linejoin="round"/></svg></span>Check-in rápido</button>
+
       <div class="card" id="yearAgoCard" hidden>
-        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,7.5 L12,12 L15,14" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Hace un año</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,7.5 L12,12 L15,14" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span id="yearAgoTitle">Hace un año</span></h2>
         <div id="yearAgoBody"></div>
       </div>
 
@@ -135,7 +137,12 @@
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5,19 L8,18 L17,9 C18,8 18,6.5 17,5.5 C16,4.5 14.5,4.5 13.5,5.5 L4.5,14.5 Z" stroke-linejoin="round"/><path d="M12,7 L15,10"/></svg></span>Reflexión del día</h2>
         <div class="reflection-quote-mark" aria-hidden="true">&#8220;</div>
         <textarea id="reflectionInput" class="reflection-box" rows="5" placeholder="¿Cómo ha ido el día? ¿Qué destacarías?"></textarea>
-        <div class="save-hint" id="reflectionHint">Guardado automáticamente</div>
+        <div class="reflection-footer">
+          <button type="button" class="dictate-btn" id="dictateBtn" hidden aria-pressed="false" aria-label="Dictar reflexión por voz">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5,11 C5,15.4 8.6,19 13,19 M13,19 L13,21.5 M9.5,21.5 L16.5,21.5" stroke-linecap="round"/></svg>
+          </button>
+          <div class="save-hint" id="reflectionHint">Guardado automáticamente</div>
+        </div>
       </div>
 
       <div class="card" id="gratitudCard" hidden>
@@ -477,11 +484,13 @@
       <div class="card" id="monthWrappedCard" hidden>
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,3.5 L13.6,9 L19,9 L14.7,12.3 L16.3,18 L12,14.5 L7.7,18 L9.3,12.3 L5,9 L10.4,9 Z" stroke-linejoin="round"/></svg></span><span id="monthWrappedTitle">Resumen del mes</span></h2>
         <div class="wrapped-tiles" id="monthWrappedTiles"></div>
+        <button type="button" class="secondary-btn wrapped-share-btn" id="shareMonthWrappedBtn"><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2,10.8 L15.8,6.2 M8.2,13.2 L15.8,17.8" stroke-linecap="round"/></svg></span>Compartir resumen</button>
       </div>
 
       <div class="card" id="yearWrappedCard" hidden>
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,3.5 L13.6,9 L19,9 L14.7,12.3 L16.3,18 L12,14.5 L7.7,18 L9.3,12.3 L5,9 L10.4,9 Z" stroke-linejoin="round"/></svg></span><span id="yearWrappedTitle">Resumen del año</span></h2>
         <div class="wrapped-tiles" id="yearWrappedTiles"></div>
+        <button type="button" class="secondary-btn wrapped-share-btn" id="shareYearWrappedBtn"><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2,10.8 L15.8,6.2 M8.2,13.2 L15.8,17.8" stroke-linecap="round"/></svg></span>Compartir resumen</button>
       </div>
 
       <div class="card" id="progresoMensualCard">
@@ -493,6 +502,12 @@
         <div class="heatmap-wrap" id="heatmapWrap"></div>
         <div class="heatmap-table-wrap" id="heatmapTableWrap" hidden></div>
         <p class="hint-text" id="heatmapHint">Toca un día para abrirlo. Las tareas semanales se marcan en toda la semana al cumplirse. Alimentación es la media de salud (1-5) de las comidas registradas ese día. En Cigarros, Joints y paquetes, cuanto más intenso el color, mayor fue el consumo ese día.</p>
+      </div>
+
+      <div class="card" id="yearHeatmapCard" hidden>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="4.5" width="17" height="16" rx="2"/><path d="M3.5,9.5 L20.5,9.5"/><path d="M8,3 L8,6.5 M16,3 L16,6.5" stroke-linecap="round"/></svg></span>Vista anual <span id="yearHeatmapYear" class="hint-text" style="display:inline;margin:0 0 0 4px"></span></h2>
+        <div class="year-heatmap-scroll" id="yearHeatmapScroll"></div>
+        <p class="hint-text">Un cuadrado por día del año. Cuanto más intenso el color, más hábitos diarios completaste ese día.</p>
       </div>
 
       <div class="card" id="habitosDelMesCard">
@@ -587,6 +602,12 @@
         <div class="week-compare-list" id="weekCompareList"></div>
       </div>
 
+      <div class="card" id="insightsCard" hidden>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,3 C7,8 5,11.5 5,14.5 C5,18.6 8.1,21 12,21 C15.9,21 19,18.6 19,14.5 C19,11.5 17,8 12,3 Z"/><path d="M12,8 C10.5,10 10,12 10,13.5" stroke-linecap="round"/></svg></span>Lo que dicen tus datos</h2>
+        <ul class="insights-list" id="insightsList"></ul>
+        <p class="hint-text">Basado en este mes. Se necesitan al menos unos días de cada tipo para mostrar una comparación.</p>
+      </div>
+
       <div class="card" id="goalsStatsCard" hidden>
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="4.5"/><circle cx="16" cy="16" r="4.5"/><circle cx="16" cy="16" r="1.4" fill="currentColor" stroke="none"/></svg></span>Metas</h2>
         <div class="bars-list" id="goalsBars"></div>
@@ -649,6 +670,32 @@
 
     <!-- AJUSTES -->
     <section class="tab-panel" id="panel-ajustes" data-panel="ajustes" hidden>
+      <div class="card accordion-card">
+        <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4.2"/><path d="M12,3 L12,5.5 M12,18.5 L12,21 M3,12 L5.5,12 M18.5,12 L21,12 M5.6,5.6 L7.4,7.4 M16.6,16.6 L18.4,18.4 M18.4,5.6 L16.6,7.4 M7.4,16.6 L5.6,18.4" stroke-linecap="round"/></svg></span>Apariencia</h2>
+          <span class="accordion-chevron">›</span>
+        </button>
+        <div class="accordion-body" hidden>
+          <div class="setting-row">
+            <label for="themeModeSelect">Tema</label>
+            <select id="themeModeSelect" class="profile-input">
+              <option value="auto">Automático (según el sistema)</option>
+              <option value="light">Claro</option>
+              <option value="dark">Oscuro</option>
+              <option value="black">Negro puro (OLED)</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <label for="densityModeSelect">Densidad</label>
+            <select id="densityModeSelect" class="profile-input">
+              <option value="comfortable">Cómoda</option>
+              <option value="compact">Compacta</option>
+            </select>
+          </div>
+          <p class="hint-text">"Negro puro" ahorra batería en pantallas OLED. "Compacta" reduce los espacios para ver más información de un vistazo.</p>
+        </div>
+      </div>
+
       <div class="card accordion-card">
         <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
           <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4,7 L20,7 L20,10 C20,11.5 18.5,12.5 17,12 L17,17 C17,18.5 15.5,20 14,20 L10,20 C8.5,20 7,18.5 7,17 L7,12 C5.5,12.5 4,11.5 4,10 Z" stroke-linejoin="round"/></svg></span>Perfil</h2>
@@ -786,6 +833,7 @@
           </div>
           <p class="hint-text">"Lavarme los dientes" se cuenta por veces y va aparte de la lista de abajo. Desactívalo si no quieres registrarlo.</p>
           <ul class="task-manage-list" id="dailyTaskManageList"></ul>
+          <div class="icon-picker" id="dailyTaskIconPicker" role="radiogroup" aria-label="Icono para la nueva tarea"></div>
           <div class="task-add-row">
             <input type="text" id="newDailyTaskInput" class="task-add-input" placeholder="Nueva tarea diaria…" maxlength="40" aria-label="Nombre de la nueva tarea diaria" />
             <button class="secondary-btn task-add-btn" id="addDailyTaskBtn">Añadir</button>
@@ -816,6 +864,7 @@
         </button>
         <div class="accordion-body" hidden>
           <ul class="task-manage-list" id="badHabitManageList"></ul>
+          <div class="icon-picker" id="badHabitIconPicker" role="radiogroup" aria-label="Icono para el nuevo mal hábito"></div>
           <div class="task-add-row">
             <input type="text" id="newBadHabitInput" class="task-add-input" placeholder="Nuevo mal hábito…" maxlength="40" aria-label="Nombre del nuevo mal hábito" />
             <button class="secondary-btn task-add-btn" id="addBadHabitBtn">Añadir</button>
@@ -839,6 +888,7 @@
           </div>
           <p class="hint-text">Añade tus pastillas o vitaminas (ej. "ZZEN Focus", "ZZEN Calm", "ZZEN Sleep") para marcar los días que las tomas.</p>
           <ul class="task-manage-list" id="supplementManageList"></ul>
+          <div class="icon-picker" id="supplementIconPicker" role="radiogroup" aria-label="Icono para el nuevo suplemento"></div>
           <div class="task-add-row">
             <input type="text" id="newSupplementInput" class="task-add-input" placeholder="Nuevo suplemento…" maxlength="30" aria-label="Nombre del nuevo suplemento" />
             <button class="secondary-btn task-add-btn" id="addSupplementBtn">Añadir</button>
@@ -1091,7 +1141,11 @@
             <input type="number" id="newGoalTargetInput" class="purchase-price-input" placeholder="n°/mes" min="1" step="1" aria-label="Objetivo: número de veces al mes" />
             <button class="secondary-btn task-add-btn" id="addGoalBtn">Añadir</button>
           </div>
-          <p class="hint-text">El progreso se muestra en Stats comparado con el objetivo mensual.</p>
+          <div class="setting-row">
+            <label for="newGoalDateInput">Fecha límite (opcional)</label>
+            <input type="date" id="newGoalDateInput" aria-label="Fecha límite de la nueva meta" />
+          </div>
+          <p class="hint-text">El progreso se muestra en Stats comparado con el objetivo mensual. Si añades una fecha límite puntual, también se mostrará como cuenta atrás en Hoy.</p>
         </div>
       </div>
 
@@ -1101,6 +1155,7 @@
           <span class="accordion-chevron">›</span>
         </button>
         <div class="accordion-body" hidden>
+          <p class="hint-text hint-warning" id="backupReminderHint" hidden></p>
           <div class="backup-row">
             <button class="secondary-btn" id="exportBtn">Exportar datos</button>
             <button class="secondary-btn" id="importBtn">Importar datos</button>
@@ -1163,6 +1218,17 @@
   </nav>
 
 </div>
+
+<div class="checkin-overlay" id="checkinOverlay" hidden>
+  <div class="checkin-sheet">
+    <div class="checkin-header">
+      <h2>Check-in rápido</h2>
+      <button type="button" class="checkin-close-btn" id="checkinCloseBtn" aria-label="Cerrar check-in">×</button>
+    </div>
+    <ul class="checkin-list" id="checkinList"></ul>
+  </div>
+</div>
+
 <script src="app.js"></script>
 </body>
 </html>

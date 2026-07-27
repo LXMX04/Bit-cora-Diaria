@@ -24,10 +24,23 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Network-first: always prefer the latest deployed files when online,
-// only falling back to the cached copy when the network is unavailable.
+// Static assets (icons, manifest) almost never change between deploys, so they're
+// served cache-first to save a network round-trip; everything else (html/css/js)
+// stays network-first so a new deploy is always picked up immediately when online.
+const STATIC_ASSET = /\/icons\/|\.webmanifest$/;
+
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  if (STATIC_ASSET.test(event.request.url)) {
+    event.respondWith(
+      caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
+        const copy = response.clone();
+        caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+        return response;
+      }))
+    );
+    return;
+  }
   event.respondWith(
     fetch(event.request, { cache: 'no-store' })
       .then((response) => {

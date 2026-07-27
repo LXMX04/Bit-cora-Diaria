@@ -37,6 +37,9 @@
       monthlyBudget: null,
       travelModeActive: false,
       cardOrder: {},
+      themeMode: 'auto',
+      densityMode: 'comfortable',
+      lastBackupDate: null,
       jointPricePer4: 4.50,
       dailyTasks: [],
       weeklyTasks: [],
@@ -68,6 +71,9 @@
       if (!Array.isArray(parsed.settings.goals)) {
         parsed.settings.goals = [];
       }
+      parsed.settings.goals.forEach((g) => {
+        if (typeof g.dueDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(g.dueDate)) g.dueDate = null;
+      });
       if (!Array.isArray(parsed.settings.exercises)) {
         parsed.settings.exercises = [];
       }
@@ -181,6 +187,15 @@
       }
       if (typeof parsed.settings.jointPricePer4 !== 'number' || parsed.settings.jointPricePer4 < 0) {
         parsed.settings.jointPricePer4 = 4.50;
+      }
+      if (!['auto', 'light', 'dark', 'black'].includes(parsed.settings.themeMode)) {
+        parsed.settings.themeMode = 'auto';
+      }
+      if (!['comfortable', 'compact'].includes(parsed.settings.densityMode)) {
+        parsed.settings.densityMode = 'comfortable';
+      }
+      if (parsed.settings.lastBackupDate !== null && typeof parsed.settings.lastBackupDate !== 'string') {
+        parsed.settings.lastBackupDate = null;
       }
       return parsed;
   }
@@ -574,11 +589,20 @@
   const daySelector = document.getElementById('daySelector');
 
   function switchTab(tab) {
+    const changed = activeTab !== tab;
     activeTab = tab;
     tabButtons.forEach((b) => b.classList.toggle('is-active', b.dataset.tab === tab));
     panels.forEach((p) => { p.hidden = p.dataset.panel !== tab; });
     daySelector.style.display = (tab === 'stats' || tab === 'ajustes') ? 'none' : 'flex';
     if (tab === 'stats') renderStats();
+    if (changed) {
+      const panel = document.querySelector('.tab-panel:not([hidden])');
+      if (panel) {
+        panel.classList.remove('tab-fade-in');
+        void panel.offsetWidth;
+        panel.classList.add('tab-fade-in');
+      }
+    }
   }
 
   tabButtons.forEach((btn) => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
@@ -1093,6 +1117,70 @@
     }, 400);
   });
 
+  /* ============ Dictado por voz de la reflexión ============ */
+  const dictateBtn = document.getElementById('dictateBtn');
+  const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SpeechRecognitionCtor) {
+    dictateBtn.hidden = false;
+    const recognition = new SpeechRecognitionCtor();
+    recognition.lang = 'es-ES';
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    let listening = false;
+
+    recognition.addEventListener('result', (e) => {
+      let transcript = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) transcript += e.results[i][0].transcript;
+      }
+      transcript = transcript.trim();
+      if (!transcript) return;
+      const key = dateKey(currentDate);
+      const entry = ensureEntry(key);
+      const current = reflectionInput.value;
+      const needsSpace = current && !/\s$/.test(current);
+      reflectionInput.value = `${current}${needsSpace ? ' ' : ''}${transcript} `;
+      entry.reflection = reflectionInput.value;
+      saveStore();
+      reflectionHint.textContent = 'Guardado automáticamente';
+    });
+    recognition.addEventListener('end', () => {
+      listening = false;
+      dictateBtn.classList.remove('is-listening');
+      dictateBtn.setAttribute('aria-pressed', 'false');
+    });
+    recognition.addEventListener('error', () => {
+      listening = false;
+      dictateBtn.classList.remove('is-listening');
+      dictateBtn.setAttribute('aria-pressed', 'false');
+    });
+
+    dictateBtn.addEventListener('click', () => {
+      if (listening) {
+        recognition.stop();
+        return;
+      }
+      try {
+        recognition.start();
+        listening = true;
+        dictateBtn.classList.add('is-listening');
+        dictateBtn.setAttribute('aria-pressed', 'true');
+      } catch (e) {
+        // Already started or mic permission denied — ignore, button state stays off.
+      }
+    });
+  }
+
+  function goalDueLabel(dueDate) {
+    if (!dueDate) return '';
+    const [y, m, d] = dueDate.split('-').map(Number);
+    const due = startOfDay(new Date(y, m - 1, d));
+    const daysLeft = Math.round((due - startOfDay(new Date())) / DAY_MS);
+    if (daysLeft > 0) return ` · vence en ${daysLeft} ${daysLeft === 1 ? 'día' : 'días'}`;
+    if (daysLeft === 0) return ' · vence hoy';
+    return ` · venció hace ${Math.abs(daysLeft)} ${Math.abs(daysLeft) === 1 ? 'día' : 'días'}`;
+  }
+
   function fmtKeyDate(key) {
     const [y, m, d] = key.split('-').map(Number);
     return `${d} ${MONTHS_SHORT[m - 1]} ${y}`;
@@ -1299,9 +1387,15 @@
     const card = document.getElementById('yearAgoCard');
     const today = startOfDay(new Date());
     if (currentDate.getTime() !== today.getTime()) { card.hidden = true; return; }
-    const yearAgoDate = new Date(today);
-    yearAgoDate.setFullYear(yearAgoDate.getFullYear() - 1);
-    const entry = getEntry(dateKey(yearAgoDate));
+
+    // Look back up to 10 years, most recent first, and show the first one with data.
+    let pastDate = null, entry = null, yearsBack = 0;
+    for (let y = 1; y <= 10; y++) {
+      const candidate = new Date(today);
+      candidate.setFullYear(candidate.getFullYear() - y);
+      const candidateEntry = getEntry(dateKey(candidate));
+      if (candidateEntry) { pastDate = candidate; entry = candidateEntry; yearsBack = y; break; }
+    }
     if (!entry) { card.hidden = true; return; }
 
     const dailyTotal = store.settings.dailyTasks.length + (teethEnabled() ? 1 : 0);
@@ -1319,7 +1413,8 @@
     const reflectionHtml = excerpt ? `<p class="hint-text" style="margin:0;font-style:italic">"${escapeHtml(excerpt)}"</p>` : '';
     if (!summary && !reflectionHtml) { card.hidden = true; return; }
     card.hidden = false;
-    document.getElementById('yearAgoBody').innerHTML = `<p class="hint-text" style="margin:0 0 8px">${fmtShortDate(yearAgoDate)} de ${yearAgoDate.getFullYear()}</p>${summary}${reflectionHtml}`;
+    document.getElementById('yearAgoTitle').textContent = yearsBack === 1 ? 'Hace un año' : `Hace ${yearsBack} años`;
+    document.getElementById('yearAgoBody').innerHTML = `<p class="hint-text" style="margin:0 0 8px">${fmtShortDate(pastDate)} de ${pastDate.getFullYear()}</p>${summary}${reflectionHtml}`;
   }
 
   function renderHoy() {
@@ -1484,7 +1579,7 @@
         </button>
         <div class="habit-text">
           <span class="habit-name">${escapeHtml(g.label)}</span>
-          <span class="habit-meta">objetivo: ${g.target}/mes</span>
+          <span class="habit-meta">objetivo: ${g.target}/mes${goalDueLabel(g.dueDate)}</span>
         </div>
       </li>`).join('');
 
@@ -1493,6 +1588,7 @@
 
   /* ============ COMIDAS panel ============ */
   const mealInputs = document.querySelectorAll('[data-meal-time], [data-meal-desc]');
+  const mealDescTimers = {};
 
   mealInputs.forEach((input) => {
     input.addEventListener('input', () => {
@@ -1500,9 +1596,15 @@
       const entry = ensureEntry(key);
       const mealTime = input.dataset.mealTime;
       const mealDesc = input.dataset.mealDesc;
-      if (mealTime) entry.meals[mealTime].time = input.value;
-      if (mealDesc) entry.meals[mealDesc].desc = input.value;
-      saveStore();
+      if (mealTime) {
+        entry.meals[mealTime].time = input.value;
+        saveStore();
+      }
+      if (mealDesc) {
+        entry.meals[mealDesc].desc = input.value;
+        clearTimeout(mealDescTimers[mealDesc]);
+        mealDescTimers[mealDesc] = setTimeout(saveStore, 400);
+      }
     });
   });
 
@@ -2488,16 +2590,44 @@
     teeth: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3C9.2 3 7 5 7 7.8C7 9.7 7.8 10.8 8.1 12.8C8.5 15.3 9.3 18.6 10.3 20.2C10.7 20.8 11.3 20.6 11.4 19.8L11.7 17.2C11.8 16.3 12.2 16.3 12.3 17.2L12.6 19.8C12.7 20.6 13.3 20.8 13.7 20.2C14.7 18.6 15.5 15.3 15.9 12.8C16.2 10.8 17 9.7 17 7.8C17 5 14.8 3 12 3Z" stroke-linejoin="round" stroke-linecap="round"/></svg>',
     ban: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8.5"/><path d="M6.5 6.5l11 11" stroke-linecap="round"/></svg>',
     pill: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="9" width="18" height="6.5" rx="3.25"/><line x1="12" y1="9" x2="12" y2="15.5"/></svg>',
-    default: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8.5"/><path d="M8 12.3l2.6 2.6L16.2 9" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    default: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8.5"/><path d="M8 12.3l2.6 2.6L16.2 9" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    dumbbell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 9v6M2 8v8M20 9v6M22 8v8M6 12h12" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 5c2-1 5-1 8 0v14c-3-1-6-1-8 0V5ZM20 5c-2-1-5-1-8 0v14c3-1 6-1 8 0V5Z" stroke-linejoin="round"/></svg>',
+    water: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,3 C7,8 5,11.5 5,14.5 C5,18.6 8.1,21 12,21 C15.9,21 19,18.6 19,14.5 C19,11.5 17,8 12,3 Z"/></svg>',
+    apple: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,10 C10,7 6,7.5 5,10.5 C4,13.5 6,18 9,19.5 C10.5,20.2 11,19.5 12,19.5 C13,19.5 13.5,20.2 15,19.5 C18,18 20,13.5 19,10.5 C18,7.5 14,7 12,10 Z"/><path d="M12,9.5 C12,7.5 13,6 15,5.5" stroke-linecap="round"/></svg>',
+    moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20,13.5 A8,8 0 1 1 10.5,4 A6.3,6.3 0 0 0 20,13.5 Z" stroke-linejoin="round"/></svg>',
+    heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12,20 C12,20 4,14.5 4,9 C4,6.2 6.2,4.5 8.5,4.5 C10,4.5 11.3,5.3 12,6.5 C12.7,5.3 14,4.5 15.5,4.5 C17.8,4.5 20,6.2 20,9 C20,14.5 12,20 12,20 Z" stroke-linejoin="round"/></svg>',
+    star: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,3.5 L13.6,9 L19,9 L14.7,12.3 L16.3,18 L12,14.5 L7.7,18 L9.3,12.3 L5,9 L10.4,9 Z" stroke-linejoin="round"/></svg>',
+    music: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9,17 A2.5,2.5 0 1 1 9,12 A2.5,2.5 0 0 1 9,17 Z M19,15 A2.5,2.5 0 1 1 19,10 A2.5,2.5 0 0 1 19,15 Z"/><path d="M11.5,14.5 L11.5,5.5 L21.5,4 L21.5,12.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    briefcase: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="7.5" width="17" height="12" rx="2"/><path d="M8.5,7.5 L8.5,5.5 C8.5,4.7 9.2,4 10,4 L14,4 C14.8,4 15.5,4.7 15.5,5.5 L15.5,7.5" stroke-linecap="round"/></svg>',
+    leaf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5,19 C5,10 10,4 20,4 C20,14 14,19 5,19 Z" stroke-linejoin="round"/><path d="M5,19 L13,11" stroke-linecap="round"/></svg>'
   };
+
+  // Curated subset offered when a user picks an icon for a custom task/hábito.
+  const ICON_PICKER_KEYS = ['dumbbell', 'book', 'water', 'apple', 'moon', 'heart', 'star', 'music', 'briefcase', 'leaf', 'pill', 'default'];
+
+  function renderIconPicker(container, selectedKey, onSelect) {
+    container.innerHTML = ICON_PICKER_KEYS.map((key) => `
+      <button type="button" class="icon-picker-btn${key === selectedKey ? ' is-selected' : ''}" data-icon-key="${key}" aria-pressed="${key === selectedKey}" aria-label="Icono ${key}">${ICONS[key]}</button>
+    `).join('');
+    container.querySelectorAll('.icon-picker-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        container.querySelectorAll('.icon-picker-btn').forEach((b) => {
+          b.classList.toggle('is-selected', b === btn);
+          b.setAttribute('aria-pressed', String(b === btn));
+        });
+        onSelect(btn.dataset.iconKey);
+      });
+    });
+  }
 
   function buildHabitsList() {
     const list = store.settings.dailyTasks.map((t) => ({
-      field: t.id, icon: ICONS[t.id] || ICONS.default, name: t.label
+      field: t.id, icon: (t.icon && ICONS[t.icon]) || ICONS.default, name: t.label
     }));
     if (teethEnabled()) list.push({ field: 'teeth', icon: ICONS.teeth, name: 'Dientes' });
     store.settings.badHabits.forEach((b) => {
-      list.push({ field: b.id, icon: ICONS.ban, name: b.label, invert: true });
+      list.push({ field: b.id, icon: (b.icon && ICONS[b.icon]) || ICONS.ban, name: b.label, invert: true });
     });
     return list;
   }
@@ -2588,7 +2718,7 @@
       const pct = lastDay > 0 ? (done / lastDay) * 100 : 0;
       const tile = document.createElement('div');
       tile.className = 'ring-tile ring-tile--lg';
-      tile.innerHTML = `${ringSVGLarge(pct)}<span class="ring-pct ring-pct--lg">${Math.round(pct)}%</span><span class="ring-name"><span class="ring-icon">${ICONS.pill}</span>${escapeHtml(s.label)}</span>`;
+      tile.innerHTML = `${ringSVGLarge(pct)}<span class="ring-pct ring-pct--lg">${Math.round(pct)}%</span><span class="ring-name"><span class="ring-icon">${(s.icon && ICONS[s.icon]) || ICONS.pill}</span>${escapeHtml(s.label)}</span>`;
       grid.appendChild(tile);
     });
   }
@@ -2915,7 +3045,8 @@
   /* ---- Health color gradient (nada saludable -> muy saludable) ---- */
   function currentTheme() {
     const override = document.documentElement.dataset.theme;
-    if (override === 'dark' || override === 'light') return override;
+    if (override === 'dark' || override === 'black') return 'dark';
+    if (override === 'light') return 'light';
     return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
 
@@ -3102,6 +3233,147 @@
     return dayInfo[row.key] > 0 ? String(dayInfo[row.key]) : '';
   }
 
+  // GitHub-style annual overview: one square per day of the year, colored by the
+  // fraction of daily tasks completed that day. Weeks run Monday-Sunday and the grid
+  // is padded with invisible filler cells so every week column has exactly 7 rows.
+  function renderYearHeatmap(year) {
+    const card = document.getElementById('yearHeatmapCard');
+    const scroll = document.getElementById('yearHeatmapScroll');
+    const dailyTotal = store.settings.dailyTasks.length + (teethEnabled() ? 1 : 0);
+    const today = startOfDay(new Date());
+    const jan1 = new Date(year, 0, 1);
+    const dec31 = new Date(year, 11, 31);
+    const startDow = (jan1.getDay() + 6) % 7; // Mon=0
+    const gridStart = new Date(jan1.getTime() - startDow * DAY_MS);
+    const endDow = (dec31.getDay() + 6) % 7;
+    const gridEnd = new Date(dec31.getTime() + (6 - endDow) * DAY_MS);
+
+    let anyData = false;
+    const weeks = [];
+    let cursor = new Date(gridStart);
+    while (cursor <= gridEnd) {
+      const week = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(cursor);
+        const inYear = d.getFullYear() === year;
+        const isFuture = d > today;
+        let pct = null;
+        if (inYear && !isFuture) {
+          const entry = getEntryForDay(d.getFullYear(), d.getMonth(), d.getDate());
+          if (entry) {
+            anyData = true;
+            if (dailyTotal > 0) {
+              let done = 0;
+              store.settings.dailyTasks.forEach((t) => { if (entry[t.id]) done++; });
+              if (teethEnabled() && entry.teeth > 0) done++;
+              pct = (done / dailyTotal) * 100;
+            } else {
+              pct = 100;
+            }
+          } else {
+            pct = 0;
+          }
+        }
+        week.push({ date: d, inYear, isFuture, pct, isMonthStart: inYear && d.getDate() === 1 });
+        cursor = new Date(cursor.getTime() + DAY_MS);
+      }
+      weeks.push(week);
+    }
+
+    if (!anyData) { card.hidden = true; return; }
+    card.hidden = false;
+    document.getElementById('yearHeatmapYear').textContent = String(year);
+
+    scroll.innerHTML = weeks.map((week) => {
+      const monthStart = week.find((d) => d.isMonthStart);
+      const label = monthStart ? MONTHS_SHORT[monthStart.date.getMonth()] : '';
+      const cells = week.map((d) => {
+        if (!d.inYear) return '<span class="year-heatmap-cell is-filler"></span>';
+        if (d.isFuture || d.pct === null) return '<span class="year-heatmap-cell"></span>';
+        const style = d.pct > 0 ? ` style="background-color:color-mix(in srgb, var(--h-total) ${Math.max(20, d.pct).toFixed(0)}%, var(--surface-alt))"` : '';
+        return `<span class="year-heatmap-cell" title="${fmtKeyDate(dateKey(d.date))}"${style}></span>`;
+      }).join('');
+      return `<div class="year-heatmap-week"><div class="year-heatmap-month-label">${label}</div>${cells}</div>`;
+    }).join('');
+  }
+
+  // Simple two-bucket averages over this month's data (e.g. "days you slept enough"
+  // vs "days you didn't") — intentionally basic (no real statistical significance
+  // testing), gated behind a minimum sample size per bucket so a single lucky day
+  // can't produce a misleading claim.
+  function avgOf(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length; }
+
+  function renderInsights(year, monthIndex, lastDay) {
+    const card = document.getElementById('insightsCard');
+    const list = document.getElementById('insightsList');
+    const MIN_SAMPLE = 4;
+    const insights = [];
+
+    if (suenoEnabled() && store.settings.dailyTasks.length > 0) {
+      const goal = store.settings.sleepGoalHours || 8;
+      const met = [], notMet = [];
+      for (let d = 1; d <= lastDay; d++) {
+        const entry = getEntryForDay(year, monthIndex, d);
+        if (!entry || !entry.sleepHours) continue;
+        let done = 0;
+        store.settings.dailyTasks.forEach((t) => { if (entry[t.id]) done++; });
+        const pct = (done / store.settings.dailyTasks.length) * 100;
+        (entry.sleepHours >= goal ? met : notMet).push(pct);
+      }
+      if (met.length >= MIN_SAMPLE && notMet.length >= MIN_SAMPLE) {
+        const diff = avgOf(met) - avgOf(notMet);
+        if (Math.abs(diff) >= 5) {
+          insights.push(diff > 0
+            ? `Los días que duermes ${goal}h o más completas de media un ${Math.round(diff)}% más de tus hábitos diarios.`
+            : `Los días que duermes menos de ${goal}h completas de media un ${Math.round(-diff)}% más de tus hábitos diarios — puede que estés compensando con más energía, o valga la pena vigilarlo.`);
+        }
+      }
+    }
+
+    if (workoutsEnabled()) {
+      const trained = [], rest = [];
+      for (let d = 1; d <= lastDay; d++) {
+        const entry = getEntryForDay(year, monthIndex, d);
+        if (!entry || !entry.meals) continue;
+        const healths = ['desayuno', 'comida', 'cena'].map((m) => entry.meals[m] && entry.meals[m].health).filter(Boolean);
+        if (healths.length === 0) continue;
+        const avgHealth = avgOf(healths);
+        const didWorkout = entry.workout && ((entry.workout.durationMin > 0) || (entry.workout.exercises && Object.values(entry.workout.exercises).some((l) => l.reps > 0 || (l.weight != null && l.weight > 0))));
+        (didWorkout ? trained : rest).push(avgHealth);
+      }
+      if (trained.length >= MIN_SAMPLE && rest.length >= MIN_SAMPLE) {
+        const diff = avgOf(trained) - avgOf(rest);
+        if (Math.abs(diff) >= 0.3) {
+          insights.push(diff > 0
+            ? `Los días que entrenas, tu alimentación es de media ${diff.toFixed(1)} puntos más saludable (sobre 5).`
+            : `Los días que no entrenas, tu alimentación es de media ${(-diff).toFixed(1)} puntos más saludable (sobre 5).`);
+        }
+      }
+    }
+
+    if (aguaEnabled() && energiaEnabled()) {
+      const goal = aguaGoal();
+      const met = [], notMet = [];
+      for (let d = 1; d <= lastDay; d++) {
+        const entry = getEntryForDay(year, monthIndex, d);
+        if (!entry || !entry.energyLevel) continue;
+        (entry.agua >= goal ? met : notMet).push(entry.energyLevel);
+      }
+      if (met.length >= MIN_SAMPLE && notMet.length >= MIN_SAMPLE) {
+        const diff = avgOf(met) - avgOf(notMet);
+        if (Math.abs(diff) >= 0.4) {
+          insights.push(diff > 0
+            ? `Los días que llegas a tu objetivo de agua, tu energía media es ${diff.toFixed(1)} puntos más alta (sobre 5).`
+            : `Los días que no llegas a tu objetivo de agua, tu energía media es ${(-diff).toFixed(1)} puntos más alta (sobre 5) — la relación no es la esperada, puede haber otros factores.`);
+        }
+      }
+    }
+
+    if (insights.length === 0) { card.hidden = true; return; }
+    card.hidden = false;
+    list.innerHTML = insights.map((i) => `<li>${escapeHtml(i)}</li>`).join('');
+  }
+
   function renderHeatmap(year, monthIndex, lastDay) {
     const totalDays = daysInMonth(year, monthIndex);
     const days = buildDayData(year, monthIndex, totalDays);
@@ -3234,6 +3506,7 @@
     const lastDay = monthDayRange(year, monthIndex);
 
     renderHeatmap(year, monthIndex, lastDay);
+    renderYearHeatmap(year);
     renderFoodAvg(year, monthIndex, lastDay);
 
     // Habit rings
@@ -3271,6 +3544,7 @@
     renderWorkoutStats(year, monthIndex, lastDay);
     renderGoalsStats(year, monthIndex, lastDay);
     renderWeekCompare();
+    renderInsights(year, monthIndex, lastDay);
     renderMonthWrapped(year, monthIndex, lastDay);
     renderYearWrapped(year);
     reflectionSearchCard.hidden = !Object.keys(store.entries).some((key) => (store.entries[key].reflection || '').trim());
@@ -3423,44 +3697,145 @@
     };
   }
 
-  function wrappedTile(color, value, label) {
-    return `<div class="wrapped-tile" style="background:${color}"><span class="wrapped-tile-value">${value}</span><span class="wrapped-tile-label">${label}</span></div>`;
+  function wrappedTileData(color, value, label) {
+    return { color, value, label };
   }
 
-  function buildWrappedTiles(stats) {
+  function buildWrappedTileList(stats) {
     const tiles = [];
     if (store.settings.dailyTasks.length > 0) {
-      tiles.push(wrappedTile('var(--accent)', `${Math.round(stats.completePct)}%`, 'días completos'));
+      tiles.push(wrappedTileData('var(--accent)', `${Math.round(stats.completePct)}%`, 'días completos'));
       if (stats.longestStreak > 0) {
-        tiles.push(wrappedTile('var(--claret)', `${stats.longestStreak}`, stats.longestStreak === 1 ? 'día de racha máxima' : 'días de racha máxima'));
+        tiles.push(wrappedTileData('var(--claret)', `${stats.longestStreak}`, stats.longestStreak === 1 ? 'día de racha máxima' : 'días de racha máxima'));
       }
       if (stats.bestHabit) {
-        tiles.push(wrappedTile('var(--accent-2)', stats.bestHabit.label, 'tu hábito más constante'));
+        tiles.push(wrappedTileData('var(--accent-2)', escapeHtml(stats.bestHabit.label), 'tu hábito más constante'));
       }
     }
     if (stats.foodAvg > 0) {
-      tiles.push(wrappedTile(healthColor(stats.foodAvg), `${stats.foodAvg.toFixed(1)} / 5`, 'alimentación media'));
+      tiles.push(wrappedTileData(healthColor(stats.foodAvg), `${stats.foodAvg.toFixed(1)} / 5`, 'alimentación media'));
     }
     if (suenoEnabled() && stats.sleepAvg > 0) {
-      tiles.push(wrappedTile('var(--h-total)', `${stats.sleepAvg.toFixed(1)} h`, 'sueño medio'));
+      tiles.push(wrappedTileData('var(--h-total)', `${stats.sleepAvg.toFixed(1)} h`, 'sueño medio'));
     }
     if (workoutsEnabled() && stats.workoutDays > 0) {
-      tiles.push(wrappedTile('var(--h-teeth)', `${stats.workoutDays}`, stats.workoutDays === 1 ? 'día entrenado' : 'días entrenados'));
+      tiles.push(wrappedTileData('var(--h-teeth)', `${stats.workoutDays}`, stats.workoutDays === 1 ? 'día entrenado' : 'días entrenados'));
     }
     if (pesoEnabled() && stats.weightDiff != null && Math.abs(stats.weightDiff) >= 0.1) {
-      tiles.push(wrappedTile('var(--accent)', `${stats.weightDiff > 0 ? '+' : ''}${stats.weightDiff.toFixed(1)} kg`, 'cambio de peso'));
+      tiles.push(wrappedTileData('var(--accent)', `${stats.weightDiff > 0 ? '+' : ''}${stats.weightDiff.toFixed(1)} kg`, 'cambio de peso'));
     }
     if (consumoEnabled() && (stats.cig > 0 || stats.joints > 0)) {
-      tiles.push(wrappedTile('var(--h-cig)', formatEuro(stats.spend), 'gasto en consumo'));
+      tiles.push(wrappedTileData('var(--h-cig)', formatEuro(stats.spend), 'gasto en consumo'));
     }
     if (cicloEnabled() && stats.periodDays > 0) {
-      tiles.push(wrappedTile('var(--h-ciclo)', `${stats.periodDays}`, stats.periodDays === 1 ? 'día de regla' : 'días de regla'));
+      tiles.push(wrappedTileData('var(--h-ciclo)', `${stats.periodDays}`, stats.periodDays === 1 ? 'día de regla' : 'días de regla'));
     }
     if (tiles.length === 0) {
-      tiles.push(wrappedTile('var(--surface-alt)', '–', 'Todavía sin datos suficientes'));
+      tiles.push(wrappedTileData('var(--surface-alt)', '–', 'Todavía sin datos suficientes'));
     }
-    return tiles.join('');
+    return tiles;
   }
+
+  function wrappedTilesHtml(tileList) {
+    return tileList
+      .map((t) => `<div class="wrapped-tile" style="background:${t.color}"><span class="wrapped-tile-value">${t.value}</span><span class="wrapped-tile-label">${t.label}</span></div>`)
+      .join('');
+  }
+
+  // Renders a wrapped summary as a portrait share-card image (canvas), then uses the
+  // Web Share API when available (native share sheet) or falls back to a download.
+  function resolveColor(cssVarExpr) {
+    const m = /var\((--[\w-]+)\)/.exec(cssVarExpr);
+    if (!m) return cssVarExpr;
+    return getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim() || '#8a1f31';
+  }
+
+  async function shareWrappedImage(title, tiles) {
+    const W = 1080, H = 1350;
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    const bg = resolveColor('var(--bg)');
+    const surface = resolveColor('var(--surface)');
+    const text = resolveColor('var(--text)');
+    const textMuted = resolveColor('var(--text-muted)');
+    const accent2 = resolveColor('var(--accent-2)');
+
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, resolveColor('var(--accent)'));
+    grad.addColorStop(1, bg);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 30px ui-rounded, -apple-system, sans-serif';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText('SUIT UP', 60, 100);
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.font = '600 46px ui-rounded, -apple-system, sans-serif';
+    ctx.fillText(title, 60, 160);
+
+    const cols = 2;
+    const gap = 24;
+    const marginX = 60;
+    const gridTop = 240;
+    const tileW = (W - marginX * 2 - gap * (cols - 1)) / cols;
+    const tileH = 200;
+    tiles.forEach((t, i) => {
+      const col = i % cols, row = Math.floor(i / cols);
+      const x = marginX + col * (tileW + gap);
+      const y = gridTop + row * (tileH + gap);
+      ctx.fillStyle = surface;
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(x, y, tileW, tileH, 22);
+      else ctx.rect(x, y, tileW, tileH);
+      ctx.fill();
+      ctx.fillStyle = resolveColor(t.color);
+      ctx.fillRect(x, y, 8, tileH);
+      ctx.fillStyle = text;
+      ctx.font = '700 54px ui-rounded, -apple-system, sans-serif';
+      const valueText = String(t.value).length > 10 ? `${String(t.value).slice(0, 10)}…` : String(t.value);
+      ctx.fillText(valueText, x + 32, y + 100);
+      ctx.fillStyle = textMuted;
+      ctx.font = '400 26px -apple-system, sans-serif';
+      ctx.fillText(t.label, x + 32, y + 140, tileW - 64);
+    });
+
+    ctx.fillStyle = accent2;
+    ctx.font = '400 24px -apple-system, sans-serif';
+    ctx.fillText(`Generado el ${new Date().toLocaleDateString('es-ES')}`, 60, H - 60);
+
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) return;
+    const fileName = `suit-up-resumen-${dateKey(new Date())}.png`;
+    const file = new File([blob], fileName, { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: `Suit Up — ${title}` });
+        return;
+      } catch (e) {
+        if (e && e.name === 'AbortError') return;
+      }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  let lastMonthWrappedShare = null;
+  let lastYearWrappedShare = null;
+  document.getElementById('shareMonthWrappedBtn').addEventListener('click', () => {
+    if (lastMonthWrappedShare) shareWrappedImage(lastMonthWrappedShare.title, lastMonthWrappedShare.tiles);
+  });
+  document.getElementById('shareYearWrappedBtn').addEventListener('click', () => {
+    if (lastYearWrappedShare) shareWrappedImage(lastYearWrappedShare.title, lastYearWrappedShare.tiles);
+  });
 
   function renderMonthWrapped(year, monthIndex, lastDay) {
     const card = document.getElementById('monthWrappedCard');
@@ -3490,8 +3865,11 @@
     const stats = computeWrappedStats(new Date(wrapYear, wrapMonth, 1), new Date(wrapYear, wrapMonth, wrapLastDay));
     if (stats.loggedDays === 0) { card.hidden = true; return; }
     card.hidden = false;
-    document.getElementById('monthWrappedTitle').textContent = `Resumen de ${MONTHS_LONG[wrapMonth]}`;
-    document.getElementById('monthWrappedTiles').innerHTML = buildWrappedTiles(stats);
+    const tileList = buildWrappedTileList(stats);
+    const title = `Resumen de ${MONTHS_LONG[wrapMonth]}`;
+    document.getElementById('monthWrappedTitle').textContent = title;
+    document.getElementById('monthWrappedTiles').innerHTML = wrappedTilesHtml(tileList);
+    lastMonthWrappedShare = { title: `${MONTHS_LONG[wrapMonth]} ${wrapYear}`, tiles: tileList };
   }
 
   function renderYearWrapped(year) {
@@ -3519,8 +3897,10 @@
     const stats = computeWrappedStats(new Date(wrapYear, 0, 1), new Date(wrapYear, 11, 31));
     if (stats.loggedDays === 0) { card.hidden = true; return; }
     card.hidden = false;
+    const tileList = buildWrappedTileList(stats);
     document.getElementById('yearWrappedTitle').textContent = `Resumen de ${wrapYear}`;
-    document.getElementById('yearWrappedTiles').innerHTML = buildWrappedTiles(stats);
+    document.getElementById('yearWrappedTiles').innerHTML = wrappedTilesHtml(tileList);
+    lastYearWrappedShare = { title: `${wrapYear}`, tiles: tileList };
   }
 
   function renderConsumoChart(year, monthIndex, lastDay) {
@@ -3651,10 +4031,13 @@
       </li>`).join('') : '<li class="task-empty-hint">No tienes tareas diarias todavía.</li>';
   }
 
+  let selectedDailyTaskIcon = null;
+  renderIconPicker(document.getElementById('dailyTaskIconPicker'), selectedDailyTaskIcon, (key) => { selectedDailyTaskIcon = key; });
+
   function addDailyTask() {
     const label = newDailyTaskInput.value.trim();
     if (!label) return;
-    store.settings.dailyTasks.push({ id: generateTaskId(), label });
+    store.settings.dailyTasks.push({ id: generateTaskId(), label, icon: selectedDailyTaskIcon });
     saveStore();
     newDailyTaskInput.value = '';
     renderDailyTaskManageList();
@@ -3742,10 +4125,13 @@
       </li>`).join('') : '<li class="task-empty-hint">No tienes malos hábitos todavía.</li>';
   }
 
+  let selectedBadHabitIcon = null;
+  renderIconPicker(document.getElementById('badHabitIconPicker'), selectedBadHabitIcon, (key) => { selectedBadHabitIcon = key; });
+
   function addBadHabit() {
     const label = newBadHabitInput.value.trim();
     if (!label) return;
-    store.settings.badHabits.push({ id: generateTaskId(), label });
+    store.settings.badHabits.push({ id: generateTaskId(), label, icon: selectedBadHabitIcon });
     saveStore();
     newBadHabitInput.value = '';
     renderBadHabitManageList();
@@ -3794,10 +4180,13 @@
       </li>`).join('') : '<li class="task-empty-hint">No tienes suplementos todavía.</li>';
   }
 
+  let selectedSupplementIcon = null;
+  renderIconPicker(document.getElementById('supplementIconPicker'), selectedSupplementIcon, (key) => { selectedSupplementIcon = key; });
+
   function addSupplement() {
     const label = newSupplementInput.value.trim();
     if (!label) return;
-    store.settings.supplements.push({ id: generateTaskId(), label });
+    store.settings.supplements.push({ id: generateTaskId(), label, icon: selectedSupplementIcon });
     saveStore();
     newSupplementInput.value = '';
     renderSupplementManageList();
@@ -3934,6 +4323,49 @@
     monthlyBudgetInput.value = store.settings.monthlyBudget != null ? store.settings.monthlyBudget : '';
     saveStore();
     if (activeTab === 'stats') renderStats();
+  });
+
+  /* ============ AJUSTES panel / Apariencia ============ */
+  const themeColorMetas = Array.from(document.querySelectorAll('meta[name="theme-color"]'));
+  const themeColorMetaDefaults = themeColorMetas.map((m) => m.getAttribute('content'));
+
+  function applyThemeMode() {
+    if (store.settings.themeMode === 'auto') {
+      delete document.documentElement.dataset.theme;
+    } else {
+      document.documentElement.dataset.theme = store.settings.themeMode;
+    }
+    // Both <meta name="theme-color"> tags in index.html are gated by a
+    // prefers-color-scheme media query for the automatic case; when the user picks
+    // an explicit theme here, both get the same resolved color so whichever one the
+    // browser honors still matches what's on screen (status bar / browser chrome).
+    // Switching back to "auto" restores their original media-driven values.
+    if (store.settings.themeMode === 'auto') {
+      themeColorMetas.forEach((m, i) => m.setAttribute('content', themeColorMetaDefaults[i]));
+    } else {
+      const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+      if (bg) themeColorMetas.forEach((m) => m.setAttribute('content', bg));
+    }
+  }
+
+  function applyDensityMode() {
+    document.documentElement.dataset.density = store.settings.densityMode === 'compact' ? 'compact' : '';
+  }
+
+  const themeModeSelect = document.getElementById('themeModeSelect');
+  themeModeSelect.value = store.settings.themeMode;
+  themeModeSelect.addEventListener('change', () => {
+    store.settings.themeMode = themeModeSelect.value;
+    saveStore();
+    applyThemeMode();
+  });
+
+  const densityModeSelect = document.getElementById('densityModeSelect');
+  densityModeSelect.value = store.settings.densityMode;
+  densityModeSelect.addEventListener('change', () => {
+    store.settings.densityMode = densityModeSelect.value;
+    saveStore();
+    applyDensityMode();
   });
 
   /* ============ AJUSTES panel / Profile ============ */
@@ -4309,20 +4741,24 @@
     const goals = store.settings.goals;
     goalManageList.innerHTML = goals.length ? goals.map((g) => `
       <li class="task-manage-item" data-task-id="${g.id}">
-        <span class="task-manage-label">${escapeHtml(g.label)}</span>
+        <span class="task-manage-label">${escapeHtml(g.label)}${g.dueDate ? ` <span class="hint-text" style="display:inline">· hasta ${fmtKeyDate(g.dueDate)}</span>` : ''}</span>
         <input type="number" class="purchase-price-input" data-target-goal="${g.id}" value="${g.target}" min="1" step="1" />
         <button type="button" class="task-remove-btn" data-remove-task="${g.id}" aria-label="Eliminar ${escapeHtml(g.label)}">×</button>
       </li>`).join('') : '<li class="task-empty-hint">No tienes metas todavía.</li>';
   }
 
+  const newGoalDateInput = document.getElementById('newGoalDateInput');
+
   function addGoal() {
     const label = newGoalLabelInput.value.trim();
     if (!label) return;
     const target = parseInt(newGoalTargetInput.value, 10);
-    store.settings.goals.push({ id: generateTaskId(), label, target: (!isNaN(target) && target > 0) ? target : 20 });
+    const dueDate = newGoalDateInput.value || null;
+    store.settings.goals.push({ id: generateTaskId(), label, target: (!isNaN(target) && target > 0) ? target : 20, dueDate });
     saveStore();
     newGoalLabelInput.value = '';
     newGoalTargetInput.value = '';
+    newGoalDateInput.value = '';
     renderGoalManageList();
     renderHoy();
     if (activeTab === 'stats') renderStats();
@@ -4597,7 +5033,26 @@
   });
 
   /* ============ Backup / restore ============ */
+  const backupReminderHint = document.getElementById('backupReminderHint');
+  function updateBackupReminderHint() {
+    const last = store.settings.lastBackupDate;
+    if (!last) {
+      backupReminderHint.hidden = false;
+      backupReminderHint.textContent = 'Todavía no has hecho ninguna copia de seguridad. Como todo se guarda solo en este dispositivo, exporta tus datos para no perderlos.';
+      return;
+    }
+    const daysSince = Math.round((startOfDay(new Date()) - startOfDay(new Date(last))) / DAY_MS);
+    if (daysSince >= 30) {
+      backupReminderHint.hidden = false;
+      backupReminderHint.textContent = `Llevas ${daysSince} días sin hacer una copia de seguridad. Exporta tus datos para no perder tu historial.`;
+    } else {
+      backupReminderHint.hidden = true;
+    }
+  }
+
   document.getElementById('exportBtn').addEventListener('click', () => {
+    store.settings.lastBackupDate = dateKey(new Date());
+    saveStore();
     const blob = new Blob([JSON.stringify(store, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -4607,6 +5062,7 @@
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+    updateBackupReminderHint();
   });
 
   const importFile = document.getElementById('importFile');
@@ -4626,6 +5082,7 @@
         renderAll();
         reminderToggle.checked = !!store.settings.reminderEnabled;
         reminderTime.value = store.settings.reminderTime || '21:00';
+        updateBackupReminderHint();
         alert('Datos importados correctamente.');
       } catch (e) {
         alert('El archivo no es válido.');
@@ -4634,6 +5091,7 @@
     reader.readAsText(file);
     importFile.value = '';
   });
+  updateBackupReminderHint();
 
   /* ============ Init ============ */
   function renderAll() {
@@ -4755,11 +5213,107 @@
     document.documentElement.dataset.season = season;
   }
 
+  /* ============ Check-in rápido ============ */
+  const checkinOverlay = document.getElementById('checkinOverlay');
+  const checkinList = document.getElementById('checkinList');
+  const checkinOpenBtn = document.getElementById('checkinOpenBtn');
+  const checkinCloseBtn = document.getElementById('checkinCloseBtn');
+  let checkinRowsCache = [];
+
+  // Reads the entry read-only (like renderHoy does) so merely opening the sheet
+  // never silently creates a stored entry for today — only an actual tap does,
+  // via ensureEntry() inside the click handler below.
+  function buildCheckinRows() {
+    const key = dateKey(currentDate);
+    const entry = getEntry(key) || emptyEntry();
+    const rows = [];
+    store.settings.dailyTasks.forEach((t) => {
+      rows.push({ name: t.label, icon: (t.icon && ICONS[t.icon]) || ICONS.default, done: !!entry[t.id], apply: (live) => { live[t.id] = !live[t.id]; } });
+    });
+    if (teethEnabled()) {
+      rows.push({ name: 'Lavarme los dientes', icon: ICONS.teeth, done: (entry.teeth || 0) > 0, apply: (live) => { live.teeth = live.teeth > 0 ? 0 : 1; } });
+    }
+    store.settings.badHabits.forEach((b) => {
+      const bad = entry.badHabits || {};
+      rows.push({ name: b.label, icon: (b.icon && ICONS[b.icon]) || ICONS.ban, done: !!bad[b.id], apply: (live) => { live.badHabits = live.badHabits || {}; live.badHabits[b.id] = !live.badHabits[b.id]; } });
+    });
+    if (supplementsEnabled()) {
+      store.settings.supplements.forEach((s) => {
+        const sup = entry.supplements || {};
+        rows.push({ name: s.label, icon: (s.icon && ICONS[s.icon]) || ICONS.pill, done: !!sup[s.id], apply: (live) => { live.supplements = live.supplements || {}; live.supplements[s.id] = !live.supplements[s.id]; } });
+      });
+    }
+    store.settings.goals.forEach((g) => {
+      const gls = entry.goals || {};
+      rows.push({ name: g.label, icon: ICONS.star, done: !!gls[g.id], apply: (live) => { live.goals = live.goals || {}; live.goals[g.id] = !live.goals[g.id]; } });
+    });
+    return rows;
+  }
+
+  function renderCheckinList() {
+    checkinRowsCache = buildCheckinRows();
+    if (checkinRowsCache.length === 0) {
+      checkinList.innerHTML = '<li class="checkin-empty">No tienes hábitos configurados todavía. Añádelos en Ajustes.</li>';
+      return;
+    }
+    checkinList.innerHTML = checkinRowsCache.map((r, i) => `
+      <li class="checkin-row${r.done ? ' is-done' : ''}">
+        <button type="button" class="check-btn${r.done ? ' is-checked' : ''}" data-checkin-toggle="${i}" aria-pressed="${r.done}">
+          <span class="check-icon">${CHECK_TICK_SVG}</span>
+        </button>
+        <span class="checkin-row-icon">${r.icon}</span>
+        <span class="checkin-row-name">${escapeHtml(r.name)}</span>
+      </li>`).join('');
+  }
+
+  checkinList.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-checkin-toggle]');
+    if (!btn) return;
+    const row = checkinRowsCache[parseInt(btn.dataset.checkinToggle, 10)];
+    if (!row) return;
+    const liveEntry = ensureEntry(dateKey(currentDate));
+    row.apply(liveEntry);
+    saveStore();
+    renderCheckinList();
+    renderHoy();
+    if (activeTab === 'stats') renderStats();
+  });
+
+  function openCheckin() {
+    renderCheckinList();
+    checkinOverlay.hidden = false;
+  }
+  function closeCheckin() {
+    checkinOverlay.hidden = true;
+  }
+  checkinOpenBtn.addEventListener('click', openCheckin);
+  checkinCloseBtn.addEventListener('click', closeCheckin);
+  checkinOverlay.addEventListener('click', (e) => { if (e.target === checkinOverlay) closeCheckin(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !checkinOverlay.hidden) closeCheckin();
+  });
+
+  /* ============ Atajos de la app (manifest shortcuts) ============ */
+  function applyLaunchShortcut() {
+    const shortcut = new URLSearchParams(window.location.search).get('shortcut');
+    if (shortcut === 'comidas') {
+      switchTab('comidas');
+    } else if (shortcut === 'checkin') {
+      switchTab('hoy');
+      openCheckin();
+    } else if (shortcut === 'hoy') {
+      switchTab('hoy');
+    }
+  }
+
   renderAll();
   checkReminder();
   checkCycleNotice();
   initCardReordering();
   applySeasonalAccent();
+  applyThemeMode();
+  applyDensityMode();
+  applyLaunchShortcut();
 
   const splashEl = document.getElementById('splash');
   if (splashEl) {
