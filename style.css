@@ -249,6 +249,10 @@
   outline-offset: 2px;
 }
 
+button, a {
+  -webkit-tap-highlight-color: transparent;
+}
+
 button {
   transition: transform 0.1s ease;
 }
