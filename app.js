@@ -5513,6 +5513,10 @@
   function openCheckin() {
     renderCheckinList();
     checkinOverlay.hidden = false;
+    // Unlike the habit checkboxes (rebuilt on every render, which naturally drops
+    // focus), this button is static, so a lingering focus ring after a tap would
+    // sit visibly on it indefinitely otherwise.
+    checkinOpenBtn.blur();
   }
   function closeCheckin() {
     checkinOverlay.hidden = true;
