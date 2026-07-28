@@ -273,11 +273,7 @@ html, body {
 }
 
 body {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, transparent 45%, rgba(0, 0, 0, 0.02) 100%),
-    repeating-linear-gradient(45deg, rgba(127, 127, 127, 0.045) 0px, rgba(127, 127, 127, 0.045) 1px, transparent 1px, transparent 9px),
-    repeating-linear-gradient(-45deg, rgba(127, 127, 127, 0.045) 0px, rgba(127, 127, 127, 0.045) 1px, transparent 1px, transparent 9px),
-    var(--bg);
+  background: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
   font-variant-numeric: tabular-nums;
@@ -291,12 +287,7 @@ body {
   display: flex;
   flex-direction: column;
   position: relative;
-  background:
-    linear-gradient(180deg, var(--season-tint), transparent 55%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, transparent 45%, rgba(0, 0, 0, 0.02) 100%),
-    repeating-linear-gradient(45deg, rgba(127, 127, 127, 0.045) 0px, rgba(127, 127, 127, 0.045) 1px, transparent 1px, transparent 9px),
-    repeating-linear-gradient(-45deg, rgba(127, 127, 127, 0.045) 0px, rgba(127, 127, 127, 0.045) 1px, transparent 1px, transparent 9px),
-    var(--bg);
+  background: var(--bg);
 }
 #app::before {
   content: "";
@@ -478,24 +469,6 @@ main {
 
 .tab-panel[hidden] {
   display: none;
-}
-.tab-panel[data-panel="hoy"] {
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M10.3,7.2 L13.7,7.2 L12.9,9.4 L11.1,9.4 Z' fill='%23888' fill-opacity='0.07'/%3E%3Cpath d='M11.1,9.4 L12.9,9.4 L13.6,13.4 L12,17.3 L10.4,13.4 Z' fill='%23888' fill-opacity='0.07'/%3E%3C/svg%3E"),
-    repeating-linear-gradient(0deg, rgba(127, 127, 127, 0.05) 0px, rgba(127, 127, 127, 0.05) 1px, transparent 1px, transparent 26px);
-  background-repeat: no-repeat, repeat;
-  background-position: center 60px, top left;
-  background-size: 220px 220px, auto;
-}
-.tab-panel[data-panel="comidas"] {
-  background-image:
-    repeating-linear-gradient(60deg, rgba(127, 127, 127, 0.05) 0px, rgba(127, 127, 127, 0.05) 1px, transparent 1px, transparent 10px),
-    repeating-linear-gradient(-60deg, rgba(127, 127, 127, 0.05) 0px, rgba(127, 127, 127, 0.05) 1px, transparent 1px, transparent 10px);
-}
-.tab-panel[data-panel="stats"] {
-  background-image:
-    repeating-linear-gradient(0deg, rgba(127, 127, 127, 0.05) 0px, rgba(127, 127, 127, 0.05) 1px, transparent 1px, transparent 24px),
-    repeating-linear-gradient(90deg, rgba(127, 127, 127, 0.05) 0px, rgba(127, 127, 127, 0.05) 1px, transparent 1px, transparent 24px);
 }
 
 .card {
