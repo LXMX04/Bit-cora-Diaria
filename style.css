@@ -254,6 +254,8 @@ button, a {
 }
 
 button {
+  -webkit-appearance: none;
+  appearance: none;
   transition: transform 0.1s ease;
 }
 button:not(.card-drag-handle):active {
