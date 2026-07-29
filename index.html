@@ -83,25 +83,25 @@
       </div>
 
       <div class="card" id="dailyTasksCard">
-        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.5,4.5 L14.5,4.5 L13.2,7.2 L10.8,7.2 Z"/><path d="M10.8,7.2 L13.2,7.2 L14.3,13.5 L12,19 L9.7,13.5 Z"/></svg></span>Hábitos diarios</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--h-teeth);background:color-mix(in srgb, var(--h-teeth) 16%, transparent)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.5,4.5 L14.5,4.5 L13.2,7.2 L10.8,7.2 Z"/><path d="M10.8,7.2 L13.2,7.2 L14.3,13.5 L12,19 L9.7,13.5 Z"/></svg></span>Hábitos diarios</h2>
         <ul class="habit-list" id="dailyTaskList"></ul>
       </div>
 
       <div class="card" id="weeklyTasksCard">
         <div class="card-title-row">
-          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="13" r="7.5"/><path d="M12,8.5 L12,13 L15,15" stroke-linecap="round" stroke-linejoin="round"/><path d="M9,3.5 L15,3.5" stroke-linecap="round"/></svg></span>Tareas semanales</h2>
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--h-total);background:color-mix(in srgb, var(--h-total) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="13" r="7.5"/><path d="M12,8.5 L12,13 L15,15" stroke-linecap="round" stroke-linejoin="round"/><path d="M9,3.5 L15,3.5" stroke-linecap="round"/></svg></span>Tareas semanales</h2>
           <span class="week-range" id="weekRange">–</span>
         </div>
         <ul class="habit-list" id="weeklyTaskList"></ul>
       </div>
 
       <div class="card" id="supplementsCard">
-        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="9" width="18" height="6" rx="3"/><line x1="12" y1="9" x2="12" y2="15"/></svg></span>Suplementos</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--good);background:color-mix(in srgb, var(--good) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="9" width="18" height="6" rx="3"/><line x1="12" y1="9" x2="12" y2="15"/></svg></span>Suplementos</h2>
         <ul class="habit-list" id="supplementList"></ul>
       </div>
 
       <div class="card" id="cicloCard" hidden>
-        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5,12 A7,7 0 0 1 18,7.5" stroke-linecap="round"/><path d="M19,12 A7,7 0 0 1 6,16.5" stroke-linecap="round"/><path d="M15.5,5.5 L18,7.5 L15,9" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5,18.5 L6,16.5 L9,15" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Ciclo</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--h-ciclo);background:color-mix(in srgb, var(--h-ciclo) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5,12 A7,7 0 0 1 18,7.5" stroke-linecap="round"/><path d="M19,12 A7,7 0 0 1 6,16.5" stroke-linecap="round"/><path d="M15.5,5.5 L18,7.5 L15,9" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5,18.5 L6,16.5 L9,15" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Ciclo</h2>
         <p class="cycle-info-line" id="cycleInfoLine"></p>
         <ul class="habit-list">
           <li class="habit-row">
@@ -128,7 +128,7 @@
       </div>
 
       <div class="card" id="badHabitsCard">
-        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6,6 L18,18 M6,18 L18,6" stroke-linecap="round"/><circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/></svg></span>Malos hábitos</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--danger);background:color-mix(in srgb, var(--danger) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6,6 L18,18 M6,18 L18,6" stroke-linecap="round"/><circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/></svg></span>Malos hábitos</h2>
         <ul class="habit-list" id="badHabitList"></ul>
         <p class="hint-text">Márcalo si hoy has hecho esto que quieres evitar. Resta puntos del Total y se refleja en Stats.</p>
       </div>
@@ -146,7 +146,7 @@
       </div>
 
       <div class="card" id="gratitudCard" hidden>
-        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,4 C9,7 7,10 7,13 C7,16.9 9.2,19 12,19 C14.8,19 17,16.9 17,13 C17,10 15,7 12,4 Z"/><path d="M12,8 C10.5,10 10,12 10,13.5" stroke-linecap="round"/></svg></span>Gratitud</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--good);background:color-mix(in srgb, var(--good) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,4 C9,7 7,10 7,13 C7,16.9 9.2,19 12,19 C14.8,19 17,16.9 17,13 C17,10 15,7 12,4 Z"/><path d="M12,8 C10.5,10 10,12 10,13.5" stroke-linecap="round"/></svg></span>Gratitud</h2>
         <p class="hint-text" style="margin-top:0">Tres cosas de hoy por las que estés agradecido.</p>
         <div class="gratitude-list">
           <input type="text" class="gratitude-input" data-gratitude-index="0" maxlength="80" placeholder="1." aria-label="Primera cosa por la que estás agradecido" />
@@ -156,7 +156,7 @@
       </div>
 
       <div class="card" id="energiaCard" hidden>
-        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,3.5 L12,5.2 M12,18.8 L12,20.5 M3.5,12 L5.2,12 M18.8,12 L20.5,12 M6,6 L7.2,7.2 M16.8,16.8 L18,18 M18,6 L16.8,7.2 M7.2,16.8 L6,18" stroke-linecap="round"/></svg></span>Energía y estrés</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--accent-2);background:color-mix(in srgb, var(--accent-2) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,3.5 L12,5.2 M12,18.8 L12,20.5 M3.5,12 L5.2,12 M18.8,12 L20.5,12 M6,6 L7.2,7.2 M16.8,16.8 L18,18 M18,6 L16.8,7.2 M7.2,16.8 L6,18" stroke-linecap="round"/></svg></span>Energía y estrés</h2>
         <div class="health-row">
           <span class="health-label">Energía</span>
           <div class="health-scale" data-health-energy="0">
@@ -196,7 +196,7 @@
     <section class="tab-panel" id="panel-objetivos" data-panel="objetivos" hidden>
 
       <div class="card" id="aguaCard" hidden>
-        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,3 C7,8 5,11.5 5,14.5 C5,18.6 8.1,21 12,21 C15.9,21 19,18.6 19,14.5 C19,11.5 17,8 12,3 Z"/></svg></span>Agua</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--accent);background:color-mix(in srgb, var(--accent) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,3 C7,8 5,11.5 5,14.5 C5,18.6 8.1,21 12,21 C15.9,21 19,18.6 19,14.5 C19,11.5 17,8 12,3 Z"/></svg></span>Agua</h2>
         <div class="consumo-row">
           <div class="consumo-label">
             <span class="consumo-name">Vasos de agua</span>
@@ -211,7 +211,7 @@
       </div>
 
       <div class="card" id="suenoCard" hidden>
-        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20,13.5 A8,8 0 1 1 10.5,4 A6.3,6.3 0 0 0 20,13.5 Z" stroke-linejoin="round"/></svg></span>Sueño</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--h-total);background:color-mix(in srgb, var(--h-total) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20,13.5 A8,8 0 1 1 10.5,4 A6.3,6.3 0 0 0 20,13.5 Z" stroke-linejoin="round"/></svg></span>Sueño</h2>
         <div class="consumo-row">
           <div class="consumo-label">
             <span class="consumo-name">Horas dormidas</span>
@@ -235,7 +235,7 @@
       </div>
 
       <div class="card" id="pesoCard" hidden>
-        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7,20 L17,20 M12,20 L12,5 M8,5 L16,5" stroke-linecap="round"/><circle cx="12" cy="5" r="3"/></svg></span>Peso</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--accent-2);background:color-mix(in srgb, var(--accent-2) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7,20 L17,20 M12,20 L12,5 M8,5 L16,5" stroke-linecap="round"/><circle cx="12" cy="5" r="3"/></svg></span>Peso</h2>
         <div class="meal-row">
           <label class="meal-label" for="weightInput">Peso de hoy</label>
           <input type="number" id="weightInput" class="meal-time weight-input" min="0" max="400" step="0.1" placeholder="kg" />
@@ -244,7 +244,7 @@
       </div>
 
       <div class="card" id="ayunoCard" hidden>
-        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,12 L12,6.5 A5.5,5.5 0 0 1 16.5,14.5 Z" fill="currentColor" stroke="none" opacity="0.35"/><path d="M12,12 L12,6.5" stroke-linecap="round"/></svg></span>Ayuno intermitente</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--h-cig);background:color-mix(in srgb, var(--h-cig) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,12 L12,6.5 A5.5,5.5 0 0 1 16.5,14.5 Z" fill="currentColor" stroke="none" opacity="0.35"/><path d="M12,12 L12,6.5" stroke-linecap="round"/></svg></span>Ayuno intermitente</h2>
         <div class="meal-row">
           <label class="meal-label" for="fastStartInput">Inicio del ayuno</label>
           <input type="time" id="fastStartInput" class="meal-time" />
@@ -257,7 +257,7 @@
       </div>
 
       <div class="card" id="menteCard" hidden>
-        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,4 C9,7 7,10 7,13 C7,16.9 9.2,19 12,19 C14.8,19 17,16.9 17,13 C17,10 15,7 12,4 Z"/><path d="M12,8 C10.5,10 10,12 10,13.5" stroke-linecap="round"/></svg></span>Mente</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--h-teeth);background:color-mix(in srgb, var(--h-teeth) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,4 C9,7 7,10 7,13 C7,16.9 9.2,19 12,19 C14.8,19 17,16.9 17,13 C17,10 15,7 12,4 Z"/><path d="M12,8 C10.5,10 10,12 10,13.5" stroke-linecap="round"/></svg></span>Mente</h2>
         <div class="consumo-row" id="meditationRow">
           <div class="consumo-label"><span class="consumo-name">Meditación</span></div>
           <div class="stepper" data-stepper="meditationMin">
@@ -278,7 +278,7 @@
       </div>
 
       <div class="card" id="workoutCard" hidden>
-        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4,9 L4,15 M2,8 L2,16 M20,9 L20,15 M22,8 L22,16 M6,12 L18,12" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Ejercicio</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--claret);background:color-mix(in srgb, var(--claret) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4,9 L4,15 M2,8 L2,16 M20,9 L20,15 M22,8 L22,16 M6,12 L18,12" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Ejercicio</h2>
         <div class="consumo-row">
           <div class="consumo-label"><span class="consumo-name">Duración</span></div>
           <div class="stepper" data-stepper="workoutDuration">
@@ -304,7 +304,7 @@
       </div>
 
       <div class="card" id="goalsCard">
-        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="4.5"/><circle cx="16" cy="16" r="4.5"/><circle cx="16" cy="16" r="1.4" fill="currentColor" stroke="none"/></svg></span>Metas</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--claret);background:color-mix(in srgb, var(--claret) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="4.5"/><circle cx="16" cy="16" r="4.5"/><circle cx="16" cy="16" r="1.4" fill="currentColor" stroke="none"/></svg></span>Metas</h2>
         <ul class="habit-list" id="goalsList"></ul>
       </div>
 
@@ -376,7 +376,7 @@
       </div>
 
       <div class="card" id="snacksCard" hidden>
-        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,4 C9,7 7,10 7,13 C7,16.9 9.2,19 12,19 C14.8,19 17,16.9 17,13 C17,10 15,7 12,4 Z"/></svg></span>Snacks</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--h-food);background:color-mix(in srgb, var(--h-food) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,4 C9,7 7,10 7,13 C7,16.9 9.2,19 12,19 C14.8,19 17,16.9 17,13 C17,10 15,7 12,4 Z"/></svg></span>Snacks</h2>
         <ul class="task-manage-list" id="snackList"><li class="task-empty-hint">Sin snacks registrados hoy.</li></ul>
         <div class="task-add-row">
           <input type="text" id="newSnackInput" class="task-add-input" placeholder="Qué has picado…" maxlength="40" aria-label="Qué has picado" />
@@ -417,7 +417,7 @@
     <!-- CONSUMO -->
     <section class="tab-panel" id="panel-consumo" data-panel="consumo" hidden>
       <div class="card" id="consumoTodayCard" hidden>
-        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9,20 L9,14.5 C9,11.5 11,11.5 11,9 C11,7.5 10,7 10,5.5" stroke-linecap="round"/><path d="M13,20 L13,16 C13,13.5 15,13.8 15,11.5 C15,10.2 14.2,9.8 14.2,8.5" stroke-linecap="round" opacity="0.6"/></svg></span>Consumo de hoy</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--h-cig);background:color-mix(in srgb, var(--h-cig) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9,20 L9,14.5 C9,11.5 11,11.5 11,9 C11,7.5 10,7 10,5.5" stroke-linecap="round"/><path d="M13,20 L13,16 C13,13.5 15,13.8 15,11.5 C15,10.2 14.2,9.8 14.2,8.5" stroke-linecap="round" opacity="0.6"/></svg></span>Consumo de hoy</h2>
         <div class="consumo-row">
           <div class="consumo-label">
             <span class="consumo-name">Cigarros</span>
@@ -516,18 +516,18 @@
       </div>
 
       <div class="card" id="supplementsStatsCard" hidden>
-        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="9" width="18" height="6" rx="3"/><line x1="12" y1="9" x2="12" y2="15"/></svg></span>Suplementos</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--good);background:color-mix(in srgb, var(--good) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="9" width="18" height="6" rx="3"/><line x1="12" y1="9" x2="12" y2="15"/></svg></span>Suplementos</h2>
         <div class="rings-grid rings-grid--lg" id="supplementRingsGrid"></div>
       </div>
 
       <div class="card" id="aguaStatsCard" hidden>
-        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,3 C7,8 5,11.5 5,14.5 C5,18.6 8.1,21 12,21 C15.9,21 19,18.6 19,14.5 C19,11.5 17,8 12,3 Z"/></svg></span>Agua</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--accent);background:color-mix(in srgb, var(--accent) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,3 C7,8 5,11.5 5,14.5 C5,18.6 8.1,21 12,21 C15.9,21 19,18.6 19,14.5 C19,11.5 17,8 12,3 Z"/></svg></span>Agua</h2>
         <div class="rings-grid rings-grid--lg" id="aguaRingGrid"></div>
         <p class="hint-text" id="aguaAvgHint"></p>
       </div>
 
       <div class="card" id="suenoStatsCard" hidden>
-        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20,13.5 A8,8 0 1 1 10.5,4 A6.3,6.3 0 0 0 20,13.5 Z" stroke-linejoin="round"/></svg></span>Sueño</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--h-total);background:color-mix(in srgb, var(--h-total) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20,13.5 A8,8 0 1 1 10.5,4 A6.3,6.3 0 0 0 20,13.5 Z" stroke-linejoin="round"/></svg></span>Sueño</h2>
         <div class="avg-grid">
           <div class="avg-tile">
             <span class="avg-value" id="avgSleepHours">0.0</span>
@@ -542,13 +542,13 @@
       </div>
 
       <div class="card" id="pesoStatsCard" hidden>
-        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7,20 L17,20 M12,20 L12,5 M8,5 L16,5" stroke-linecap="round"/><circle cx="12" cy="5" r="3"/></svg></span>Peso corporal</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--accent-2);background:color-mix(in srgb, var(--accent-2) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7,20 L17,20 M12,20 L12,5 M8,5 L16,5" stroke-linecap="round"/><circle cx="12" cy="5" r="3"/></svg></span>Peso corporal</h2>
         <div class="chart-wrap" id="weightChart"></div>
         <p class="hint-text" id="weightChangeHint"></p>
       </div>
 
       <div class="card" id="ayunoStatsCard" hidden>
-        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,12 L12,6.5 A5.5,5.5 0 0 1 16.5,14.5 Z" fill="currentColor" stroke="none" opacity="0.35"/><path d="M12,12 L12,6.5" stroke-linecap="round"/></svg></span>Ayuno intermitente</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--h-cig);background:color-mix(in srgb, var(--h-cig) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,12 L12,6.5 A5.5,5.5 0 0 1 16.5,14.5 Z" fill="currentColor" stroke="none" opacity="0.35"/><path d="M12,12 L12,6.5" stroke-linecap="round"/></svg></span>Ayuno intermitente</h2>
         <div class="avg-grid single">
           <div class="avg-tile">
             <span class="avg-value" id="avgFastingHours">0.0</span>
@@ -558,7 +558,7 @@
       </div>
 
       <div class="card" id="menteStatsCard" hidden>
-        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,4 C9,7 7,10 7,13 C7,16.9 9.2,19 12,19 C14.8,19 17,16.9 17,13 C17,10 15,7 12,4 Z"/><path d="M12,8 C10.5,10 10,12 10,13.5" stroke-linecap="round"/></svg></span>Mente</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--h-teeth);background:color-mix(in srgb, var(--h-teeth) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,4 C9,7 7,10 7,13 C7,16.9 9.2,19 12,19 C14.8,19 17,16.9 17,13 C17,10 15,7 12,4 Z"/><path d="M12,8 C10.5,10 10,12 10,13.5" stroke-linecap="round"/></svg></span>Mente</h2>
         <div class="avg-grid">
           <div class="avg-tile" id="meditationAvgTile">
             <span class="avg-value" id="avgMeditationMin">0</span>
@@ -572,7 +572,7 @@
       </div>
 
       <div class="card" id="cicloStatsCard" hidden>
-        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5,12 A7,7 0 0 1 18,7.5" stroke-linecap="round"/><path d="M19,12 A7,7 0 0 1 6,16.5" stroke-linecap="round"/><path d="M15.5,5.5 L18,7.5 L15,9" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5,18.5 L6,16.5 L9,15" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Ciclo</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--h-ciclo);background:color-mix(in srgb, var(--h-ciclo) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5,12 A7,7 0 0 1 18,7.5" stroke-linecap="round"/><path d="M19,12 A7,7 0 0 1 6,16.5" stroke-linecap="round"/><path d="M15.5,5.5 L18,7.5 L15,9" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5,18.5 L6,16.5 L9,15" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Ciclo</h2>
         <div class="avg-grid">
           <div class="avg-tile">
             <span class="avg-value" id="periodDaysCount">0</span>
@@ -591,7 +591,7 @@
       </div>
 
       <div class="card" id="workoutStatsCard" hidden>
-        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4,9 L4,15 M2,8 L2,16 M20,9 L20,15 M22,8 L22,16 M6,12 L18,12" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Ejercicio</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--claret);background:color-mix(in srgb, var(--claret) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4,9 L4,15 M2,8 L2,16 M20,9 L20,15 M22,8 L22,16 M6,12 L18,12" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Ejercicio</h2>
         <div class="rings-grid rings-grid--lg" id="workoutRingGrid"></div>
         <div class="exercise-stats-list" id="exerciseStatsList"></div>
         <div class="exercise-progress-list" id="exerciseProgressList"></div>
@@ -609,7 +609,7 @@
       </div>
 
       <div class="card" id="goalsStatsCard" hidden>
-        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="4.5"/><circle cx="16" cy="16" r="4.5"/><circle cx="16" cy="16" r="1.4" fill="currentColor" stroke="none"/></svg></span>Metas</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--claret);background:color-mix(in srgb, var(--claret) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="4.5"/><circle cx="16" cy="16" r="4.5"/><circle cx="16" cy="16" r="1.4" fill="currentColor" stroke="none"/></svg></span>Metas</h2>
         <div class="bars-list" id="goalsBars"></div>
       </div>
 
@@ -631,12 +631,12 @@
       </div>
 
       <div class="card" id="tareasSemanalesStatsCard">
-        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="13" r="7.5"/><path d="M12,8.5 L12,13 L15,15" stroke-linecap="round" stroke-linejoin="round"/><path d="M9,3.5 L15,3.5" stroke-linecap="round"/></svg></span>Tareas semanales</h2>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--h-total);background:color-mix(in srgb, var(--h-total) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="13" r="7.5"/><path d="M12,8.5 L12,13 L15,15" stroke-linecap="round" stroke-linejoin="round"/><path d="M9,3.5 L15,3.5" stroke-linecap="round"/></svg></span>Tareas semanales</h2>
         <div class="bars-list" id="weeklyBars"></div>
       </div>
 
       <div class="card" id="consumoChartCard">
-        <h2 class="card-title" id="consumoChartTitle"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9,20 L9,14.5 C9,11.5 11,11.5 11,9 C11,7.5 10,7 10,5.5" stroke-linecap="round"/><path d="M13,20 L13,16 C13,13.5 15,13.8 15,11.5 C15,10.2 14.2,9.8 14.2,8.5" stroke-linecap="round" opacity="0.6"/></svg></span>Cigarros y Joints</h2>
+        <h2 class="card-title" id="consumoChartTitle"><span class="card-title-icon" aria-hidden="true" style="color:var(--h-cig);background:color-mix(in srgb, var(--h-cig) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9,20 L9,14.5 C9,11.5 11,11.5 11,9 C11,7.5 10,7 10,5.5" stroke-linecap="round"/><path d="M13,20 L13,16 C13,13.5 15,13.8 15,11.5 C15,10.2 14.2,9.8 14.2,8.5" stroke-linecap="round" opacity="0.6"/></svg></span>Cigarros y Joints</h2>
         <div class="chart-wrap" id="consumoChart"></div>
         <div class="legend">
           <span class="legend-item"><span class="dot dot--cig"></span>Cigarros</span>
