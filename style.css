@@ -589,7 +589,12 @@ main {
 }
 .accordion-chevron {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
   font-size: 17px;
+  line-height: 1;
   color: var(--text-muted);
   transition: transform 0.15s;
 }
