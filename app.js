@@ -48,7 +48,8 @@
       supplements: [],
       goals: [],
       exercises: [],
-      profile: { name: '', sex: '', birthdate: '', height: null, weight: null }
+      profile: { name: '', sex: '', birthdate: '', height: null, weight: null },
+      onboardingDismissed: false
     };
   }
 
@@ -595,6 +596,7 @@
     panels.forEach((p) => { p.hidden = p.dataset.panel !== tab; });
     daySelector.style.display = (tab === 'stats' || tab === 'ajustes') ? 'none' : 'flex';
     if (tab === 'stats') renderStats();
+    if (tab === 'ajustes') refreshAjustesUI();
     if (changed) {
       const panel = document.querySelector('.tab-panel:not([hidden])');
       if (panel) {
@@ -633,7 +635,8 @@
   }
 
   /* ============ AJUSTES accordion ============ */
-  document.getElementById('panel-ajustes').addEventListener('click', (e) => {
+  const panelAjustes = document.getElementById('panel-ajustes');
+  panelAjustes.addEventListener('click', (e) => {
     const header = e.target.closest('[data-accordion-toggle]');
     if (!header) return;
     const body = header.nextElementSibling;
@@ -641,6 +644,240 @@
     header.setAttribute('aria-expanded', String(!isOpen));
     body.hidden = isOpen;
   });
+
+  /* ============ Ajustes: buscador ============ */
+  const settingsSearchInput = document.getElementById('settingsSearchInput');
+  const settingsSearchClear = document.getElementById('settingsSearchClear');
+  const settingsNoResults = document.getElementById('settingsNoResults');
+  const settingsMoreToggle = document.getElementById('settingsMoreToggle');
+  const settingsMoreGroup = document.getElementById('settingsMoreGroup');
+
+  function normalizeSearchText(s) {
+    return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  }
+
+  function applySettingsSearch() {
+    const query = normalizeSearchText(settingsSearchInput.value);
+    settingsSearchClear.hidden = query.length === 0;
+    const cards = panelAjustes.querySelectorAll('.accordion-card, .backup-card');
+    let anyMatch = false;
+    let anyMatchInMore = false;
+    cards.forEach((card) => {
+      if (!query) { card.hidden = false; anyMatch = true; return; }
+      const titleEl = card.querySelector('.card-title');
+      const title = normalizeSearchText(titleEl ? titleEl.textContent : '');
+      const keywords = normalizeSearchText(card.dataset.settingsKeywords);
+      const matches = title.includes(query) || keywords.includes(query);
+      card.hidden = !matches;
+      if (matches) {
+        anyMatch = true;
+        if (settingsMoreGroup.contains(card)) anyMatchInMore = true;
+        const header = card.querySelector('[data-accordion-toggle]');
+        const body = card.querySelector('.accordion-body');
+        if (header && body) { header.setAttribute('aria-expanded', 'true'); body.hidden = false; }
+      }
+    });
+    panelAjustes.querySelectorAll('.settings-group').forEach((group) => {
+      if (!query) { group.hidden = false; return; }
+      const visibleCards = Array.from(group.querySelectorAll('.accordion-card')).filter((c) => !c.hidden);
+      group.hidden = visibleCards.length === 0;
+    });
+    if (query && anyMatchInMore) {
+      settingsMoreGroup.hidden = false;
+      settingsMoreToggle.setAttribute('aria-expanded', 'true');
+    }
+    settingsNoResults.hidden = anyMatch;
+  }
+  settingsSearchInput.addEventListener('input', applySettingsSearch);
+  settingsSearchClear.addEventListener('click', () => {
+    settingsSearchInput.value = '';
+    applySettingsSearch();
+    settingsSearchInput.focus();
+  });
+
+  /* ============ Ajustes: "Más funciones" ============ */
+  settingsMoreToggle.addEventListener('click', () => {
+    const isOpen = settingsMoreToggle.getAttribute('aria-expanded') === 'true';
+    settingsMoreToggle.setAttribute('aria-expanded', String(!isOpen));
+    settingsMoreGroup.hidden = isOpen;
+  });
+
+  /* ============ Ajustes: contadores y estados en cada acordeón ============ */
+  function setAccordionBadge(id, count) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (count > 0) { el.hidden = false; el.textContent = String(count); }
+    else el.hidden = true;
+  }
+  function setAccordionDot(id, isOn) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.hidden = false;
+    el.classList.toggle('is-on', isOn);
+  }
+  function updateAccordionBadges() {
+    setAccordionBadge('dailyTasksBadge', store.settings.dailyTasks.length);
+    setAccordionBadge('weeklyTasksBadge', store.settings.weeklyTasks.length);
+    setAccordionBadge('badHabitsBadge', store.settings.badHabits.length);
+    setAccordionBadge('goalsBadge', store.settings.goals.length);
+    setAccordionDot('supplementsDot', supplementsEnabled());
+    setAccordionDot('consumoDot', consumoEnabled());
+    setAccordionDot('aguaDot', aguaEnabled());
+    setAccordionDot('suenoDot', suenoEnabled());
+    setAccordionDot('pesoDot', pesoEnabled());
+    setAccordionDot('ayunoDot', ayunoEnabled());
+    setAccordionDot('menteDot', meditacionEnabled() || lecturaEnabled());
+    setAccordionDot('cicloDot', cicloEnabled());
+    setAccordionDot('ejercicioDot', workoutsEnabled());
+    setAccordionDot('energiaDot', energiaEnabled());
+    setAccordionDot('gratitudDot', gratitudEnabled());
+    setAccordionDot('snacksDot', snacksEnabled());
+    setAccordionDot('ropaDot', ropaEnabled());
+    setAccordionDot('reminderDot', !!store.settings.reminderEnabled);
+    setAccordionDot('travelDot', !!store.settings.travelModeActive);
+  }
+
+  /* ============ Ajustes: aviso de función activada pero sin usar ============ */
+  function anyEntryMatches(predicate) {
+    return Object.values(store.entries).some(predicate);
+  }
+  function hasEnoughHistoryToJudge() {
+    return Object.keys(store.entries).length >= 14;
+  }
+  function setUnusedHint(id, enabled, hasData, featureName) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (enabled && hasEnoughHistoryToJudge() && !hasData) {
+      el.hidden = false;
+      el.textContent = `No hay registros en ${featureName} todavía. Si no lo usas, puedes desactivarlo arriba.`;
+    } else {
+      el.hidden = true;
+    }
+  }
+  function updateUnusedFeatureHints() {
+    setUnusedHint('supplementsUnusedHint', supplementsEnabled(),
+      anyEntryMatches((e) => e.supplements && Object.values(e.supplements).some(Boolean)), 'Suplementos');
+    setUnusedHint('aguaUnusedHint', aguaEnabled(), anyEntryMatches((e) => e.agua > 0), 'Agua');
+    setUnusedHint('suenoUnusedHint', suenoEnabled(), anyEntryMatches((e) => e.sleepHours > 0), 'Sueño');
+    setUnusedHint('pesoUnusedHint', pesoEnabled(), anyEntryMatches((e) => e.weight != null), 'Peso corporal');
+    setUnusedHint('ayunoUnusedHint', ayunoEnabled(), anyEntryMatches((e) => e.fastStart || e.fastEnd), 'Ayuno intermitente');
+    setUnusedHint('cicloUnusedHint', cicloEnabled(), anyEntryMatches((e) => e.periodDay), 'Ciclo menstrual');
+    setUnusedHint('ejercicioUnusedHint', workoutsEnabled(), anyEntryMatches((e) => e.workout && e.workout.durationMin > 0), 'Ejercicio');
+    setUnusedHint('energiaUnusedHint', energiaEnabled(), anyEntryMatches((e) => e.energyLevel > 0 || e.stressLevel > 0), 'Energía y estrés');
+    setUnusedHint('gratitudUnusedHint', gratitudEnabled(),
+      anyEntryMatches((e) => Array.isArray(e.gratitude) && e.gratitude.some((g) => g && g.trim())), 'Gratitud');
+    setUnusedHint('snacksUnusedHint', snacksEnabled(), anyEntryMatches((e) => Array.isArray(e.snacks) && e.snacks.length > 0), 'Snacks');
+    setUnusedHint('ropaUnusedHint', ropaEnabled(), anyEntryMatches((e) => e.outfitPlanned), 'Ropa del día');
+  }
+
+  /* ============ Ajustes: vista previa de densidad ============ */
+  const densityPreview = document.getElementById('densityPreview');
+  function updateDensityPreview() {
+    densityPreview.querySelectorAll('.density-preview-swatch').forEach((sw) => {
+      sw.classList.toggle('is-selected', sw.dataset.preview === densityModeSelect.value);
+    });
+  }
+
+  /* ============ Ajustes: toast (confirmación / deshacer) ============ */
+  const settingsToastWrap = document.getElementById('settingsToastWrap');
+  let settingsToastTimer = null;
+  function hideSettingsToast() {
+    const toast = settingsToastWrap.querySelector('.settings-toast');
+    if (!toast) return;
+    toast.classList.remove('is-visible');
+    setTimeout(() => { if (toast.parentNode) toast.remove(); }, 220);
+  }
+  function showSettingsToast(message, actionLabel, onAction) {
+    clearTimeout(settingsToastTimer);
+    settingsToastWrap.innerHTML = '';
+    const toast = document.createElement('div');
+    toast.className = 'settings-toast';
+    const text = document.createElement('span');
+    text.textContent = message;
+    toast.appendChild(text);
+    if (actionLabel && onAction) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'settings-toast-action';
+      btn.textContent = actionLabel;
+      btn.addEventListener('click', () => {
+        onAction();
+        hideSettingsToast();
+      });
+      toast.appendChild(btn);
+    }
+    settingsToastWrap.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('is-visible'));
+    settingsToastTimer = setTimeout(hideSettingsToast, actionLabel ? 5000 : 1800);
+  }
+
+  /* ============ Ajustes: borrar con deshacer ============ */
+  function deleteWithUndo(array, id, label, onAfterChange) {
+    const idx = array.findIndex((item) => item.id === id);
+    if (idx === -1) return;
+    const [removed] = array.splice(idx, 1);
+    saveStore();
+    onAfterChange();
+    showSettingsToast(`"${label}" eliminado`, 'Deshacer', () => {
+      array.splice(idx, 0, removed);
+      saveStore();
+      onAfterChange();
+    });
+  }
+
+  /* ============ Ajustes: confirmación al cambiar un ajuste + refresco en vivo ============ */
+  panelAjustes.addEventListener('change', (e) => {
+    const input = e.target.closest('.switch input[type="checkbox"]');
+    if (input) showSettingsToast('Guardado');
+    updateAccordionBadges();
+    updateUnusedFeatureHints();
+    updateOnboardingCard();
+    if (e.target === densityModeSelect) updateDensityPreview();
+  });
+  panelAjustes.addEventListener('click', () => {
+    updateAccordionBadges();
+    updateUnusedFeatureHints();
+    updateOnboardingCard();
+  });
+
+  /* ============ Ajustes: checklist "Empieza aquí" ============ */
+  const onboardingCard = document.getElementById('onboardingCard');
+  const onboardingDismissBtn = document.getElementById('onboardingDismissBtn');
+  function isFreshAccount() {
+    return Object.keys(store.entries).length < 3;
+  }
+  function updateOnboardingCard() {
+    if (store.settings.onboardingDismissed || !isFreshAccount()) { onboardingCard.hidden = true; return; }
+    onboardingCard.hidden = false;
+    document.getElementById('onboardingStepProfile').classList.toggle('is-done', !!store.settings.profile.name.trim());
+    document.getElementById('onboardingStepTasks').classList.toggle('is-done', store.settings.dailyTasks.length > 0);
+  }
+  onboardingDismissBtn.addEventListener('click', () => {
+    store.settings.onboardingDismissed = true;
+    saveStore();
+    onboardingCard.hidden = true;
+  });
+  panelAjustes.querySelectorAll('.onboarding-item[data-onboarding-target]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const target = document.getElementById(btn.dataset.onboardingTarget);
+      if (!target) return;
+      if (target === settingsMoreToggle) {
+        if (settingsMoreToggle.getAttribute('aria-expanded') !== 'true') settingsMoreToggle.click();
+      } else {
+        const header = target.matches('[data-accordion-toggle]') ? target : target.querySelector('[data-accordion-toggle]');
+        if (header && header.getAttribute('aria-expanded') !== 'true') header.click();
+      }
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  /* ============ Ajustes: refresco general al entrar en la pestaña ============ */
+  function refreshAjustesUI() {
+    updateAccordionBadges();
+    updateUnusedFeatureHints();
+    updateDensityPreview();
+    updateOnboardingCard();
+  }
 
   /* ============ Day navigation ============ */
   const dayLabelMain = document.getElementById('dayLabelMain');
@@ -4293,10 +4530,11 @@
     const btn = e.target.closest('[data-remove-task]');
     if (!btn) return;
     const taskId = btn.dataset.removeTask;
-    store.settings.dailyTasks = store.settings.dailyTasks.filter((t) => t.id !== taskId);
-    saveStore();
-    renderDailyTaskManageList();
-    renderHoy();
+    const label = btn.closest('.task-manage-item').querySelector('.task-manage-label').textContent;
+    deleteWithUndo(store.settings.dailyTasks, taskId, label, () => {
+      renderDailyTaskManageList();
+      renderHoy();
+    });
   });
 
   renderDailyTaskManageList();
@@ -4334,10 +4572,11 @@
     const btn = e.target.closest('[data-remove-task]');
     if (!btn) return;
     const taskId = btn.dataset.removeTask;
-    store.settings.weeklyTasks = store.settings.weeklyTasks.filter((t) => t.id !== taskId);
-    saveStore();
-    renderWeeklyTaskManageList();
-    renderHoy();
+    const label = btn.closest('.task-manage-item').querySelector('.task-manage-label').textContent;
+    deleteWithUndo(store.settings.weeklyTasks, taskId, label, () => {
+      renderWeeklyTaskManageList();
+      renderHoy();
+    });
   });
 
   renderWeeklyTaskManageList();
@@ -4379,11 +4618,12 @@
     const btn = e.target.closest('[data-remove-task]');
     if (!btn) return;
     const taskId = btn.dataset.removeTask;
-    store.settings.badHabits = store.settings.badHabits.filter((h) => h.id !== taskId);
-    saveStore();
-    renderBadHabitManageList();
-    renderHoy();
-    if (activeTab === 'stats') renderStats();
+    const label = btn.closest('.task-manage-item').querySelector('.task-manage-label').textContent;
+    deleteWithUndo(store.settings.badHabits, taskId, label, () => {
+      renderBadHabitManageList();
+      renderHoy();
+      if (activeTab === 'stats') renderStats();
+    });
   });
 
   renderBadHabitManageList();
@@ -4434,11 +4674,12 @@
     const btn = e.target.closest('[data-remove-task]');
     if (!btn) return;
     const supId = btn.dataset.removeTask;
-    store.settings.supplements = store.settings.supplements.filter((s) => s.id !== supId);
-    saveStore();
-    renderSupplementManageList();
-    renderHoy();
-    if (activeTab === 'stats') renderStats();
+    const label = btn.closest('.task-manage-item').querySelector('.task-manage-label').textContent;
+    deleteWithUndo(store.settings.supplements, supId, label, () => {
+      renderSupplementManageList();
+      renderHoy();
+      if (activeTab === 'stats') renderStats();
+    });
   });
 
   renderSupplementManageList();
@@ -4521,12 +4762,13 @@
     const btn = e.target.closest('[data-remove-task]');
     if (!btn) return;
     const itemId = btn.dataset.removeTask;
-    store.settings.purchaseItems = store.settings.purchaseItems.filter((p) => p.id !== itemId);
-    saveStore();
-    renderPurchaseManageList();
-    updateJointPriceHints();
-    renderConsumo();
-    if (activeTab === 'stats') renderStats();
+    const label = btn.closest('.task-manage-item').querySelector('.task-manage-label').textContent;
+    deleteWithUndo(store.settings.purchaseItems, itemId, label, () => {
+      renderPurchaseManageList();
+      updateJointPriceHints();
+      renderConsumo();
+      if (activeTab === 'stats') renderStats();
+    });
   });
 
   purchaseManageList.addEventListener('change', (e) => {
@@ -5003,11 +5245,12 @@
     const btn = e.target.closest('[data-remove-task]');
     if (!btn) return;
     const goalId = btn.dataset.removeTask;
-    store.settings.goals = store.settings.goals.filter((g) => g.id !== goalId);
-    saveStore();
-    renderGoalManageList();
-    renderHoy();
-    if (activeTab === 'stats') renderStats();
+    const label = btn.closest('.task-manage-item').querySelector('.task-manage-label').textContent;
+    deleteWithUndo(store.settings.goals, goalId, label, () => {
+      renderGoalManageList();
+      renderHoy();
+      if (activeTab === 'stats') renderStats();
+    });
   });
 
   goalManageList.addEventListener('change', (e) => {
