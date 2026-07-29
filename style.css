@@ -571,7 +571,6 @@ main {
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
   padding: 16px;
   border: none;
@@ -581,6 +580,8 @@ main {
   font: inherit;
 }
 .accordion-header .card-title {
+  flex: 1;
+  min-width: 0;
   margin: 0;
 }
 .accordion-header:active {
