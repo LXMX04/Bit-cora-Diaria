@@ -40,6 +40,39 @@
 :root[data-season="verano"] { --season-tint: rgba(230, 190, 110, 0.05); }
 :root[data-season="otono"] { --season-tint: rgba(190, 120, 70, 0.05); }
 
+/* "Franela" — variante clara y cálida dentro de la misma identidad Suit Up
+   (marino + granate + latón), sobre un lienzo de crema/franela en vez del
+   gris frío por defecto. */
+:root[data-theme="flannel"] {
+  --accent: #26314e;
+  --accent-strong: #182036;
+  --accent-soft: rgba(38, 49, 78, 0.13);
+  --accent-2: #b8863f;
+  --accent-2-soft: rgba(184, 134, 63, 0.16);
+  --claret: #8f2436;
+  --claret-soft: rgba(143, 36, 54, 0.15);
+  --bg: #f1e9db;
+  --surface: #fffcf5;
+  --surface-alt: #ece1cd;
+  --text: #241d15;
+  --text-muted: #756a58;
+  --border: #ddcdac;
+  --danger: #b8534c;
+  --danger-soft: rgba(184, 83, 76, 0.15);
+  --failure: #c23b2d;
+  --good: #386654;
+  --shadow: 0 1px 2px rgba(60, 45, 20, 0.09), 0 4px 14px rgba(60, 45, 20, 0.08);
+
+  --h-teeth: #8163a8;
+  --h-total: #386654;
+  --h-cig: #b8534c;
+  --h-joint: #386654;
+  --h-food: #4c8a5c;
+  --h-pack-rojo: #832a37;
+  --h-pack-blanco: #837a6c;
+  --h-ciclo: #a94a76;
+}
+
 :root[data-theme="dark"] {
   --bg: #16151a;
   --surface: #201e22;
@@ -71,7 +104,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme="light"]):not([data-theme="flannel"]) {
     --bg: #16151a;
     --surface: #201e22;
     --surface-alt: #29262b;
@@ -722,22 +755,6 @@ main {
   font-size: 12px;
   color: var(--text-muted);
 }
-.habit-postpone-link {
-  display: block;
-  margin-top: 2px;
-  border: none;
-  background: transparent;
-  padding: 0;
-  font-size: 11.5px;
-  color: var(--text-muted);
-  text-decoration: underline;
-}
-.habit-postpone-link.is-excused {
-  color: var(--accent-2);
-}
-.habit-row.is-excused .habit-name {
-  color: var(--text-muted);
-}
 .habit-note-preview {
   font-size: 12px;
   color: var(--text-muted);
@@ -1269,6 +1286,10 @@ main {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  cursor: pointer;
+}
+.heatmap-table tr[data-row-key] > th {
+  cursor: pointer;
 }
 .heatmap-section-label {
   height: 25px;
@@ -2502,6 +2523,42 @@ select.profile-input {
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+.habit-zoom-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  overflow-y: auto;
+  padding-bottom: 4px;
+}
+.habit-zoom-weekday {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding-bottom: 2px;
+}
+.habit-zoom-cell {
+  aspect-ratio: 1;
+  border-radius: 10px;
+  background: var(--surface-alt);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  border: none;
+}
+.habit-zoom-cell.is-filler {
+  background: transparent;
+}
+.habit-zoom-cell.is-future {
+  opacity: 0.35;
+}
+.habit-zoom-cell.is-marked {
+  color: #fff;
 }
 .checkin-row {
   display: flex;

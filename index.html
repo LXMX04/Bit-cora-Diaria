@@ -470,22 +470,6 @@
             <button class="stepper-btn" data-step="1" aria-label="Sumar joint">+</button>
           </div>
         </div>
-        <div class="consumo-row" id="cafeinaRow" hidden>
-          <div class="consumo-label"><span class="consumo-name">Cafeína</span></div>
-          <div class="stepper stepper--lg" data-stepper="cafeina">
-            <button class="stepper-btn" data-step="-1" aria-label="Restar café">–</button>
-            <span class="stepper-value" id="cafeinaValue">0</span>
-            <button class="stepper-btn" data-step="1" aria-label="Sumar café">+</button>
-          </div>
-        </div>
-        <div class="consumo-row" id="alcoholRow" hidden>
-          <div class="consumo-label"><span class="consumo-name">Alcohol</span></div>
-          <div class="stepper stepper--lg" data-stepper="alcohol">
-            <button class="stepper-btn" data-step="-1" aria-label="Restar bebida">–</button>
-            <span class="stepper-value" id="alcoholValue">0</span>
-            <button class="stepper-btn" data-step="1" aria-label="Sumar bebida">+</button>
-          </div>
-        </div>
       </div>
 
       <div class="card" id="mediaMensualCard" hidden>
@@ -847,6 +831,7 @@
               <select id="themeModeSelect" class="profile-input">
                 <option value="auto">Automático (según el sistema)</option>
                 <option value="light">Claro</option>
+                <option value="flannel">Franela (cálido)</option>
                 <option value="dark">Oscuro</option>
                 <option value="black">Negro puro (OLED)</option>
               </select>
@@ -1031,7 +1016,7 @@
 
       <div class="settings-group" data-group-key="diario">
         <h3 class="settings-group-title">Seguimiento diario</h3>
-        <div class="card accordion-card" data-settings-keywords="consumo fumar tabaco cigarros joints porros gasto compras presupuesto">
+        <div class="card accordion-card" data-settings-keywords="consumo fumar tabaco cigarros joints porros gasto compras presupuesto cafeina alcohol">
           <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
             <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--accent-2);background:color-mix(in srgb, var(--accent-2) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,7.5 L12,16.5 M9.7,9.3 C9.7,8.2 10.7,7.5 12,7.5 C13.4,7.5 14.3,8.3 14.3,9.3 C14.3,11.7 9.7,10.8 9.7,13.2 C9.7,14.3 10.6,15 12,15 C13.4,15 14.3,14.3 14.3,13.2" stroke-linecap="round"/></svg></span>Consumo</h2>
             <span class="accordion-dot" id="consumoDot" hidden></span>
@@ -1058,20 +1043,6 @@
                 </label>
               </div>
               <p class="hint-text">Actívalo si fumas tabaco y/o joints, para que aparezcan en Consumo y en Stats. Si lo desactivas, ambos desaparecen.</p>
-              <div class="setting-row">
-                <span>Registrar cafeína</span>
-                <label class="switch">
-                  <input type="checkbox" id="tracksCafeinaToggle" aria-label="Registrar cafeína" />
-                  <span class="switch-slider"></span>
-                </label>
-              </div>
-              <div class="setting-row">
-                <span>Registrar alcohol</span>
-                <label class="switch">
-                  <input type="checkbox" id="tracksAlcoholToggle" aria-label="Registrar alcohol" />
-                  <span class="switch-slider"></span>
-                </label>
-              </div>
               <div id="jointPriceGroup">
                 <div class="setting-row">
                   <label for="jointPriceInput">Precio de joints (€ cada 4 porros)</label>
@@ -1086,7 +1057,7 @@
               <input type="number" id="newPurchasePriceInput" class="purchase-price-input" placeholder="€" min="0" step="0.01" aria-label="Precio por unidad en euros" />
               <button class="secondary-btn task-add-btn" id="addPurchaseBtn">Añadir</button>
             </div>
-            <p class="hint-text">Cada artículo aparece en Consumo con su propio contador y en Gasto total con su propia categoría.</p>
+            <p class="hint-text">Añade cualquier cosa que quieras contar (cafeína, alcohol, lo que sea). Cada artículo aparece en Consumo con su propio contador y en Gasto total con su propia categoría — pon precio 0 si no quieres llevar el gasto.</p>
             <div class="setting-row">
               <label for="monthlyBudgetInput">Presupuesto mensual (€)</label>
               <input type="number" id="monthlyBudgetInput" min="0" step="1" placeholder="Sin límite" />
@@ -1551,6 +1522,17 @@
       <button type="button" class="checkin-close-btn" id="checkinCloseBtn" aria-label="Cerrar check-in">×</button>
     </div>
     <ul class="checkin-list" id="checkinList"></ul>
+  </div>
+</div>
+
+<div class="checkin-overlay" id="habitZoomOverlay" hidden>
+  <div class="checkin-sheet">
+    <div class="checkin-header">
+      <h2 id="habitZoomTitle">Hábito</h2>
+      <button type="button" class="checkin-close-btn" id="habitZoomCloseBtn" aria-label="Cerrar vista ampliada">×</button>
+    </div>
+    <p class="hint-text" id="habitZoomSummary" style="margin-top:0"></p>
+    <div class="habit-zoom-grid" id="habitZoomGrid"></div>
   </div>
 </div>
 

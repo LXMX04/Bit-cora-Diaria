@@ -34,8 +34,6 @@
       tracksEnergia: false,
       tracksRopa: false,
       tracksSintomas: false,
-      tracksCafeina: false,
-      tracksAlcohol: false,
       tracksPantalla: false,
       usualMeals: { desayuno: [], comida: [], cena: [] },
       monthlyBudget: null,
@@ -173,12 +171,6 @@
       if (typeof parsed.settings.tracksSintomas !== 'boolean') {
         parsed.settings.tracksSintomas = false;
       }
-      if (typeof parsed.settings.tracksCafeina !== 'boolean') {
-        parsed.settings.tracksCafeina = false;
-      }
-      if (typeof parsed.settings.tracksAlcohol !== 'boolean') {
-        parsed.settings.tracksAlcohol = false;
-      }
       if (typeof parsed.settings.tracksPantalla !== 'boolean') {
         parsed.settings.tracksPantalla = false;
       }
@@ -205,7 +197,7 @@
       if (typeof parsed.settings.jointPricePer4 !== 'number' || parsed.settings.jointPricePer4 < 0) {
         parsed.settings.jointPricePer4 = 4.50;
       }
-      if (!['auto', 'light', 'dark', 'black'].includes(parsed.settings.themeMode)) {
+      if (!['auto', 'light', 'flannel', 'dark', 'black'].includes(parsed.settings.themeMode)) {
         parsed.settings.themeMode = 'auto';
       }
       if (!['comfortable', 'compact'].includes(parsed.settings.densityMode)) {
@@ -249,7 +241,6 @@
       teeth: 0,
       reflection: '',
       habitNotes: {},
-      excusedTasks: {},
       badHabits: {},
       supplements: {},
       goals: {},
@@ -273,8 +264,6 @@
       periodFlow: null,
       cycleSymptoms: [],
       symptoms: [],
-      cafeina: 0,
-      alcohol: 0,
       pantallaMin: 0,
       workout: { durationMin: 0, exercises: {}, templateId: '' },
       snacks: [],
@@ -469,14 +458,6 @@
 
   function sintomasEnabled() {
     return store.settings.tracksSintomas === true;
-  }
-
-  function cafeinaEnabled() {
-    return store.settings.tracksCafeina === true;
-  }
-
-  function alcoholEnabled() {
-    return store.settings.tracksAlcohol === true;
   }
 
   function pantallaEnabled() {
@@ -1011,20 +992,6 @@
       renderHoy();
       return;
     }
-    const postponeBtn = e.target.closest('[data-postpone-task]');
-    if (postponeBtn) {
-      const key = dateKey(currentDate);
-      const entry = ensureEntry(key);
-      const wasComplete = isDayComplete(entry);
-      const streakBefore = currentStreak();
-      entry.excusedTasks = entry.excusedTasks || {};
-      const taskId = postponeBtn.dataset.postponeTask;
-      entry.excusedTasks[taskId] = !entry.excusedTasks[taskId];
-      saveStore();
-      renderHoy();
-      handleDayCompletionFeedback(wasComplete, streakBefore);
-      return;
-    }
     const key = dateKey(currentDate);
     const entry = ensureEntry(key);
     const wasComplete = isDayComplete(entry);
@@ -1423,8 +1390,7 @@
 
   function isDayComplete(entry) {
     if (!entry) return false;
-    const excused = entry.excusedTasks || {};
-    return store.settings.dailyTasks.every((t) => entry[t.id] || excused[t.id]) && (!teethEnabled() || entry.teeth > 0);
+    return store.settings.dailyTasks.every((t) => entry[t.id]) && (!teethEnabled() || entry.teeth > 0);
   }
 
   function currentStreak() {
@@ -1857,27 +1823,18 @@
     renderMonthAgo();
 
     const habitNotes = entry.habitNotes || {};
-    const excusedTasks = entry.excusedTasks || {};
-    const isToday = currentDate.getTime() === today.getTime();
     function dailyTaskRowHtml(t) {
       const note = habitNotes[t.id] || '';
       const noteOpen = openHabitNoteRows.has(t.id);
       const checked = !!entry[t.id];
-      const excused = !!excusedTasks[t.id];
-      const postponeHtml = (isToday && !checked)
-        ? (excused
-          ? `<button type="button" class="habit-postpone-link is-excused" data-postpone-task="${t.id}">Excusado hoy · deshacer</button>`
-          : `<button type="button" class="habit-postpone-link" data-postpone-task="${t.id}">Posponer (no cuenta hoy)</button>`)
-        : '';
       return `
-      <li class="habit-row${excused ? ' is-excused' : ''}" data-habit="${t.id}">
+      <li class="habit-row" data-habit="${t.id}">
         <button class="check-btn" data-check="${t.id}" aria-pressed="${checked}">
           <span class="check-icon">${CHECK_TICK_SVG}</span>
         </button>
         <div class="habit-text">
           <span class="habit-name">${escapeHtml(t.label)}</span>
           ${(note && !noteOpen) ? `<span class="habit-note-preview">${escapeHtml(note)}</span>` : ''}
-          ${postponeHtml}
         </div>
         <button type="button" class="habit-note-btn${note ? ' has-note' : ''}" data-note-task="${t.id}" aria-label="Nota para ${escapeHtml(t.label)}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5,19 L8,18 L17,9 C18,8 18,6.5 17,5.5 C16,4.5 14.5,4.5 13.5,5.5 L4.5,14.5 Z" stroke-linejoin="round"/></svg>
@@ -2903,26 +2860,6 @@
     });
   });
 
-  document.querySelectorAll('[data-stepper="cafeina"] .stepper-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const key = dateKey(currentDate);
-      const entry = ensureEntry(key);
-      entry.cafeina = Math.max(0, (entry.cafeina || 0) + parseInt(btn.dataset.step, 10));
-      saveStore();
-      renderConsumo();
-    });
-  });
-
-  document.querySelectorAll('[data-stepper="alcohol"] .stepper-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const key = dateKey(currentDate);
-      const entry = ensureEntry(key);
-      entry.alcohol = Math.max(0, (entry.alcohol || 0) + parseInt(btn.dataset.step, 10));
-      saveStore();
-      renderConsumo();
-    });
-  });
-
   purchaseRows.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-step]');
     if (!btn) return;
@@ -3044,17 +2981,12 @@
     setDelta('deltaCigarettes', cig.avg, cigPrev.avg, cigPrev.count > 0);
     setDelta('deltaJoints', joint.avg, jointPrev.avg, jointPrev.count > 0);
 
-    document.getElementById('consumoTodayCard').hidden = !(jointsEnabled() || cafeinaEnabled() || alcoholEnabled());
+    document.getElementById('consumoTodayCard').hidden = !jointsEnabled();
     document.getElementById('cigarettesRow').hidden = !jointsEnabled();
     document.getElementById('mediaMensualCard').hidden = !jointsEnabled();
     document.getElementById('jointsRow').hidden = !jointsEnabled();
     document.getElementById('jointsAvgTile').hidden = !jointsEnabled();
     document.getElementById('mediaMensualGrid').classList.toggle('single', !jointsEnabled());
-
-    document.getElementById('cafeinaRow').hidden = !cafeinaEnabled();
-    document.getElementById('cafeinaValue').textContent = entry.cafeina || 0;
-    document.getElementById('alcoholRow').hidden = !alcoholEnabled();
-    document.getElementById('alcoholValue').textContent = entry.alcohol || 0;
 
     updateJointPriceHints();
     renderSpendGroups(document.getElementById('spendGroups'), y, m, monthDayRange(y, m), 'este mes', 'este año');
@@ -3652,7 +3584,7 @@
   function currentTheme() {
     const override = document.documentElement.dataset.theme;
     if (override === 'dark' || override === 'black') return 'dark';
-    if (override === 'light') return 'light';
+    if (override === 'light' || override === 'flannel') return 'light';
     return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
 
@@ -4110,7 +4042,61 @@
       </table>`;
 
     renderHeatmapFilterChips(HEATMAP_ROWS);
+    lastHeatmapContext = { year, monthIndex, lastDay, days, rows: HEATMAP_ROWS };
   }
+
+  /* ============ Stats: vista ampliada de un solo hábito ============ */
+  let lastHeatmapContext = null;
+  const habitZoomOverlay = document.getElementById('habitZoomOverlay');
+  const WEEKDAY_MINI = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+  function openHabitZoom(rowKey) {
+    if (!lastHeatmapContext) return;
+    const { year, monthIndex, lastDay, days, rows } = lastHeatmapContext;
+    const row = rows.find((r) => r.key === rowKey);
+    if (!row) return;
+    const maxByKey = {};
+    if (row.type === 'consumo') {
+      maxByKey[row.key] = Math.max(0, ...days.slice(0, lastDay).map((d) => d[row.key]));
+    }
+    document.getElementById('habitZoomTitle').textContent = row.label;
+
+    const firstDow = (new Date(year, monthIndex, 1).getDay() + 6) % 7; // Mon=0
+    const weekdayHtml = WEEKDAY_MINI.map((l) => `<span class="habit-zoom-weekday">${l}</span>`).join('');
+    const fillerHtml = Array.from({ length: firstDow }, () => '<span class="habit-zoom-cell is-filler"></span>').join('');
+    let marked = 0, tracked = 0;
+    const dayCellsHtml = days.map((d) => {
+      const isFuture = d.day > lastDay;
+      const style = isFuture ? '' : heatmapCellStyle(row, d, maxByKey);
+      const isMarked = !isFuture && !!style;
+      if (!isFuture) { tracked++; if (isMarked) marked++; }
+      return `<span class="habit-zoom-cell${isFuture ? ' is-future' : ''}${isMarked ? ' is-marked' : ''}" style="${style}">${d.day}</span>`;
+    }).join('');
+    document.getElementById('habitZoomGrid').innerHTML = weekdayHtml + fillerHtml + dayCellsHtml;
+
+    const summaryEl = document.getElementById('habitZoomSummary');
+    summaryEl.textContent = (row.type === 'daily' || row.type === 'weekly' || row.type === 'badHabit')
+      ? `${marked} de ${tracked} días · ${MONTHS_LONG[monthIndex]} ${year}`
+      : `Hasta el día ${tracked} · ${MONTHS_LONG[monthIndex]} ${year}`;
+    habitZoomOverlay.hidden = false;
+  }
+  function closeHabitZoom() {
+    habitZoomOverlay.hidden = true;
+  }
+  heatmapWrap.addEventListener('click', (e) => {
+    const label = e.target.closest('.heatmap-label[data-row-key]');
+    if (!label) return;
+    openHabitZoom(label.dataset.rowKey);
+  });
+  heatmapTableWrap.addEventListener('click', (e) => {
+    const th = e.target.closest('tr[data-row-key] > th');
+    if (!th) return;
+    openHabitZoom(th.closest('tr').dataset.rowKey);
+  });
+  document.getElementById('habitZoomCloseBtn').addEventListener('click', closeHabitZoom);
+  habitZoomOverlay.addEventListener('click', (e) => { if (e.target === habitZoomOverlay) closeHabitZoom(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !habitZoomOverlay.hidden) closeHabitZoom();
+  });
 
   /* ============ Stats: filtro de hábitos en el mapa mensual ============ */
   const heatmapHiddenKeys = new Set();
@@ -5963,22 +5949,6 @@
     renderHoy();
     updateAccordionBadges();
     updateUnusedFeatureHints();
-  });
-
-  const tracksCafeinaToggle = document.getElementById('tracksCafeinaToggle');
-  tracksCafeinaToggle.checked = cafeinaEnabled();
-  tracksCafeinaToggle.addEventListener('change', () => {
-    store.settings.tracksCafeina = tracksCafeinaToggle.checked;
-    saveStore();
-    renderConsumo();
-  });
-
-  const tracksAlcoholToggle = document.getElementById('tracksAlcoholToggle');
-  tracksAlcoholToggle.checked = alcoholEnabled();
-  tracksAlcoholToggle.addEventListener('change', () => {
-    store.settings.tracksAlcohol = tracksAlcoholToggle.checked;
-    saveStore();
-    renderConsumo();
   });
 
   /* ============ AJUSTES panel / Ciclo menstrual ============ */
