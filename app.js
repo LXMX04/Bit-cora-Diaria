@@ -2820,6 +2820,50 @@
     renderStats();
   });
 
+  const statsNav = document.getElementById('statsNav');
+  if (statsNav) {
+    const statsNavChips = Array.from(statsNav.querySelectorAll('.stats-nav-chip'));
+    statsNavChips.forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const target = document.getElementById(chip.dataset.navTarget);
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+    if (statsNavChips.length && 'IntersectionObserver' in window) {
+      const chipByTarget = new Map(statsNavChips.map((c) => [c.dataset.navTarget, c]));
+      let activeTargetId = null;
+      const setActive = (id) => {
+        if (id === activeTargetId) return;
+        activeTargetId = id;
+        statsNavChips.forEach((c) => c.classList.toggle('is-active', c.dataset.navTarget === id));
+        const activeChip = chipByTarget.get(id);
+        if (activeChip) activeChip.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      };
+      const visibleRatios = new Map();
+      const statsGroupObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => { visibleRatios.set(entry.target.id, entry.isIntersecting ? entry.intersectionRatio : 0); });
+        let bestId = null, bestRatio = 0;
+        visibleRatios.forEach((ratio, id) => { if (ratio > bestRatio) { bestRatio = ratio; bestId = id; } });
+        if (bestId) setActive(bestId);
+      }, { root: null, rootMargin: '-30% 0px -55% 0px', threshold: [0, 0.25, 0.5, 0.75, 1] });
+      chipByTarget.forEach((chip, id) => {
+        const groupEl = document.getElementById(id);
+        if (groupEl) statsGroupObserver.observe(groupEl);
+      });
+      setActive(statsNavChips[0].dataset.navTarget);
+    } else if (statsNavChips.length) {
+      statsNavChips[0].classList.add('is-active');
+    }
+  }
+
+  const toggleSleepChartViewBtn = document.getElementById('toggleSleepChartView');
+  if (toggleSleepChartViewBtn) {
+    toggleSleepChartViewBtn.addEventListener('click', () => {
+      sleepChartView = sleepChartView === 'line' ? 'bars' : 'line';
+      renderSuenoStats(statsMonth.getFullYear(), statsMonth.getMonth(), monthDayRange(statsMonth.getFullYear(), statsMonth.getMonth()));
+    });
+  }
+
   const ICONS = {
     exercise: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 9v6M2 8v8M20 9v6M22 8v8M6 12h12" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     read: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 5c2-1 5-1 8 0v14c-3-1-6-1-8 0V5ZM20 5c-2-1-5-1-8 0v14c3-1 6-1 8 0V5Z" stroke-linejoin="round"/></svg>',
@@ -2967,31 +3011,48 @@
     const grid = document.getElementById('aguaRingGrid');
     const goal = aguaGoal();
     let daysMet = 0, sum = 0, count = 0;
+    const aguaSeries = [];
     for (let d = 1; d <= lastDay; d++) {
       const entry = getEntryForDay(year, monthIndex, d);
       if (!entry) continue;
       const v = entry.agua || 0;
-      if (v > 0) { sum += v; count++; }
+      if (v > 0) { sum += v; count++; aguaSeries.push(v); }
       if (v >= goal) daysMet++;
     }
+    renderSparkline('aguaSparkline', aguaSeries, 'var(--accent)');
     const pct = lastDay > 0 ? (daysMet / lastDay) * 100 : 0;
     grid.innerHTML = `<div class="ring-tile ring-tile--lg">${ringSVGLarge(pct)}<span class="ring-pct ring-pct--lg">${Math.round(pct)}%</span><span class="ring-name">días con objetivo cumplido</span></div>`;
     document.getElementById('aguaAvgHint').textContent = count > 0 ? `Media: ${(sum / count).toFixed(1)} vasos/día registrado.` : 'Sin datos todavía este mes.';
   }
 
+  let sleepChartView = 'line';
   function renderSuenoStats(year, monthIndex, lastDay) {
     const card = document.getElementById('suenoStatsCard');
     if (!suenoEnabled()) { card.hidden = true; return; }
     card.hidden = false;
     let sumHours = 0, countHours = 0, sumQuality = 0, countQuality = 0;
+    const sleepPoints = [];
     for (let d = 1; d <= lastDay; d++) {
       const entry = getEntryForDay(year, monthIndex, d);
       if (!entry) continue;
-      if (entry.sleepHours) { sumHours += entry.sleepHours; countHours++; }
+      if (entry.sleepHours) { sumHours += entry.sleepHours; countHours++; sleepPoints.push({ d, v: entry.sleepHours }); }
       if (entry.sleepQuality) { sumQuality += entry.sleepQuality; countQuality++; }
     }
     document.getElementById('avgSleepHours').textContent = countHours > 0 ? (sumHours / countHours).toFixed(1) : '0.0';
     document.getElementById('avgSleepQuality').textContent = countQuality > 0 ? (sumQuality / countQuality).toFixed(1) : '–';
+    renderSparkline('suenoSparkline', sleepPoints.map((p) => p.v), 'var(--h-total)');
+    const sleepChart = document.getElementById('sleepChart');
+    const sleepViewToggle = document.getElementById('toggleSleepChartView');
+    if (sleepPoints.length === 0) {
+      sleepChart.innerHTML = statsEmptyState(ICON_EMPTY_CHART, 'Sin datos de sueño', 'Registra tus horas dormidas en Hoy para ver aquí tu evolución este mes.');
+      sleepViewToggle.hidden = true;
+    } else {
+      sleepViewToggle.hidden = false;
+      sleepViewToggle.textContent = sleepChartView === 'line' ? 'Ver barras' : 'Ver línea';
+      renderScrubbableLineChart('sleepChart', sleepPoints, {
+        totalDays: daysInMonth(year, monthIndex), color: 'var(--h-total)', unit: ' h', decimals: 1, mode: sleepChartView
+      });
+    }
 
     const goal = store.settings.sleepGoalHours || 8;
     const today = startOfDay(new Date());
@@ -3019,35 +3080,19 @@
     const points = [];
     for (let d = 1; d <= lastDay; d++) {
       const entry = getEntryForDay(year, monthIndex, d);
-      if (entry && entry.weight != null) points.push({ d, w: entry.weight });
+      if (entry && entry.weight != null) points.push({ d, v: entry.weight });
     }
+    renderSparkline('pesoSparkline', points.map((p) => p.v), 'var(--accent-2)');
     if (points.length === 0) {
-      chart.innerHTML = '<p class="hint-text" style="margin-top:0">Sin datos de peso todavía este mes.</p>';
+      chart.innerHTML = statsEmptyState(ICON_EMPTY_CHART, 'Sin datos de peso', 'Registra tu peso en Hoy para ver aquí su evolución este mes.');
       hint.textContent = '';
       return;
     }
-    const totalDays = daysInMonth(year, monthIndex);
-    const W = 340, H = 150, padL = 32, padR = 8, padT = 10, padB = 20;
-    const plotW = W - padL - padR, plotH = H - padT - padB;
-    const weights = points.map((p) => p.w);
-    const minW = Math.min(...weights), maxW = Math.max(...weights);
-    const range = Math.max(0.5, maxW - minW);
-    const yFor = (w) => padT + plotH - ((w - minW) / range) * plotH;
-    const xFor = (d) => padL + ((d - 0.5) / totalDays) * plotW;
-
-    let yAxis = '';
-    [minW, (minW + maxW) / 2, maxW].forEach((val) => {
-      const y = yFor(val);
-      yAxis += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="var(--border)" stroke-width="1"/>`;
-      yAxis += `<text x="${(padL - 5).toFixed(1)}" y="${(y + 3).toFixed(1)}" font-size="8" text-anchor="end" fill="var(--text-muted)">${val.toFixed(1)}</text>`;
+    renderScrubbableLineChart('weightChart', points, {
+      totalDays: daysInMonth(year, monthIndex), color: 'var(--accent-2)', unit: ' kg', decimals: 1
     });
 
-    const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${xFor(p.d).toFixed(1)},${yFor(p.w).toFixed(1)}`).join(' ');
-    const dots = points.map((p) => `<circle cx="${xFor(p.d).toFixed(1)}" cy="${yFor(p.w).toFixed(1)}" r="2.5" fill="var(--accent)"/>`).join('');
-
-    chart.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${yAxis}<path d="${linePath}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${dots}</svg>`;
-
-    const first = points[0].w, last = points[points.length - 1].w;
+    const first = points[0].v, last = points[points.length - 1].v;
     const diff = last - first;
     if (Math.abs(diff) < 0.05) {
       hint.textContent = `Peso actual: ${last.toFixed(1)} kg. Sin cambios este mes.`;
@@ -3606,7 +3651,50 @@
       }
     }
 
-    if (insights.length === 0) { card.hidden = true; return; }
+    if (workoutsEnabled() && suenoEnabled()) {
+      const trained = [], rest = [];
+      for (let d = 1; d <= lastDay; d++) {
+        const entry = getEntryForDay(year, monthIndex, d);
+        if (!entry || !entry.sleepHours) continue;
+        const didWorkout = entry.workout && ((entry.workout.durationMin > 0) || (entry.workout.exercises && Object.values(entry.workout.exercises).some((l) => l.reps > 0 || (l.weight != null && l.weight > 0))));
+        (didWorkout ? trained : rest).push(entry.sleepHours);
+      }
+      if (trained.length >= MIN_SAMPLE && rest.length >= MIN_SAMPLE) {
+        const diff = avgOf(trained) - avgOf(rest);
+        if (Math.abs(diff) >= 0.4) {
+          insights.push(diff > 0
+            ? `Los días que entrenas duermes de media ${diff.toFixed(1)} h más que los días de descanso.`
+            : `Los días que entrenas duermes de media ${(-diff).toFixed(1)} h menos que los días de descanso — vigila no acumular deuda de sueño.`);
+        }
+      }
+    }
+
+    if (energiaEnabled()) {
+      const highStress = [], lowStress = [];
+      for (let d = 1; d <= lastDay; d++) {
+        const entry = getEntryForDay(year, monthIndex, d);
+        if (!entry || !entry.stressLevel || !entry.meals) continue;
+        const healths = ['desayuno', 'comida', 'cena'].map((m) => entry.meals[m] && entry.meals[m].health).filter(Boolean);
+        if (healths.length === 0) continue;
+        (entry.stressLevel >= 4 ? highStress : lowStress).push(avgOf(healths));
+      }
+      if (highStress.length >= MIN_SAMPLE && lowStress.length >= MIN_SAMPLE) {
+        const diff = avgOf(lowStress) - avgOf(highStress);
+        if (Math.abs(diff) >= 0.3) {
+          insights.push(diff > 0
+            ? `En tus días de más estrés, tu alimentación baja de media ${diff.toFixed(1)} puntos (sobre 5).`
+            : `En tus días de más estrés, tu alimentación sube de media ${(-diff).toFixed(1)} puntos (sobre 5) — cocinar puede que te ayude a desconectar.`);
+        }
+      }
+    }
+
+    const anyEligibleFeature = (suenoEnabled() && store.settings.dailyTasks.length > 0) || workoutsEnabled() || (aguaEnabled() && energiaEnabled()) || energiaEnabled();
+    if (insights.length === 0) {
+      if (!anyEligibleFeature) { card.hidden = true; return; }
+      card.hidden = false;
+      list.innerHTML = `<li class="insights-empty">${escapeHtml('Sigue registrando tus días — en cuanto haya suficientes datos de este mes, aquí verás patrones entre tus hábitos.')}</li>`;
+      return;
+    }
     card.hidden = false;
     list.innerHTML = insights.map((i) => `<li>${escapeHtml(i)}</li>`).join('');
   }
@@ -3654,9 +3742,9 @@
         rowsHtml += `<div class="heatmap-section-spacer"></div>`;
         lastGridSection = r.section;
       }
-      labelsHtml += `<div class="heatmap-label" title="${escapeHtml(r.label)}">${escapeHtml(r.label)}</div>`;
+      labelsHtml += `<div class="heatmap-label" data-row-key="${escapeHtml(r.key)}" title="${escapeHtml(r.label)}">${escapeHtml(r.label)}</div>`;
       rowsHtml += `
-        <div class="heatmap-row">
+        <div class="heatmap-row" data-row-key="${escapeHtml(r.key)}">
           ${days.map((d) => {
             const isFuture = d.day > lastDay;
             const style = isFuture ? '' : heatmapCellStyle(r, d, maxByKey);
@@ -3689,13 +3777,44 @@
         const style = isFuture ? '' : heatmapCellStyle(r, d, maxByKey);
         return `<td class="heatmap-table-cell${isFuture ? ' is-future' : ''}" style="${style}" data-type="${r.type}">${isFuture ? '' : heatmapCellText(r, d)}</td>`;
       }).join('');
-      return `${sectionHtml}<tr><th>${escapeHtml(r.label)}</th>${cellsHtml}</tr>`;
+      return `${sectionHtml}<tr data-row-key="${escapeHtml(r.key)}"><th>${escapeHtml(r.label)}</th>${cellsHtml}</tr>`;
     }).join('');
     heatmapTableWrap.innerHTML = `
       <table class="heatmap-table">
         <thead><tr><th></th>${theadDays}</tr></thead>
         <tbody>${tbodyRows}</tbody>
       </table>`;
+
+    renderHeatmapFilterChips(HEATMAP_ROWS);
+  }
+
+  /* ============ Stats: filtro de hábitos en el mapa mensual ============ */
+  const heatmapHiddenKeys = new Set();
+  function applyHeatmapFilter() {
+    document.querySelectorAll('#heatmapWrap [data-row-key], #heatmapTableWrap [data-row-key]').forEach((el) => {
+      el.style.display = heatmapHiddenKeys.has(el.dataset.rowKey) ? 'none' : '';
+    });
+  }
+  function renderHeatmapFilterChips(heatmapRows) {
+    const chipsWrap = document.getElementById('heatmapFilterChips');
+    const filterableKeys = new Set(heatmapRows.filter((r) => r.type === 'daily' || r.type === 'badHabit').map((r) => r.key));
+    // Drop stale selections for rows that no longer exist (task renamed/removed).
+    Array.from(heatmapHiddenKeys).forEach((k) => { if (!filterableKeys.has(k)) heatmapHiddenKeys.delete(k); });
+    const chipRows = heatmapRows.filter((r) => r.type === 'daily' || r.type === 'badHabit');
+    if (chipRows.length < 2) { chipsWrap.innerHTML = ''; applyHeatmapFilter(); return; }
+    chipsWrap.innerHTML = chipRows.map((r) => `
+      <button type="button" class="heatmap-filter-chip${heatmapHiddenKeys.has(r.key) ? ' is-off' : ''}" data-filter-key="${escapeHtml(r.key)}">
+        <span class="heatmap-filter-chip-dot" style="background-color:${r.color}"></span>${escapeHtml(r.label)}
+      </button>`).join('');
+    chipsWrap.querySelectorAll('[data-filter-key]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.filterKey;
+        if (heatmapHiddenKeys.has(key)) heatmapHiddenKeys.delete(key); else heatmapHiddenKeys.add(key);
+        btn.classList.toggle('is-off', heatmapHiddenKeys.has(key));
+        applyHeatmapFilter();
+      });
+    });
+    applyHeatmapFilter();
   }
 
   const foodAvgTile = document.getElementById('foodAvgTile');
@@ -3733,6 +3852,363 @@
     foodAvgTile.style.textShadow = '';
     foodScaleMarker.style.display = '';
     foodScaleMarker.style.left = `${((avg - 1) / 4) * 100}%`;
+    renderSparkline('alimentacionSparkline', monthDailySeries(statsMonth.getFullYear(), statsMonth.getMonth(), lastDay, (e) => {
+      const healths = ['desayuno', 'comida', 'cena'].map((m) => e.meals && e.meals[m] && e.meals[m].health).filter(Boolean);
+      return healths.length ? avgOf(healths) : null;
+    }), 'var(--good)');
+  }
+
+  /* ============ Stats: estados vacíos reutilizables ============ */
+  function statsEmptyState(iconSvg, title, desc) {
+    return `<div class="stats-empty-state"><span class="stats-empty-icon" aria-hidden="true">${iconSvg}</span><p class="stats-empty-title">${escapeHtml(title)}</p><p class="stats-empty-desc">${escapeHtml(desc)}</p></div>`;
+  }
+  const ICON_EMPTY_CHART = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4,20 L4,10 M9,20 L9,6 M14,20 L14,13 M19,20 L19,4" stroke-linecap="round"/></svg>';
+  const ICON_EMPTY_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M8,12.5 L10.5,15 L16,9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  /* ============ Stats: sparklines ============ */
+  function monthDailySeries(year, monthIndex, lastDay, extract) {
+    const values = [];
+    for (let d = 1; d <= lastDay; d++) {
+      const entry = getEntryForDay(year, monthIndex, d);
+      const v = entry ? extract(entry) : null;
+      if (v != null && v > 0) values.push(v);
+    }
+    return values;
+  }
+  function renderSparkline(elId, values, color) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    if (values.length < 2) { el.innerHTML = ''; return; }
+    const W = 44, H = 20, pad = 2;
+    const min = Math.min(...values), max = Math.max(...values);
+    const range = Math.max(0.001, max - min);
+    const pts = values.map((v, i) => {
+      const x = pad + (i / (values.length - 1)) * (W - pad * 2);
+      const y = H - pad - ((v - min) / range) * (H - pad * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+    el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+  }
+
+  /* ============ Stats: gráfico de línea con degradado + scrubbing táctil ============ */
+  function renderScrubbableLineChart(containerId, points, opts) {
+    const chart = document.getElementById(containerId);
+    const { totalDays, color, unit, decimals = 1, gradientVar, mode = 'line' } = opts;
+    const W = 340, H = 150, padL = 32, padR = 8, padT = 10, padB = 20;
+    const plotW = W - padL - padR, plotH = H - padT - padB;
+    const values = points.map((p) => p.v);
+    const minV = mode === 'bars' ? 0 : Math.min(...values);
+    const maxV = Math.max(...values);
+    const range = Math.max(0.5, maxV - minV);
+    const yFor = (v) => padT + plotH - ((v - minV) / range) * plotH;
+    const xFor = (d) => padL + ((d - 0.5) / totalDays) * plotW;
+    const gradId = `${containerId}Grad`;
+
+    let yAxis = '';
+    [minV, (minV + maxV) / 2, maxV].forEach((val) => {
+      const y = yFor(val);
+      yAxis += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="var(--border)" stroke-width="1"/>`;
+      yAxis += `<text x="${(padL - 5).toFixed(1)}" y="${(y + 3).toFixed(1)}" font-size="8" text-anchor="end" fill="var(--text-muted)">${val.toFixed(decimals)}</text>`;
+    });
+
+    let marks;
+    if (mode === 'bars') {
+      const barW = Math.max(2, (plotW / totalDays) * 0.62);
+      marks = points.map((p) => {
+        const cx = xFor(p.d), y = yFor(p.v), baseline = padT + plotH;
+        return `<rect x="${(cx - barW / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(0, baseline - y).toFixed(1)}" rx="1.5" fill="${color}" opacity="0.85"/>`;
+      }).join('');
+    } else {
+      const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${xFor(p.d).toFixed(1)},${yFor(p.v).toFixed(1)}`).join(' ');
+      const areaPath = `${linePath} L${xFor(points[points.length - 1].d).toFixed(1)},${(padT + plotH).toFixed(1)} L${xFor(points[0].d).toFixed(1)},${(padT + plotH).toFixed(1)} Z`;
+      const dots = points.map((p) => `<circle cx="${xFor(p.d).toFixed(1)}" cy="${yFor(p.v).toFixed(1)}" r="2.5" fill="${color}"/>`).join('');
+      marks = `
+        <path d="${areaPath}" fill="url(#${gradId})" stroke="none"/>
+        <path d="${linePath}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        ${dots}`;
+    }
+
+    chart.innerHTML = `
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+        <defs><linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${gradientVar || color}" stop-opacity="0.35"/>
+          <stop offset="100%" stop-color="${gradientVar || color}" stop-opacity="0"/>
+        </linearGradient></defs>
+        ${yAxis}
+        ${marks}
+        <circle id="${containerId}ScrubDot" cx="0" cy="0" r="4" fill="${color}" stroke="var(--surface)" stroke-width="1.5" style="opacity:0;pointer-events:none"/>
+        <line id="${containerId}ScrubLine" x1="0" y1="${padT}" x2="0" y2="${padT + plotH}" stroke="${color}" stroke-width="1" stroke-dasharray="2 2" style="opacity:0;pointer-events:none"/>
+      </svg>
+      <div class="chart-scrub-readout" id="${containerId}Readout"></div>`;
+
+    const svg = chart.querySelector('svg');
+    const scrubDot = document.getElementById(`${containerId}ScrubDot`);
+    const scrubLine = document.getElementById(`${containerId}ScrubLine`);
+    const readout = document.getElementById(`${containerId}Readout`);
+
+    function nearestPoint(clientX) {
+      const rect = svg.getBoundingClientRect();
+      const svgX = ((clientX - rect.left) / rect.width) * W;
+      let best = points[0], bestDist = Infinity;
+      points.forEach((p) => {
+        const dist = Math.abs(xFor(p.d) - svgX);
+        if (dist < bestDist) { bestDist = dist; best = p; }
+      });
+      return best;
+    }
+    function showScrub(clientX) {
+      const p = nearestPoint(clientX);
+      const x = xFor(p.d), y = yFor(p.v);
+      scrubDot.setAttribute('cx', x.toFixed(1));
+      scrubDot.setAttribute('cy', y.toFixed(1));
+      scrubDot.style.opacity = '1';
+      scrubLine.setAttribute('x1', x.toFixed(1));
+      scrubLine.setAttribute('x2', x.toFixed(1));
+      scrubLine.style.opacity = '1';
+      readout.textContent = `Día ${p.d} · ${p.v.toFixed(decimals)}${unit || ''}`;
+      readout.classList.add('is-visible');
+    }
+    function hideScrub() {
+      scrubDot.style.opacity = '0';
+      scrubLine.style.opacity = '0';
+      readout.classList.remove('is-visible');
+    }
+    let dragging = false;
+    svg.addEventListener('pointerdown', (e) => { dragging = true; showScrub(e.clientX); });
+    svg.addEventListener('pointermove', (e) => { if (dragging) showScrub(e.clientX); });
+    window.addEventListener('pointerup', () => { dragging = false; hideScrub(); });
+    svg.addEventListener('pointerleave', () => { if (!dragging) hideScrub(); });
+  }
+
+  /* ============ Stats: puntuación de constancia ============ */
+  function renderConsistencyScore(year, monthIndex, lastDay) {
+    const card = document.getElementById('consistencyScoreCard');
+    const totalTasks = store.settings.dailyTasks.length + (teethEnabled() ? 1 : 0);
+    if (totalTasks === 0 || lastDay < 3) { card.hidden = true; return; }
+    card.hidden = false;
+
+    const factors = [];
+    let done = 0, trackedDays = 0;
+    for (let d = 1; d <= lastDay; d++) {
+      const entry = getEntryForDay(year, monthIndex, d);
+      if (!entry || entry.paused) continue;
+      trackedDays++;
+      let dayDone = 0;
+      store.settings.dailyTasks.forEach((t) => { if (entry[t.id]) dayDone++; });
+      if (teethEnabled() && entry.teeth > 0) dayDone++;
+      done += dayDone / totalTasks;
+    }
+    factors.push(trackedDays > 0 ? (done / trackedDays) * 100 : 0);
+
+    if (suenoEnabled()) {
+      const goal = store.settings.sleepGoalHours || 8;
+      const nights = monthDailySeries(year, monthIndex, lastDay, (e) => e.sleepHours || null);
+      if (nights.length > 0) factors.push(Math.min(100, (nights.filter((h) => h >= goal).length / nights.length) * 100));
+    }
+    if (aguaEnabled()) {
+      const goal = aguaGoal();
+      const glasses = monthDailySeries(year, monthIndex, lastDay, (e) => e.agua || null);
+      if (glasses.length > 0) factors.push(Math.min(100, (glasses.filter((v) => v >= goal).length / glasses.length) * 100));
+    }
+    const foodHealths = monthDailySeries(year, monthIndex, lastDay, (e) => {
+      const hs = ['desayuno', 'comida', 'cena'].map((m) => e.meals && e.meals[m] && e.meals[m].health).filter(Boolean);
+      return hs.length ? avgOf(hs) : null;
+    });
+    if (foodHealths.length > 0) factors.push((avgOf(foodHealths) / 5) * 100);
+
+    const score = Math.round(avgOf(factors));
+    const R = 38, C = 2 * Math.PI * R;
+    const offset = C - (score / 100) * C;
+    const color = score >= 75 ? 'var(--good)' : score >= 45 ? 'var(--accent-2)' : 'var(--danger)';
+    document.getElementById('consistencyScoreWrap').innerHTML = `
+      <div class="consistency-score-ring">
+        <svg viewBox="0 0 88 88">
+          <circle cx="44" cy="44" r="${R}" fill="none" stroke="var(--surface-alt)" stroke-width="8"/>
+          <circle cx="44" cy="44" r="${R}" fill="none" stroke="${color}" stroke-width="8" stroke-linecap="round"
+            stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${offset.toFixed(1)}" transform="rotate(-90 44 44)"/>
+        </svg>
+        <span class="consistency-score-num">${score}</span>
+      </div>
+      <div class="consistency-score-text">
+        <p class="consistency-score-label">${score >= 75 ? 'Muy sólido' : score >= 45 ? 'En buen camino' : 'Con margen de mejora'}</p>
+        <p class="consistency-score-desc">Combina hábitos diarios${suenoEnabled() ? ', sueño' : ''}${aguaEnabled() ? ', agua' : ''} y alimentación de ${MONTHS_LONG[monthIndex]}.</p>
+      </div>`;
+  }
+
+  /* ============ Stats: récords personales ============ */
+  function longestStreakEver() {
+    const totalTasks = store.settings.dailyTasks.length + (teethEnabled() ? 1 : 0);
+    const keys = Object.keys(store.entries);
+    if (totalTasks === 0 || keys.length === 0) return 0;
+    const dates = keys.map((k) => new Date(`${k}T00:00:00`)).sort((a, b) => a - b);
+    let cursor = dates[0];
+    const today = startOfDay(new Date());
+    let best = 0, run = 0;
+    while (cursor <= today) {
+      const entry = getEntry(dateKey(cursor));
+      if (entry && entry.paused) {
+        // paused days neither break nor extend the streak
+      } else if (isDayComplete(entry)) {
+        run++;
+        best = Math.max(best, run);
+      } else {
+        run = 0;
+      }
+      cursor = new Date(cursor.getTime() + DAY_MS);
+    }
+    return best;
+  }
+  function bestMonthEver() {
+    const totalTasks = store.settings.dailyTasks.length + (teethEnabled() ? 1 : 0);
+    if (totalTasks === 0) return null;
+    const monthsSeen = new Set(Object.keys(store.entries).map((k) => k.slice(0, 7)));
+    let best = null;
+    monthsSeen.forEach((mk) => {
+      const [y, m] = mk.split('-').map(Number);
+      const monthIndex = m - 1;
+      const monthLastDay = monthDayRange(y, monthIndex);
+      if (monthLastDay < 5) return;
+      let done = 0, counted = 0;
+      for (let d = 1; d <= monthLastDay; d++) {
+        const entry = getEntry(`${y}-${pad2(m)}-${pad2(d)}`);
+        if (entry && entry.paused) continue;
+        counted++;
+        if (isDayComplete(entry)) done++;
+      }
+      if (counted < 5) return;
+      const pct = (done / counted) * 100;
+      if (!best || pct > best.pct) best = { y, monthIndex, pct };
+    });
+    return best;
+  }
+  function renderPersonalRecords() {
+    const card = document.getElementById('personalRecordsCard');
+    const list = document.getElementById('recordsList');
+    const items = [];
+    const iconTrophy = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7,4 L17,4 L17,10 C17,13.3 14.8,16 12,16 C9.2,16 7,13.3 7,10 Z"/><path d="M7,5.5 L4.5,5.5 L4.5,8 C4.5,9.7 5.8,11 7.5,11" stroke-linecap="round"/><path d="M17,5.5 L19.5,5.5 L19.5,8 C19.5,9.7 18.2,11 16.5,11" stroke-linecap="round"/><path d="M12,16 L12,19 M9,20.5 L15,20.5 M9,20.5 L9.7,19 L14.3,19 L15,20.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+    const longest = longestStreakEver();
+    if (longest > 0) items.push({ icon: iconTrophy, label: 'Racha más larga', value: `${longest} ${longest === 1 ? 'día' : 'días'}` });
+
+    const bestMonth = bestMonthEver();
+    if (bestMonth) items.push({ icon: iconTrophy, label: 'Mes más constante', value: `${MONTHS_LONG[bestMonth.monthIndex]} ${bestMonth.y} · ${Math.round(bestMonth.pct)}%` });
+
+    if (suenoEnabled()) {
+      let bestSleep = null;
+      Object.entries(store.entries).forEach(([key, e]) => {
+        if (e.sleepHours && (!bestSleep || e.sleepHours > bestSleep.v)) bestSleep = { v: e.sleepHours, key };
+      });
+      if (bestSleep) items.push({ icon: iconTrophy, label: 'Mejor noche de sueño', value: `${bestSleep.v.toFixed(1)} h · ${fmtKeyDate(bestSleep.key)}` });
+    }
+    if (pesoEnabled()) {
+      let minW = null, maxW = null;
+      Object.values(store.entries).forEach((e) => {
+        if (e.weight == null) return;
+        if (!minW || e.weight < minW) minW = e.weight;
+        if (!maxW || e.weight > maxW) maxW = e.weight;
+      });
+      if (minW != null) items.push({ icon: iconTrophy, label: 'Peso mínimo registrado', value: `${minW.toFixed(1)} kg` });
+      if (maxW != null && maxW !== minW) items.push({ icon: iconTrophy, label: 'Peso máximo registrado', value: `${maxW.toFixed(1)} kg` });
+    }
+    if (workoutsEnabled()) {
+      let workoutDays = 0;
+      Object.values(store.entries).forEach((e) => {
+        const did = e.workout && ((e.workout.durationMin > 0) || (e.workout.exercises && Object.values(e.workout.exercises).some((l) => l.reps > 0 || (l.weight != null && l.weight > 0))));
+        if (did) workoutDays++;
+      });
+      if (workoutDays > 0) items.push({ icon: iconTrophy, label: 'Días entrenados en total', value: `${workoutDays}` });
+    }
+
+    if (items.length === 0) { card.hidden = true; return; }
+    card.hidden = false;
+    list.innerHTML = items.map((it) => `
+      <li class="records-item">
+        <span class="records-icon" aria-hidden="true">${it.icon}</span>
+        <span class="records-text"><p class="records-label">${escapeHtml(it.label)}</p><p class="records-value">${escapeHtml(it.value)}</p></span>
+      </li>`).join('');
+  }
+
+  /* ============ Stats: insignias de racha ============ */
+  function renderMilestones() {
+    const card = document.getElementById('milestonesCard');
+    const totalTasks = store.settings.dailyTasks.length + (teethEnabled() ? 1 : 0);
+    if (totalTasks === 0) { card.hidden = true; return; }
+    card.hidden = false;
+    const longest = longestStreakEver();
+    const iconBadge = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8,12.5 L10.5,15 L16,9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    document.getElementById('milestonesShelf').innerHTML = STREAK_MILESTONES.map((m) => {
+      const earned = longest >= m;
+      return `<div class="milestone-chip${earned ? ' is-earned' : ''}">
+        <span class="milestone-badge" aria-hidden="true">${iconBadge}</span>
+        <span class="milestone-days">${m} ${m === 1 ? 'día' : 'días'}</span>
+      </div>`;
+    }).join('');
+  }
+
+  /* ============ Stats: mejor y peor día de la semana ============ */
+  function renderWeekdayPattern(year, monthIndex, lastDay) {
+    const card = document.getElementById('weekdayPatternCard');
+    const totalTasks = store.settings.dailyTasks.length + (teethEnabled() ? 1 : 0);
+    if (totalTasks === 0 || lastDay < 7) { card.hidden = true; return; }
+    const sums = [0, 0, 0, 0, 0, 0, 0], counts = [0, 0, 0, 0, 0, 0, 0];
+    for (let d = 1; d <= lastDay; d++) {
+      const entry = getEntryForDay(year, monthIndex, d);
+      if (!entry || entry.paused) continue;
+      const dow = new Date(year, monthIndex, d).getDay();
+      let dayDone = 0;
+      store.settings.dailyTasks.forEach((t) => { if (entry[t.id]) dayDone++; });
+      if (teethEnabled() && entry.teeth > 0) dayDone++;
+      sums[dow] += (dayDone / totalTasks) * 100;
+      counts[dow]++;
+    }
+    const order = [1, 2, 3, 4, 5, 6, 0];
+    const rows = order.map((dow) => ({
+      dow, label: WEEKDAYS_LONG[dow].slice(0, 3), pct: counts[dow] > 0 ? sums[dow] / counts[dow] : null
+    }));
+    const withData = rows.filter((r) => r.pct != null);
+    if (withData.length < 4) { card.hidden = true; return; }
+    card.hidden = false;
+    const bestPct = Math.max(...withData.map((r) => r.pct));
+    const worstPct = Math.min(...withData.map((r) => r.pct));
+    document.getElementById('weekdayPatternList').innerHTML = rows.map((r) => {
+      const pct = r.pct == null ? 0 : r.pct;
+      const cls = r.pct == null ? '' : (r.pct === bestPct && bestPct !== worstPct ? 'is-best' : (r.pct === worstPct && bestPct !== worstPct ? 'is-worst' : ''));
+      return `<div class="weekday-pattern-row ${cls}">
+        <span class="weekday-pattern-name">${escapeHtml(r.label)}</span>
+        <span class="weekday-pattern-track"><span class="weekday-pattern-fill" style="width:${pct}%"></span></span>
+        <span class="weekday-pattern-pct">${r.pct == null ? '–' : `${Math.round(r.pct)}%`}</span>
+      </div>`;
+    }).join('');
+  }
+
+  /* ============ Stats: días sin registrar ============ */
+  function renderMissingDays(year, monthIndex, lastDay) {
+    const card = document.getElementById('missingDaysCard');
+    const body = document.getElementById('missingDaysBody');
+    const allKeys = Object.keys(store.entries);
+    if (lastDay < 3 || allKeys.length === 0) { card.hidden = true; return; }
+    const firstKey = allKeys.sort()[0];
+    card.hidden = false;
+    const missing = [];
+    for (let d = 1; d <= lastDay; d++) {
+      const key = `${year}-${pad2(monthIndex + 1)}-${pad2(d)}`;
+      if (key < firstKey) continue;
+      if (!getEntry(key)) missing.push(d);
+    }
+    if (missing.length === 0) {
+      body.innerHTML = statsEmptyState(ICON_EMPTY_CHECK, 'Ningún día sin registrar', 'Has abierto todos los días de este mes hasta hoy.');
+      return;
+    }
+    body.innerHTML = `
+      <p class="hint-text" style="margin-top:0">${missing.length} ${missing.length === 1 ? 'día' : 'días'} sin abrir este mes. Toca uno para ir directamente.</p>
+      <div class="missing-days-list">${missing.map((d) => `<button type="button" class="missing-day-chip" data-missing-day="${d}">${d}</button>`).join('')}</div>`;
+    body.querySelectorAll('[data-missing-day]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        currentDate = new Date(year, monthIndex, parseInt(btn.dataset.missingDay, 10));
+        renderAll();
+        switchTab('hoy');
+      });
+    });
   }
 
   function renderStats() {
@@ -3784,6 +4260,11 @@
     renderInsights(year, monthIndex, lastDay);
     renderMonthWrapped(year, monthIndex, lastDay);
     renderYearWrapped(year);
+    renderConsistencyScore(year, monthIndex, lastDay);
+    renderPersonalRecords();
+    renderMilestones();
+    renderWeekdayPattern(year, monthIndex, lastDay);
+    renderMissingDays(year, monthIndex, lastDay);
     reflectionSearchCard.hidden = !Object.keys(store.entries).some((key) => (store.entries[key].reflection || '').trim());
 
     // Weekly tasks bars
