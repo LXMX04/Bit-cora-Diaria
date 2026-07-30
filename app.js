@@ -248,6 +248,8 @@
       test: false,
       teeth: 0,
       reflection: '',
+      habitNotes: {},
+      excusedTasks: {},
       badHabits: {},
       supplements: {},
       goals: {},
@@ -998,7 +1000,31 @@
     }
   }
 
+  const openHabitNoteRows = new Set();
+
   dailyTaskList.addEventListener('click', (e) => {
+    const noteBtn = e.target.closest('[data-note-task]');
+    if (noteBtn) {
+      const taskId = noteBtn.dataset.noteTask;
+      if (openHabitNoteRows.has(taskId)) openHabitNoteRows.delete(taskId);
+      else openHabitNoteRows.add(taskId);
+      renderHoy();
+      return;
+    }
+    const postponeBtn = e.target.closest('[data-postpone-task]');
+    if (postponeBtn) {
+      const key = dateKey(currentDate);
+      const entry = ensureEntry(key);
+      const wasComplete = isDayComplete(entry);
+      const streakBefore = currentStreak();
+      entry.excusedTasks = entry.excusedTasks || {};
+      const taskId = postponeBtn.dataset.postponeTask;
+      entry.excusedTasks[taskId] = !entry.excusedTasks[taskId];
+      saveStore();
+      renderHoy();
+      handleDayCompletionFeedback(wasComplete, streakBefore);
+      return;
+    }
     const key = dateKey(currentDate);
     const entry = ensureEntry(key);
     const wasComplete = isDayComplete(entry);
@@ -1020,6 +1046,24 @@
       renderHoy();
       handleDayCompletionFeedback(wasComplete, streakBefore);
     }
+  });
+
+  dailyTaskList.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.closest('[data-habit-note-input]')) e.target.blur();
+  });
+
+  dailyTaskList.addEventListener('change', (e) => {
+    const input = e.target.closest('[data-habit-note-input]');
+    if (!input) return;
+    const key = dateKey(currentDate);
+    const entry = ensureEntry(key);
+    entry.habitNotes = entry.habitNotes || {};
+    const value = input.value.trim();
+    if (value) entry.habitNotes[input.dataset.habitNoteInput] = value;
+    else delete entry.habitNotes[input.dataset.habitNoteInput];
+    saveStore();
+    openHabitNoteRows.delete(input.dataset.habitNoteInput);
+    renderHoy();
   });
 
   weeklyTaskList.addEventListener('click', (e) => {
@@ -1379,7 +1423,8 @@
 
   function isDayComplete(entry) {
     if (!entry) return false;
-    return store.settings.dailyTasks.every((t) => entry[t.id]) && (!teethEnabled() || entry.teeth > 0);
+    const excused = entry.excusedTasks || {};
+    return store.settings.dailyTasks.every((t) => entry[t.id] || excused[t.id]) && (!teethEnabled() || entry.teeth > 0);
   }
 
   function currentStreak() {
@@ -1811,15 +1856,50 @@
     renderYearAgo();
     renderMonthAgo();
 
-    const dailyItemsHtml = store.settings.dailyTasks.map((t) => `
-      <li class="habit-row" data-habit="${t.id}">
-        <button class="check-btn" data-check="${t.id}" aria-pressed="${!!entry[t.id]}">
+    const habitNotes = entry.habitNotes || {};
+    const excusedTasks = entry.excusedTasks || {};
+    const isToday = currentDate.getTime() === today.getTime();
+    function dailyTaskRowHtml(t) {
+      const note = habitNotes[t.id] || '';
+      const noteOpen = openHabitNoteRows.has(t.id);
+      const checked = !!entry[t.id];
+      const excused = !!excusedTasks[t.id];
+      const postponeHtml = (isToday && !checked)
+        ? (excused
+          ? `<button type="button" class="habit-postpone-link is-excused" data-postpone-task="${t.id}">Excusado hoy · deshacer</button>`
+          : `<button type="button" class="habit-postpone-link" data-postpone-task="${t.id}">Posponer (no cuenta hoy)</button>`)
+        : '';
+      return `
+      <li class="habit-row${excused ? ' is-excused' : ''}" data-habit="${t.id}">
+        <button class="check-btn" data-check="${t.id}" aria-pressed="${checked}">
           <span class="check-icon">${CHECK_TICK_SVG}</span>
         </button>
         <div class="habit-text">
           <span class="habit-name">${escapeHtml(t.label)}</span>
+          ${(note && !noteOpen) ? `<span class="habit-note-preview">${escapeHtml(note)}</span>` : ''}
+          ${postponeHtml}
         </div>
-      </li>`).join('');
+        <button type="button" class="habit-note-btn${note ? ' has-note' : ''}" data-note-task="${t.id}" aria-label="Nota para ${escapeHtml(t.label)}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5,19 L8,18 L17,9 C18,8 18,6.5 17,5.5 C16,4.5 14.5,4.5 13.5,5.5 L4.5,14.5 Z" stroke-linejoin="round"/></svg>
+        </button>
+      </li>
+      ${noteOpen ? `
+      <li class="habit-note-row" data-habit-note="${t.id}">
+        <input type="text" class="habit-note-input" data-habit-note-input="${t.id}" maxlength="80" placeholder="¿Qué pasó hoy con esto?" value="${escapeHtml(note)}" />
+      </li>` : ''}`;
+    }
+    const dailyTasks = store.settings.dailyTasks;
+    const hasPeriods = dailyTasks.some((t) => t.period && t.period !== 'anytime');
+    let dailyItemsHtml;
+    if (hasPeriods) {
+      dailyItemsHtml = TASK_PERIODS.map((p) => {
+        const group = dailyTasks.filter((t) => (t.period || 'anytime') === p.id);
+        if (group.length === 0) return '';
+        return `<li class="habit-group-label">${escapeHtml(p.label)}</li>` + group.map(dailyTaskRowHtml).join('');
+      }).join('');
+    } else {
+      dailyItemsHtml = dailyTasks.map(dailyTaskRowHtml).join('');
+    }
     const teethHtml = teethEnabled() ? `
       <li class="habit-row habit-row--stepper" data-habit="teeth">
         <div class="habit-text">
@@ -5319,11 +5399,20 @@
     return `tk_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
   }
 
+  const TASK_PERIODS = [
+    { id: 'anytime', label: 'Cualquier momento' },
+    { id: 'morning', label: 'Mañana' },
+    { id: 'night', label: 'Noche' }
+  ];
+  function taskPeriodLabel(period) {
+    return (TASK_PERIODS.find((p) => p.id === period) || TASK_PERIODS[0]).label;
+  }
   function renderDailyTaskManageList() {
     const tasks = store.settings.dailyTasks;
     dailyTaskManageList.innerHTML = tasks.length ? tasks.map((t) => `
       <li class="task-manage-item" data-task-id="${t.id}">
         <span class="task-manage-label">${escapeHtml(t.label)}</span>
+        <button type="button" class="task-period-btn" data-period-task="${t.id}">${escapeHtml(taskPeriodLabel(t.period))}</button>
         <button type="button" class="task-remove-btn" data-remove-task="${t.id}" aria-label="Eliminar ${escapeHtml(t.label)}">×</button>
       </li>`).join('') : '<li class="task-empty-hint">No tienes tareas diarias todavía.</li>';
   }
@@ -5356,14 +5445,26 @@
   });
 
   dailyTaskManageList.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-remove-task]');
-    if (!btn) return;
-    const taskId = btn.dataset.removeTask;
-    const label = btn.closest('.task-manage-item').querySelector('.task-manage-label').textContent;
-    deleteWithUndo(store.settings.dailyTasks, taskId, label, () => {
+    const removeBtn = e.target.closest('[data-remove-task]');
+    if (removeBtn) {
+      const taskId = removeBtn.dataset.removeTask;
+      const label = removeBtn.closest('.task-manage-item').querySelector('.task-manage-label').textContent;
+      deleteWithUndo(store.settings.dailyTasks, taskId, label, () => {
+        renderDailyTaskManageList();
+        renderHoy();
+      });
+      return;
+    }
+    const periodBtn = e.target.closest('[data-period-task]');
+    if (periodBtn) {
+      const task = store.settings.dailyTasks.find((t) => t.id === periodBtn.dataset.periodTask);
+      if (!task) return;
+      const idx = TASK_PERIODS.findIndex((p) => p.id === (task.period || 'anytime'));
+      task.period = TASK_PERIODS[(idx + 1) % TASK_PERIODS.length].id;
+      saveStore();
       renderDailyTaskManageList();
       renderHoy();
-    });
+    }
   });
 
   renderDailyTaskManageList();
@@ -6182,8 +6283,7 @@
 
   function isTodayComplete() {
     const entry = getEntry(dateKey(startOfDay(new Date())));
-    if (!entry) return false;
-    return store.settings.dailyTasks.every((t) => entry[t.id]) && (!teethEnabled() || entry.teeth > 0);
+    return isDayComplete(entry);
   }
 
   function checkReminder() {

@@ -722,6 +722,70 @@ main {
   font-size: 12px;
   color: var(--text-muted);
 }
+.habit-postpone-link {
+  display: block;
+  margin-top: 2px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  text-decoration: underline;
+}
+.habit-postpone-link.is-excused {
+  color: var(--accent-2);
+}
+.habit-row.is-excused .habit-name {
+  color: var(--text-muted);
+}
+.habit-note-preview {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.habit-note-btn {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--border);
+  padding: 0;
+}
+.habit-note-btn svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.habit-note-btn.has-note {
+  color: var(--accent-2);
+}
+.habit-note-row {
+  padding: 0 0 10px 40px;
+}
+.habit-note-input {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  padding: 4px 0;
+  font-family: inherit;
+}
+.habit-note-input:focus { outline: none; border-bottom-color: var(--accent); }
+.habit-group-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  padding: 10px 0 2px;
+}
+.habit-group-label:first-child { padding-top: 0; }
 
 /* ---------- Stepper ---------- */
 .stepper {
@@ -1731,6 +1795,17 @@ select.profile-input {
   padding: 6px 8px;
   font-size: 13px;
   text-align: right;
+}
+.task-period-btn {
+  flex: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-alt);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  white-space: nowrap;
 }
 .task-remove-btn {
   flex: none;
