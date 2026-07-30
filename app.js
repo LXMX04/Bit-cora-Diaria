@@ -4258,6 +4258,7 @@
     renderGoalsStats(year, monthIndex, lastDay);
     renderWeekCompare();
     renderInsights(year, monthIndex, lastDay);
+    renderWeekWrapped();
     renderMonthWrapped(year, monthIndex, lastDay);
     renderYearWrapped(year);
     renderConsistencyScore(year, monthIndex, lastDay);
@@ -4758,6 +4759,9 @@
     storyOverlay.hidden = true;
   }
 
+  document.getElementById('playWeekWrappedBtn').addEventListener('click', () => {
+    if (lastWeekWrappedShare) openStory(lastWeekWrappedShare.title, lastWeekWrappedShare.tiles);
+  });
   document.getElementById('playMonthWrappedBtn').addEventListener('click', () => {
     if (lastMonthWrappedShare) openStory(lastMonthWrappedShare.title, lastMonthWrappedShare.tiles);
   });
@@ -4785,6 +4789,32 @@
       closeStory();
     }
   });
+
+  let lastWeekWrappedShare = null;
+  const WEEK_WRAPPED_KINDS = new Set(['completePct', 'streak', 'workoutDays', 'sleepAvg']);
+
+  function renderWeekWrapped() {
+    const card = document.getElementById('weekWrappedCard');
+    const today = startOfDay(new Date());
+    if (today.getDay() !== 1) { card.hidden = true; return; }
+
+    const wrapMonday = new Date(today);
+    wrapMonday.setDate(today.getDate() - 7);
+    const wrapSunday = new Date(wrapMonday);
+    wrapSunday.setDate(wrapMonday.getDate() + 6);
+
+    const stats = computeWrappedStats(wrapMonday, wrapSunday);
+    if (stats.loggedDays === 0) { card.hidden = true; return; }
+    card.hidden = false;
+
+    let tileList = buildWrappedTileList(stats).filter((t) => WEEK_WRAPPED_KINDS.has(t.kind));
+    if (tileList.length === 0) tileList = [wrappedTileData('var(--surface-alt)', '–', 'Todavía sin datos suficientes')];
+
+    const title = `Semana del ${weekRangeLabel(wrapMonday)}`;
+    document.getElementById('weekWrappedTitle').textContent = title;
+    document.getElementById('weekWrappedTiles').innerHTML = wrappedTilesHtml(tileList);
+    lastWeekWrappedShare = { title: weekRangeLabel(wrapMonday), tiles: tileList };
+  }
 
   function renderMonthWrapped(year, monthIndex, lastDay) {
     const card = document.getElementById('monthWrappedCard');
