@@ -33,6 +33,10 @@
       tracksGratitud: false,
       tracksEnergia: false,
       tracksRopa: false,
+      tracksSintomas: false,
+      tracksCafeina: false,
+      tracksAlcohol: false,
+      tracksPantalla: false,
       usualMeals: { desayuno: [], comida: [], cena: [] },
       monthlyBudget: null,
       travelModeActive: false,
@@ -166,6 +170,18 @@
       if (typeof parsed.settings.tracksRopa !== 'boolean') {
         parsed.settings.tracksRopa = false;
       }
+      if (typeof parsed.settings.tracksSintomas !== 'boolean') {
+        parsed.settings.tracksSintomas = false;
+      }
+      if (typeof parsed.settings.tracksCafeina !== 'boolean') {
+        parsed.settings.tracksCafeina = false;
+      }
+      if (typeof parsed.settings.tracksAlcohol !== 'boolean') {
+        parsed.settings.tracksAlcohol = false;
+      }
+      if (typeof parsed.settings.tracksPantalla !== 'boolean') {
+        parsed.settings.tracksPantalla = false;
+      }
       if (!parsed.settings.usualMeals || typeof parsed.settings.usualMeals !== 'object') {
         parsed.settings.usualMeals = defaultSettings().usualMeals;
       }
@@ -254,6 +270,10 @@
       periodDay: false,
       periodFlow: null,
       cycleSymptoms: [],
+      symptoms: [],
+      cafeina: 0,
+      alcohol: 0,
+      pantallaMin: 0,
       workout: { durationMin: 0, exercises: {}, templateId: '' },
       snacks: [],
       gratitude: ['', '', ''],
@@ -321,6 +341,15 @@
     { id: 'acne', label: 'Acné' },
     { id: 'tenderBreasts', label: 'Sensibilidad' },
     { id: 'nausea', label: 'Náuseas' }
+  ];
+
+  const PHYSICAL_SYMPTOMS = [
+    { id: 'headache', label: 'Dolor de cabeza' },
+    { id: 'backache', label: 'Dolor de espalda' },
+    { id: 'fatigue', label: 'Cansancio' },
+    { id: 'nausea', label: 'Náuseas' },
+    { id: 'dizziness', label: 'Mareo' },
+    { id: 'muscleTension', label: 'Tensión muscular' }
   ];
 
   const PERIOD_FLOW_LEVELS = [
@@ -434,6 +463,22 @@
 
   function ropaEnabled() {
     return store.settings.tracksRopa === true;
+  }
+
+  function sintomasEnabled() {
+    return store.settings.tracksSintomas === true;
+  }
+
+  function cafeinaEnabled() {
+    return store.settings.tracksCafeina === true;
+  }
+
+  function alcoholEnabled() {
+    return store.settings.tracksAlcohol === true;
+  }
+
+  function pantallaEnabled() {
+    return store.settings.tracksPantalla === true;
   }
 
   const EXERCISE_GROUPS = [
@@ -618,7 +663,7 @@
   const tabBtnObjetivos = document.getElementById('tabBtnObjetivos');
   function objetivosEnabled() {
     return aguaEnabled() || suenoEnabled() || pesoEnabled() || ayunoEnabled() ||
-      meditacionEnabled() || lecturaEnabled() || workoutsEnabled() || store.settings.goals.length > 0;
+      meditacionEnabled() || lecturaEnabled() || workoutsEnabled() || pantallaEnabled() || store.settings.goals.length > 0;
   }
   function updateObjetivosTabVisibility() {
     tabBtnObjetivos.hidden = !objetivosEnabled();
@@ -733,6 +778,7 @@
     setAccordionDot('gratitudDot', gratitudEnabled());
     setAccordionDot('snacksDot', snacksEnabled());
     setAccordionDot('ropaDot', ropaEnabled());
+    setAccordionDot('bienestarFisicoDot', sintomasEnabled() || pantallaEnabled());
     setAccordionDot('reminderDot', !!store.settings.reminderEnabled);
     setAccordionDot('travelDot', !!store.settings.travelModeActive);
   }
@@ -768,6 +814,8 @@
       anyEntryMatches((e) => Array.isArray(e.gratitude) && e.gratitude.some((g) => g && g.trim())), 'Gratitud');
     setUnusedHint('snacksUnusedHint', snacksEnabled(), anyEntryMatches((e) => Array.isArray(e.snacks) && e.snacks.length > 0), 'Snacks');
     setUnusedHint('ropaUnusedHint', ropaEnabled(), anyEntryMatches((e) => e.outfitPlanned), 'Ropa del día');
+    setUnusedHint('sintomasUnusedHint', sintomasEnabled(), anyEntryMatches((e) => Array.isArray(e.symptoms) && e.symptoms.length > 0), 'Síntomas');
+    setUnusedHint('pantallaUnusedHint', pantallaEnabled(), anyEntryMatches((e) => e.pantallaMin > 0), 'Tiempo de pantalla');
   }
 
   /* ============ Ajustes: vista previa de densidad ============ */
@@ -1103,6 +1151,15 @@
       renderHoy();
     });
   });
+  document.querySelectorAll('[data-stepper="pantallaMin"] .stepper-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const key = dateKey(currentDate);
+      const entry = ensureEntry(key);
+      entry.pantallaMin = Math.max(0, (entry.pantallaMin || 0) + parseInt(btn.dataset.step, 10));
+      saveStore();
+      renderHoy();
+    });
+  });
 
   const cicloCard = document.getElementById('cicloCard');
   const periodDayBtn = document.getElementById('periodDayBtn');
@@ -1144,6 +1201,32 @@
     saveStore();
     renderHoy();
   });
+
+  const symptomsCard = document.getElementById('symptomsCard');
+  const physicalSymptomList = document.getElementById('physicalSymptomList');
+  physicalSymptomList.innerHTML = PHYSICAL_SYMPTOMS.map((s) => `<button type="button" class="symptom-chip" data-symptom="${s.id}" aria-pressed="false">${escapeHtml(s.label)}</button>`).join('');
+  physicalSymptomList.addEventListener('click', (e) => {
+    const btn = e.target.closest('.symptom-chip');
+    if (!btn) return;
+    const key = dateKey(currentDate);
+    const entry = ensureEntry(key);
+    entry.symptoms = entry.symptoms || [];
+    const id = btn.dataset.symptom;
+    const idx = entry.symptoms.indexOf(id);
+    if (idx === -1) entry.symptoms.push(id);
+    else entry.symptoms.splice(idx, 1);
+    saveStore();
+    renderHoy();
+  });
+
+  function renderSymptomsCard(entry) {
+    symptomsCard.hidden = !sintomasEnabled();
+    if (!sintomasEnabled()) return;
+    const symptoms = entry.symptoms || [];
+    physicalSymptomList.querySelectorAll('.symptom-chip').forEach((btn) => {
+      btn.setAttribute('aria-pressed', String(symptoms.includes(btn.dataset.symptom)));
+    });
+  }
 
   function renderCicloCard(entry) {
     if (!cicloEnabled()) { cicloCard.hidden = true; return; }
@@ -1793,6 +1876,7 @@
       </li>`).join('') : '<li class="task-empty-hint">No tienes suplementos registrados. Añade uno en Ajustes.</li>';
 
     renderCicloCard(entry);
+    renderSymptomsCard(entry);
     renderWellbeingCards(entry);
 
     updateStreakBadge();
@@ -1806,6 +1890,24 @@
     aguaCard.hidden = !aguaEnabled();
     document.getElementById('aguaValue').textContent = entry.agua || 0;
     document.getElementById('aguaGoalHint').textContent = `Objetivo: ${aguaGoal()} vasos`;
+    const aguaPacingEl = document.getElementById('aguaPacingHint');
+    const isToday = currentDate.getTime() === startOfDay(new Date()).getTime();
+    if (aguaEnabled() && isToday) {
+      const hour = new Date().getHours();
+      const wakeStart = 8, wakeEnd = 23;
+      if (hour >= wakeStart) {
+        const hourFraction = Math.min(1, (hour - wakeStart) / (wakeEnd - wakeStart));
+        const expected = Math.round(aguaGoal() * hourFraction);
+        const behind = expected - (entry.agua || 0);
+        aguaPacingEl.textContent = behind >= 2
+          ? `Vas por detrás de tu ritmo habitual: a esta hora sueles llevar unos ${expected} vasos.`
+          : '';
+      } else {
+        aguaPacingEl.textContent = '';
+      }
+    } else {
+      aguaPacingEl.textContent = '';
+    }
 
     suenoCard.hidden = !suenoEnabled();
     document.getElementById('sleepHoursValue').textContent = entry.sleepHours || 0;
@@ -1827,6 +1929,9 @@
     document.getElementById('lecturaRow').hidden = !lecturaEnabled();
     document.getElementById('meditationMinValue').textContent = entry.meditationMin || 0;
     document.getElementById('readingMinValue').textContent = entry.readingMin || 0;
+
+    document.getElementById('pantallaCard').hidden = !pantallaEnabled();
+    document.getElementById('pantallaMinValue').textContent = entry.pantallaMin || 0;
 
     workoutCard.hidden = !workoutsEnabled();
     const workout = entry.workout || { durationMin: 0, exercises: {}, templateId: '' };
@@ -2718,6 +2823,26 @@
     });
   });
 
+  document.querySelectorAll('[data-stepper="cafeina"] .stepper-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const key = dateKey(currentDate);
+      const entry = ensureEntry(key);
+      entry.cafeina = Math.max(0, (entry.cafeina || 0) + parseInt(btn.dataset.step, 10));
+      saveStore();
+      renderConsumo();
+    });
+  });
+
+  document.querySelectorAll('[data-stepper="alcohol"] .stepper-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const key = dateKey(currentDate);
+      const entry = ensureEntry(key);
+      entry.alcohol = Math.max(0, (entry.alcohol || 0) + parseInt(btn.dataset.step, 10));
+      saveStore();
+      renderConsumo();
+    });
+  });
+
   purchaseRows.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-step]');
     if (!btn) return;
@@ -2839,11 +2964,17 @@
     setDelta('deltaCigarettes', cig.avg, cigPrev.avg, cigPrev.count > 0);
     setDelta('deltaJoints', joint.avg, jointPrev.avg, jointPrev.count > 0);
 
-    document.getElementById('consumoTodayCard').hidden = !jointsEnabled();
+    document.getElementById('consumoTodayCard').hidden = !(jointsEnabled() || cafeinaEnabled() || alcoholEnabled());
+    document.getElementById('cigarettesRow').hidden = !jointsEnabled();
     document.getElementById('mediaMensualCard').hidden = !jointsEnabled();
     document.getElementById('jointsRow').hidden = !jointsEnabled();
     document.getElementById('jointsAvgTile').hidden = !jointsEnabled();
     document.getElementById('mediaMensualGrid').classList.toggle('single', !jointsEnabled());
+
+    document.getElementById('cafeinaRow').hidden = !cafeinaEnabled();
+    document.getElementById('cafeinaValue').textContent = entry.cafeina || 0;
+    document.getElementById('alcoholRow').hidden = !alcoholEnabled();
+    document.getElementById('alcoholValue').textContent = entry.alcohol || 0;
 
     updateJointPriceHints();
     renderSpendGroups(document.getElementById('spendGroups'), y, m, monthDayRange(y, m), 'este mes', 'este año');
@@ -5710,6 +5841,43 @@
     store.settings.tracksRopa = tracksRopaToggle.checked;
     saveStore();
     renderHoy();
+  });
+
+  const tracksSintomasToggle = document.getElementById('tracksSintomasToggle');
+  tracksSintomasToggle.checked = sintomasEnabled();
+  tracksSintomasToggle.addEventListener('change', () => {
+    store.settings.tracksSintomas = tracksSintomasToggle.checked;
+    saveStore();
+    renderHoy();
+    updateAccordionBadges();
+    updateUnusedFeatureHints();
+  });
+
+  const tracksPantallaToggle = document.getElementById('tracksPantallaToggle');
+  tracksPantallaToggle.checked = pantallaEnabled();
+  tracksPantallaToggle.addEventListener('change', () => {
+    store.settings.tracksPantalla = tracksPantallaToggle.checked;
+    saveStore();
+    updateObjetivosTabVisibility();
+    renderHoy();
+    updateAccordionBadges();
+    updateUnusedFeatureHints();
+  });
+
+  const tracksCafeinaToggle = document.getElementById('tracksCafeinaToggle');
+  tracksCafeinaToggle.checked = cafeinaEnabled();
+  tracksCafeinaToggle.addEventListener('change', () => {
+    store.settings.tracksCafeina = tracksCafeinaToggle.checked;
+    saveStore();
+    renderConsumo();
+  });
+
+  const tracksAlcoholToggle = document.getElementById('tracksAlcoholToggle');
+  tracksAlcoholToggle.checked = alcoholEnabled();
+  tracksAlcoholToggle.addEventListener('change', () => {
+    store.settings.tracksAlcohol = tracksAlcoholToggle.checked;
+    saveStore();
+    renderConsumo();
   });
 
   /* ============ AJUSTES panel / Ciclo menstrual ============ */

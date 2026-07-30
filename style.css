@@ -996,6 +996,11 @@ main {
   padding-top: 10px;
   border-top: 1px solid var(--border);
 }
+.symptom-list {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
 
 /* ---------- Consumo ---------- */
 .consumo-row {

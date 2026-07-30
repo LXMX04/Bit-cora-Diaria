@@ -143,6 +143,12 @@
         <p class="hint-text">Márcalo si hoy has hecho esto que quieres evitar. Resta puntos del Total y se refleja en Stats.</p>
       </div>
 
+      <div class="card" id="symptomsCard" hidden>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--claret);background:color-mix(in srgb, var(--claret) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,7.5 L12,12.5 M12,15.5 L12,15.6" stroke-linecap="round"/></svg></span>Síntomas</h2>
+        <div class="symptom-list" id="physicalSymptomList"></div>
+        <p class="hint-text">Marca lo que hayas notado hoy. Se combina con Sueño y Ciclo en "Lo que dicen tus datos".</p>
+      </div>
+
       <div class="card reflection-card" id="reflectionCard">
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5,19 L8,18 L17,9 C18,8 18,6.5 17,5.5 C16,4.5 14.5,4.5 13.5,5.5 L4.5,14.5 Z" stroke-linejoin="round"/><path d="M12,7 L15,10"/></svg></span>Reflexión del día</h2>
         <div class="reflection-quote-mark" aria-hidden="true">&#8220;</div>
@@ -219,6 +225,7 @@
             <button class="stepper-btn" data-step="1" aria-label="Sumar vaso">+</button>
           </div>
         </div>
+        <p class="hint-text" id="aguaPacingHint" style="margin-top:8px"></p>
       </div>
 
       <div class="card" id="suenoCard" hidden>
@@ -286,6 +293,19 @@
           </div>
         </div>
         <p class="hint-text">Minutos de hoy.</p>
+      </div>
+
+      <div class="card" id="pantallaCard" hidden>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--accent);background:color-mix(in srgb, var(--accent) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="5" width="16" height="11" rx="1.5"/><path d="M9,19.5 L15,19.5 M12,16 L12,19.5" stroke-linecap="round"/></svg></span>Tiempo de pantalla</h2>
+        <div class="consumo-row">
+          <div class="consumo-label"><span class="consumo-name">Redes y pantalla</span></div>
+          <div class="stepper" data-stepper="pantallaMin">
+            <button class="stepper-btn" data-step="-15" aria-label="Restar 15 min">–</button>
+            <span class="stepper-value" id="pantallaMinValue">0</span>
+            <button class="stepper-btn" data-step="15" aria-label="Sumar 15 min">+</button>
+          </div>
+        </div>
+        <p class="hint-text">Minutos de hoy, en lo que tú decidas contar.</p>
       </div>
 
       <div class="card" id="workoutCard" hidden>
@@ -429,7 +449,7 @@
     <section class="tab-panel" id="panel-consumo" data-panel="consumo" hidden>
       <div class="card" id="consumoTodayCard" hidden>
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--h-cig);background:color-mix(in srgb, var(--h-cig) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9,20 L9,14.5 C9,11.5 11,11.5 11,9 C11,7.5 10,7 10,5.5" stroke-linecap="round"/><path d="M13,20 L13,16 C13,13.5 15,13.8 15,11.5 C15,10.2 14.2,9.8 14.2,8.5" stroke-linecap="round" opacity="0.6"/></svg></span>Consumo de hoy</h2>
-        <div class="consumo-row">
+        <div class="consumo-row" id="cigarettesRow">
           <div class="consumo-label">
             <span class="consumo-name">Cigarros</span>
           </div>
@@ -448,6 +468,22 @@
             <button class="stepper-btn" data-step="-1" aria-label="Restar joint">–</button>
             <span class="stepper-value" id="jointsValue">0</span>
             <button class="stepper-btn" data-step="1" aria-label="Sumar joint">+</button>
+          </div>
+        </div>
+        <div class="consumo-row" id="cafeinaRow" hidden>
+          <div class="consumo-label"><span class="consumo-name">Cafeína</span></div>
+          <div class="stepper stepper--lg" data-stepper="cafeina">
+            <button class="stepper-btn" data-step="-1" aria-label="Restar café">–</button>
+            <span class="stepper-value" id="cafeinaValue">0</span>
+            <button class="stepper-btn" data-step="1" aria-label="Sumar café">+</button>
+          </div>
+        </div>
+        <div class="consumo-row" id="alcoholRow" hidden>
+          <div class="consumo-label"><span class="consumo-name">Alcohol</span></div>
+          <div class="stepper stepper--lg" data-stepper="alcohol">
+            <button class="stepper-btn" data-step="-1" aria-label="Restar bebida">–</button>
+            <span class="stepper-value" id="alcoholValue">0</span>
+            <button class="stepper-btn" data-step="1" aria-label="Sumar bebida">+</button>
           </div>
         </div>
       </div>
@@ -1022,6 +1058,20 @@
                 </label>
               </div>
               <p class="hint-text">Actívalo si fumas tabaco y/o joints, para que aparezcan en Consumo y en Stats. Si lo desactivas, ambos desaparecen.</p>
+              <div class="setting-row">
+                <span>Registrar cafeína</span>
+                <label class="switch">
+                  <input type="checkbox" id="tracksCafeinaToggle" aria-label="Registrar cafeína" />
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+              <div class="setting-row">
+                <span>Registrar alcohol</span>
+                <label class="switch">
+                  <input type="checkbox" id="tracksAlcoholToggle" aria-label="Registrar alcohol" />
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
               <div id="jointPriceGroup">
                 <div class="setting-row">
                   <label for="jointPriceInput">Precio de joints (€ cada 4 porros)</label>
@@ -1247,6 +1297,40 @@
                 <button class="secondary-btn task-add-btn" id="addTemplateBtn">Añadir</button>
               </div>
               <div id="templateExercisePicker"></div>
+            </div>
+          </div>
+
+          <div class="card accordion-card" data-settings-keywords="sintomas dolor cabeza espalda pantalla movil redes">
+            <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
+              <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--claret);background:color-mix(in srgb, var(--claret) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,7.5 L12,12.5 M12,15.5 L12,15.6" stroke-linecap="round"/></svg></span>Bienestar físico</h2>
+              <span class="accordion-dot" id="bienestarFisicoDot" hidden></span>
+              <span class="accordion-chevron">›</span>
+            </button>
+            <div class="accordion-body" hidden>
+              <div class="feature-toggle-row">
+                <span class="feature-toggle-icon" aria-hidden="true" style="color:var(--claret);background:color-mix(in srgb, var(--claret) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,7.5 L12,12.5 M12,15.5 L12,15.6" stroke-linecap="round"/></svg></span>
+                <span class="feature-toggle-text">
+                  <p class="feature-toggle-title">Síntomas en Hoy</p>
+                  <p class="feature-toggle-desc">Dolor de cabeza, cansancio y otros síntomas del día a día.</p>
+                </span>
+                <label class="switch">
+                  <input type="checkbox" id="tracksSintomasToggle" aria-label="Activar síntomas en Hoy" />
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+              <p class="hint-text" id="sintomasUnusedHint" hidden></p>
+              <div class="feature-toggle-row">
+                <span class="feature-toggle-icon" aria-hidden="true" style="color:var(--accent);background:color-mix(in srgb, var(--accent) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="5" width="16" height="11" rx="1.5"/><path d="M9,19.5 L15,19.5 M12,16 L12,19.5" stroke-linecap="round"/></svg></span>
+                <span class="feature-toggle-text">
+                  <p class="feature-toggle-title">Tiempo de pantalla en Objetivos</p>
+                  <p class="feature-toggle-desc">Minutos de redes o pantalla que quieras registrar cada día.</p>
+                </span>
+                <label class="switch">
+                  <input type="checkbox" id="tracksPantallaToggle" aria-label="Activar tiempo de pantalla en Objetivos" />
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+              <p class="hint-text" id="pantallaUnusedHint" hidden></p>
             </div>
           </div>
 
