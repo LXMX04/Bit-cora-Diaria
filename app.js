@@ -4301,7 +4301,7 @@
       renderConsumoChart(year, monthIndex, lastDay);
       renderCompare(year, monthIndex);
     } else {
-      document.getElementById('consumoChartTitle').textContent = '';
+      document.getElementById('consumoChartTitleText').textContent = '';
       consumoChart.innerHTML = '';
       compareList.innerHTML = '';
     }
@@ -4884,7 +4884,7 @@
 
   function renderConsumoChart(year, monthIndex, lastDay) {
     const showJoints = jointsEnabled();
-    document.getElementById('consumoChartTitle').textContent = showJoints ? 'Cigarros y Joints' : 'Cigarros';
+    document.getElementById('consumoChartTitleText').textContent = showJoints ? 'Cigarros y Joints' : 'Cigarros';
     document.getElementById('legendJointsItem').hidden = !showJoints;
 
     const totalDays = daysInMonth(year, monthIndex);
