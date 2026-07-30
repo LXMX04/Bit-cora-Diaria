@@ -75,11 +75,21 @@
       <p class="daily-quote" id="dailyQuote"></p>
       <p class="streak-badge" id="streakBadge" hidden></p>
 
+      <div class="inactivity-banner" id="inactivityBanner" hidden>
+        <span class="inactivity-banner-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><path d="M12,7.5 L12,12 L15,14" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span id="inactivityBannerText"></span>
+      </div>
+
       <button type="button" class="secondary-btn checkin-open-btn" id="checkinOpenBtn"><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13,3 L5,14 L11,14 L10,21 L19,10 L13,10 Z" stroke-linejoin="round"/></svg></span>Check-in rápido</button>
 
       <div class="card" id="yearAgoCard" hidden>
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,7.5 L12,12 L15,14" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span id="yearAgoTitle">Hace un año</span></h2>
         <div id="yearAgoBody"></div>
+      </div>
+
+      <div class="card" id="monthAgoCard" hidden>
+        <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="4.5" width="17" height="16" rx="2"/><path d="M3.5,9.5 L20.5,9.5"/></svg></span>Hace un mes</h2>
+        <div id="monthAgoBody"></div>
       </div>
 
       <div class="card" id="dailyTasksCard">
@@ -136,6 +146,7 @@
       <div class="card reflection-card" id="reflectionCard">
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5,19 L8,18 L17,9 C18,8 18,6.5 17,5.5 C16,4.5 14.5,4.5 13.5,5.5 L4.5,14.5 Z" stroke-linejoin="round"/><path d="M12,7 L15,10"/></svg></span>Reflexión del día</h2>
         <div class="reflection-quote-mark" aria-hidden="true">&#8220;</div>
+        <p class="reflection-prompt" id="reflectionPrompt"></p>
         <textarea id="reflectionInput" class="reflection-box" rows="5" placeholder="¿Cómo ha ido el día? ¿Qué destacarías?"></textarea>
         <div class="reflection-footer">
           <button type="button" class="dictate-btn" id="dictateBtn" hidden aria-pressed="false" aria-label="Dictar reflexión por voz">
@@ -508,6 +519,16 @@
           <div class="milestones-shelf" id="milestonesShelf"></div>
         </div>
 
+        <div class="card" id="achievementsCard" hidden>
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--h-ciclo);background:color-mix(in srgb, var(--h-ciclo) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7,3.5 L17,3.5 L17,10 C17,13 14.8,15 12,15 C9.2,15 7,13 7,10 Z" stroke-linejoin="round"/><path d="M7,5.5 L4.5,5.5 L4.5,8 C4.5,9.5 5.8,10.5 7.3,10.5 M17,5.5 L19.5,5.5 L19.5,8 C19.5,9.5 18.2,10.5 16.7,10.5 M12,15 L12,18.5 M9,20.5 L15,20.5 L14.3,18.5 L9.7,18.5 Z" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Otros logros</h2>
+          <div class="milestones-shelf" id="achievementsShelf"></div>
+        </div>
+
+        <div class="card" id="projectionCard" hidden>
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--good);background:color-mix(in srgb, var(--good) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4,18 L9,11 L13,15 L20,6" stroke-linecap="round" stroke-linejoin="round"/><path d="M15,6 L20,6 L20,11" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Si sigues así</h2>
+          <p class="hint-text" id="projectionText" style="margin-top:0"></p>
+        </div>
+
         <div class="card" id="weekWrappedCard" hidden>
           <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12,3.5 L13.6,9 L19,9 L14.7,12.3 L16.3,18 L12,14.5 L7.7,18 L9.3,12.3 L5,9 L10.4,9 Z" stroke-linejoin="round"/></svg></span><span id="weekWrappedTitle">Resumen de la semana</span></h2>
           <div class="wrapped-tiles" id="weekWrappedTiles"></div>
@@ -652,6 +673,12 @@
         <div class="card" id="weekCompareCard" hidden>
           <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="13" r="7.5"/><path d="M12,8.5 L12,13 L15,15" stroke-linecap="round" stroke-linejoin="round"/><path d="M9,3.5 L15,3.5" stroke-linecap="round"/></svg></span>Esta semana vs. la anterior</h2>
           <div class="week-compare-list" id="weekCompareList"></div>
+        </div>
+
+        <div class="card" id="yearCompareCard" hidden>
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="4.5" width="17" height="16" rx="2"/><path d="M3.5,9.5 L20.5,9.5"/><path d="M8,13.5 L8,17 M12,11.5 L12,17 M16,15 L16,17" stroke-linecap="round"/></svg></span>Este año vs. el anterior</h2>
+          <div class="week-compare-list" id="yearCompareList"></div>
+          <p class="hint-text" id="yearCompareHint" style="margin-top:8px"></p>
         </div>
 
         <div class="card" id="weekdayPatternCard" hidden>

@@ -1620,6 +1620,23 @@
     }
   }
 
+  function lookbackSummaryHtml(entry) {
+    const dailyTotal = store.settings.dailyTasks.length + (teethEnabled() ? 1 : 0);
+    let done = 0;
+    store.settings.dailyTasks.forEach((t) => { if (entry[t.id]) done++; });
+    if (teethEnabled() && entry.teeth > 0) done++;
+
+    const bits = [];
+    if (dailyTotal > 0) bits.push(`${done}/${dailyTotal} hábitos completados`);
+    if (entry.weight != null) bits.push(`${entry.weight} kg`);
+    if (entry.sleepHours) bits.push(`${entry.sleepHours} h de sueño`);
+    const summary = bits.length ? `<p class="hint-text" style="margin:0 0 8px">${escapeHtml(bits.join(' · '))}</p>` : '';
+    const reflection = (entry.reflection || '').trim();
+    const excerpt = reflection.length > 140 ? `${reflection.slice(0, 140)}…` : reflection;
+    const reflectionHtml = excerpt ? `<p class="hint-text" style="margin:0;font-style:italic">"${escapeHtml(excerpt)}"</p>` : '';
+    return { summary, reflectionHtml, hasContent: !!(summary || reflectionHtml) };
+  }
+
   function renderYearAgo() {
     const card = document.getElementById('yearAgoCard');
     const today = startOfDay(new Date());
@@ -1635,23 +1652,62 @@
     }
     if (!entry) { card.hidden = true; return; }
 
-    const dailyTotal = store.settings.dailyTasks.length + (teethEnabled() ? 1 : 0);
-    let done = 0;
-    store.settings.dailyTasks.forEach((t) => { if (entry[t.id]) done++; });
-    if (teethEnabled() && entry.teeth > 0) done++;
-
-    const bits = [];
-    if (dailyTotal > 0) bits.push(`${done}/${dailyTotal} hábitos completados`);
-    if (entry.weight != null) bits.push(`${entry.weight} kg`);
-    if (entry.sleepHours) bits.push(`${entry.sleepHours} h de sueño`);
-    const summary = bits.length ? `<p class="hint-text" style="margin:0 0 8px">${escapeHtml(bits.join(' · '))}</p>` : '';
-    const reflection = (entry.reflection || '').trim();
-    const excerpt = reflection.length > 140 ? `${reflection.slice(0, 140)}…` : reflection;
-    const reflectionHtml = excerpt ? `<p class="hint-text" style="margin:0;font-style:italic">"${escapeHtml(excerpt)}"</p>` : '';
-    if (!summary && !reflectionHtml) { card.hidden = true; return; }
+    const { summary, reflectionHtml, hasContent } = lookbackSummaryHtml(entry);
+    if (!hasContent) { card.hidden = true; return; }
     card.hidden = false;
     document.getElementById('yearAgoTitle').textContent = yearsBack === 1 ? 'Hace un año' : `Hace ${yearsBack} años`;
     document.getElementById('yearAgoBody').innerHTML = `<p class="hint-text" style="margin:0 0 8px">${fmtShortDate(pastDate)} de ${pastDate.getFullYear()}</p>${summary}${reflectionHtml}`;
+  }
+
+  function renderMonthAgo() {
+    const card = document.getElementById('monthAgoCard');
+    const today = startOfDay(new Date());
+    if (currentDate.getTime() !== today.getTime()) { card.hidden = true; return; }
+
+    const pastDate = new Date(today);
+    pastDate.setMonth(pastDate.getMonth() - 1);
+    const entry = getEntry(dateKey(pastDate));
+    if (!entry) { card.hidden = true; return; }
+
+    const { summary, reflectionHtml, hasContent } = lookbackSummaryHtml(entry);
+    if (!hasContent) { card.hidden = true; return; }
+    card.hidden = false;
+    document.getElementById('monthAgoBody').innerHTML = `<p class="hint-text" style="margin:0 0 8px">${fmtShortDate(pastDate)} de ${pastDate.getFullYear()}</p>${summary}${reflectionHtml}`;
+  }
+
+  const REFLECTION_PROMPTS = [
+    '¿Qué te sorprendió hoy?',
+    '¿Qué momento repetirías si pudieras?',
+    '¿Qué te costó más hoy, y por qué?',
+    '¿De qué pequeña cosa te sientes orgulloso/a hoy?',
+    '¿Qué aprendiste hoy que no sabías ayer?',
+    '¿Qué harías distinto si repitieras el día?',
+    '¿A quién le agradecerías algo de hoy?',
+    '¿Qué te dio energía hoy? ¿Qué te la quitó?',
+    '¿Qué idea o pensamiento no se te fue de la cabeza hoy?',
+    '¿Qué necesitas soltar antes de que termine el día?'
+  ];
+  function updateReflectionPrompt() {
+    const el = document.getElementById('reflectionPrompt');
+    if (!el) return;
+    const dayOfYear = Math.floor((startOfDay(new Date()) - new Date(new Date().getFullYear(), 0, 0)) / DAY_MS);
+    el.textContent = REFLECTION_PROMPTS[dayOfYear % REFLECTION_PROMPTS.length];
+  }
+
+  function renderInactivityBanner() {
+    const banner = document.getElementById('inactivityBanner');
+    const today = startOfDay(new Date());
+    if (currentDate.getTime() !== today.getTime()) { banner.hidden = true; return; }
+    if (getEntry(dateKey(today))) { banner.hidden = true; return; }
+    const keys = Object.keys(store.entries);
+    if (keys.length === 0) { banner.hidden = true; return; }
+    const lastKey = keys.sort()[keys.length - 1];
+    const lastDate = new Date(`${lastKey}T00:00:00`);
+    const daysSince = Math.round((today - lastDate) / DAY_MS);
+    if (daysSince < 3) { banner.hidden = true; return; }
+    banner.hidden = false;
+    document.getElementById('inactivityBannerText').textContent =
+      `Llevas ${daysSince} días sin abrir tu bitácora. Retómala hoy, aunque sea con un par de cosas.`;
   }
 
   function renderHoy() {
@@ -1667,7 +1723,10 @@
     const entry = getEntry(key) || emptyEntry();
     updateGreeting(entry);
     updateDailyQuote();
+    updateReflectionPrompt();
+    renderInactivityBanner();
     renderYearAgo();
+    renderMonthAgo();
 
     const dailyItemsHtml = store.settings.dailyTasks.map((t) => `
       <li class="habit-row" data-habit="${t.id}">
@@ -3184,7 +3243,11 @@
       rows.push({ label: 'Gasto', a: thisWeek.spend, b: lastWeek.spend, fmt: (v) => formatEuro(v), lowerIsBetter: true });
     }
 
-    list.innerHTML = rows.map((r) => {
+    list.innerHTML = compareRowsHtml(rows, 'sem. pasada');
+  }
+
+  function compareRowsHtml(rows, suffixLabel) {
+    return rows.map((r) => {
       const diff = r.a - r.b;
       const better = r.lowerIsBetter ? diff < 0 : diff > 0;
       const worse = r.lowerIsBetter ? diff > 0 : diff < 0;
@@ -3193,10 +3256,60 @@
       return `
       <div class="week-compare-row">
         <span class="week-compare-label">${r.label}</span>
-        <span class="week-compare-values"><strong>${r.fmt(r.a)}</strong> <span class="hint-text" style="display:inline">vs ${r.fmt(r.b)} sem. pasada</span></span>
+        <span class="week-compare-values"><strong>${r.fmt(r.a)}</strong> <span class="hint-text" style="display:inline">vs ${r.fmt(r.b)} ${suffixLabel}</span></span>
         <span class="week-compare-arrow ${cls}">${arrow}</span>
       </div>`;
     }).join('');
+  }
+
+  function computeYearStats(year) {
+    const today = startOfDay(new Date());
+    const yearEnd = new Date(year, 11, 31);
+    const rangeEnd = yearEnd > today ? today : yearEnd;
+    const dailyTotal = store.settings.dailyTasks.length + (teethEnabled() ? 1 : 0);
+    let done = 0, possible = 0, cigarettes = 0, joints = 0, spend = 0;
+    for (let d = new Date(year, 0, 1); d <= rangeEnd; d = new Date(d.getTime() + DAY_MS)) {
+      const entry = getEntry(dateKey(d));
+      possible += dailyTotal;
+      if (!entry) continue;
+      store.settings.dailyTasks.forEach((t) => { if (entry[t.id]) done++; });
+      if (teethEnabled() && entry.teeth > 0) done++;
+      cigarettes += entry.cigarettes || 0;
+      joints += entry.joints || 0;
+      store.settings.purchaseItems.forEach((item) => {
+        spend += ((entry.purchases && entry.purchases[item.id]) || 0) * item.price;
+      });
+      if (jointsEnabled()) spend += ((entry.joints || 0) / 4) * jointPricePer4();
+    }
+    return { habitsPct: possible > 0 ? (done / possible) * 100 : 0, cigarettes, joints, spend };
+  }
+
+  function renderYearCompare() {
+    const card = document.getElementById('yearCompareCard');
+    const list = document.getElementById('yearCompareList');
+    const hint = document.getElementById('yearCompareHint');
+    if (store.settings.dailyTasks.length === 0 && !consumoEnabled()) { card.hidden = true; return; }
+    const today = startOfDay(new Date());
+    const thisYear = today.getFullYear();
+    const hasLastYearData = Object.keys(store.entries).some((k) => k < `${thisYear}-01-01`);
+    if (!hasLastYearData) { card.hidden = true; return; }
+    card.hidden = false;
+    const current = computeYearStats(thisYear);
+    const previous = computeYearStats(thisYear - 1);
+
+    const rows = [];
+    if (store.settings.dailyTasks.length > 0) {
+      rows.push({ label: 'Hábitos diarios completados', a: current.habitsPct, b: previous.habitsPct, fmt: (v) => `${Math.round(v)}%`, lowerIsBetter: false });
+    }
+    if (consumoEnabled()) {
+      rows.push({ label: 'Cigarros', a: current.cigarettes, b: previous.cigarettes, fmt: (v) => `${v}`, lowerIsBetter: true });
+      if (jointsEnabled()) rows.push({ label: 'Joints', a: current.joints, b: previous.joints, fmt: (v) => `${v}`, lowerIsBetter: true });
+      rows.push({ label: 'Gasto', a: current.spend, b: previous.spend, fmt: (v) => formatEuro(v), lowerIsBetter: true });
+    }
+    list.innerHTML = compareRowsHtml(rows, `en ${thisYear - 1}`);
+    hint.textContent = today.getMonth() === 11 && today.getDate() === 31
+      ? `${thisYear} completo frente a ${thisYear - 1} completo.`
+      : `${thisYear} hasta hoy frente al mismo periodo de ${thisYear - 1}.`;
   }
 
   function renderCicloStats(year, monthIndex, lastDay) {
@@ -3981,6 +4094,22 @@
   }
 
   /* ============ Stats: puntuación de constancia ============ */
+  const STREAK_TITLES = [
+    { min: 0, title: 'Aprendiz de sastre' },
+    { min: 7, title: 'Oficial de sastre' },
+    { min: 14, title: 'Sastre de confianza' },
+    { min: 30, title: 'Sastre de la casa' },
+    { min: 60, title: 'Maestro cortador' },
+    { min: 100, title: 'Maestro sastre' },
+    { min: 200, title: 'Sastre de gala' },
+    { min: 365, title: 'Leyenda de la sastrería' }
+  ];
+  function streakTitleFor(days) {
+    let current = STREAK_TITLES[0].title;
+    STREAK_TITLES.forEach((t) => { if (days >= t.min) current = t.title; });
+    return current;
+  }
+
   function renderConsistencyScore(year, monthIndex, lastDay) {
     const card = document.getElementById('consistencyScoreCard');
     const totalTasks = store.settings.dailyTasks.length + (teethEnabled() ? 1 : 0);
@@ -4032,6 +4161,7 @@
       <div class="consistency-score-text">
         <p class="consistency-score-label">${score >= 75 ? 'Muy sólido' : score >= 45 ? 'En buen camino' : 'Con margen de mejora'}</p>
         <p class="consistency-score-desc">Combina hábitos diarios${suenoEnabled() ? ', sueño' : ''}${aguaEnabled() ? ', agua' : ''} y alimentación de ${MONTHS_LONG[monthIndex]}.</p>
+        <p class="consistency-score-title">${escapeHtml(streakTitleFor(longestStreakEver()))}</p>
       </div>`;
   }
 
@@ -4143,6 +4273,60 @@
         <span class="milestone-days">${m} ${m === 1 ? 'día' : 'días'}</span>
       </div>`;
     }).join('');
+  }
+
+  function renderAchievements() {
+    const card = document.getElementById('achievementsCard');
+    const allKeys = Object.keys(store.entries);
+    if (allKeys.length === 0) { card.hidden = true; return; }
+    card.hidden = false;
+
+    const best = bestMonthEver();
+    const perfectMonth = !!(best && best.pct >= 99.99);
+
+    let reflectionCount = 0;
+    allKeys.forEach((k) => { if ((store.entries[k].reflection || '').trim()) reflectionCount++; });
+    const has100Reflections = reflectionCount >= 100;
+
+    const firstKey = allKeys.sort()[0];
+    const daysSinceFirst = Math.round((startOfDay(new Date()) - new Date(`${firstKey}T00:00:00`)) / DAY_MS);
+    const oneYearUsing = daysSinceFirst >= 365;
+
+    const iconBadge = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8,12.5 L10.5,15 L16,9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const badges = [
+      { earned: perfectMonth, label: 'Mes perfecto' },
+      { earned: has100Reflections, label: '100 reflexiones' },
+      { earned: oneYearUsing, label: '1 año usando Suit Up' }
+    ];
+    document.getElementById('achievementsShelf').innerHTML = badges.map((b) => `
+      <div class="milestone-chip${b.earned ? ' is-earned' : ''}">
+        <span class="milestone-badge" aria-hidden="true">${iconBadge}</span>
+        <span class="milestone-days">${escapeHtml(b.label)}</span>
+      </div>`).join('');
+  }
+
+  function renderProjection(year, monthIndex, lastDay) {
+    const card = document.getElementById('projectionCard');
+    const totalTasks = store.settings.dailyTasks.length + (teethEnabled() ? 1 : 0);
+    if (totalTasks === 0) { card.hidden = true; return; }
+    const today = startOfDay(new Date());
+    let done = 0, counted = 0;
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(today.getTime() - i * DAY_MS);
+      const entry = getEntry(dateKey(d));
+      if (!entry || entry.paused) continue;
+      counted++;
+      if (isDayComplete(entry)) done++;
+    }
+    if (counted < 7) { card.hidden = true; return; }
+    card.hidden = false;
+    const pct = (done / counted) * 100;
+    const streak = currentStreak();
+    const projectedIn30 = Math.round(streak + (pct / 100) * 30);
+    const text = streak > 0
+      ? `A tu ritmo de los últimos 30 días (${counted} con registro, ${Math.round(pct)}% completos), si mantienes el paso podrías llegar a una racha de unos ${projectedIn30} días dentro de un mes.`
+      : `En tus últimos 30 días (${counted} con registro) has completado el ${Math.round(pct)}% de tus hábitos diarios. Si empiezas hoy y mantienes ese ritmo, en un mes podrías tener una racha de unos ${Math.round((pct / 100) * 30)} días.`;
+    document.getElementById('projectionText').textContent = text;
   }
 
   /* ============ Stats: mejor y peor día de la semana ============ */
@@ -4257,6 +4441,7 @@
     renderWorkoutStats(year, monthIndex, lastDay);
     renderGoalsStats(year, monthIndex, lastDay);
     renderWeekCompare();
+    renderYearCompare();
     renderInsights(year, monthIndex, lastDay);
     renderWeekWrapped();
     renderMonthWrapped(year, monthIndex, lastDay);
@@ -4264,6 +4449,8 @@
     renderConsistencyScore(year, monthIndex, lastDay);
     renderPersonalRecords();
     renderMilestones();
+    renderAchievements();
+    renderProjection(year, monthIndex, lastDay);
     renderWeekdayPattern(year, monthIndex, lastDay);
     renderMissingDays(year, monthIndex, lastDay);
     reflectionSearchCard.hidden = !Object.keys(store.entries).some((key) => (store.entries[key].reflection || '').trim());
@@ -5874,12 +6061,39 @@
     saveStore();
   }
 
+  function checkRecordProximity() {
+    if (!store.settings.reminderEnabled) return;
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    const todayKey = dateKey(new Date());
+    if (store.lastRecordNotifiedDate === todayKey) return;
+    const streak = currentStreak();
+    if (streak === 0) return;
+    const longest = longestStreakEver();
+    const next = STREAK_MILESTONES.find((m) => m > longest);
+    if (!next) return;
+    const remaining = next - streak;
+    if (remaining !== 1 && remaining !== 2) return;
+    const title = 'Bitácora Diaria';
+    const body = remaining === 1
+      ? `¡Un día más y bates tu racha más larga (${longest} días)!`
+      : `Vas camino de tu racha más larga: ${remaining} días para superar los ${longest}.`;
+    if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+      navigator.serviceWorker.ready.then((reg) => reg.showNotification(title, { body, icon: 'icons/icon-192.png' }));
+    } else {
+      new Notification(title, { body, icon: 'icons/icon-192.png' });
+    }
+    store.lastRecordNotifiedDate = todayKey;
+    saveStore();
+  }
+
   setInterval(checkReminder, 60000);
   setInterval(checkCycleNotice, 60000);
+  setInterval(checkRecordProximity, 60000);
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
       checkReminder();
       checkCycleNotice();
+      checkRecordProximity();
     }
   });
 

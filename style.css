@@ -451,6 +451,27 @@ body {
 }
 .streak-badge[hidden] { display: none; }
 
+.inactivity-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--claret) 14%, var(--surface));
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.inactivity-banner[hidden] { display: none; }
+.inactivity-banner-icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: var(--claret);
+}
+.inactivity-banner-icon svg { width: 100%; height: 100%; }
+
 /* ---------- Main / cards ---------- */
 main {
   flex: 1;
@@ -757,6 +778,14 @@ main {
   pointer-events: none;
   user-select: none;
 }
+.reflection-prompt {
+  position: relative;
+  margin: 0 0 8px;
+  font-size: 12.5px;
+  font-style: italic;
+  color: var(--text-muted);
+}
+.reflection-prompt:empty { display: none; }
 .reflection-box {
   position: relative;
   width: 100%;
@@ -3177,6 +3206,17 @@ select.profile-input {
   color: var(--text-muted);
   line-height: 1.5;
   margin: 0;
+}
+.consistency-score-title {
+  display: inline-block;
+  margin: 8px 0 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-2) 18%, transparent);
+  color: var(--accent-2);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .records-list {
