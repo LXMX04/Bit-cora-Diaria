@@ -95,6 +95,12 @@
       if (!parsed.settings.purchaseCategories.some((c) => c.id === 'cat_otros')) {
         parsed.settings.purchaseCategories.push({ id: 'cat_otros', label: 'Otros' });
       }
+      // "Tabaco / sustancias" is where cigarettes/joints spend is hardcoded to live in
+      // Gasto total and Categorías de gasto — losing it would make that spend vanish
+      // silently, so it's reserved just like "Otros" (see RESERVED_CATEGORY_IDS below).
+      if (!parsed.settings.purchaseCategories.some((c) => c.id === 'cat_tabaco')) {
+        parsed.settings.purchaseCategories.push({ id: 'cat_tabaco', label: 'Tabaco / sustancias' });
+      }
       if (!Array.isArray(parsed.settings.purchaseItems)) {
         parsed.settings.purchaseItems = [
           { id: 'packRojo', label: 'Lucky rojo', price: 5.50, categoryId: 'cat_tabaco' },
@@ -5890,6 +5896,10 @@
   });
 
   /* ---- Categorías de compra ---- */
+  // "Otros" is the catch-all fallback for reassigned items; "Tabaco / sustancias" is where
+  // cigarettes/joints spend is hardcoded to live (renderSpendGroups, renderCategorySpendCard) —
+  // deleting either would make data disappear silently, so both are permanent.
+  const RESERVED_CATEGORY_IDS = ['cat_otros', 'cat_tabaco'];
   const purchaseCategoryManageList = document.getElementById('purchaseCategoryManageList');
   const newCategoryLabelInput = document.getElementById('newCategoryLabelInput');
   const addCategoryBtn = document.getElementById('addCategoryBtn');
@@ -5900,7 +5910,7 @@
       const color = categoryColor(i);
       const budget = store.settings.categoryBudgets[cat.id];
       const goalPct = store.settings.categorySavingsGoals[cat.id];
-      const isProtected = cat.id === 'cat_otros';
+      const isProtected = RESERVED_CATEGORY_IDS.includes(cat.id);
       return `
       <li class="task-manage-item category-manage-item" data-category-id="${cat.id}">
         <div class="category-manage-row1">
@@ -5943,6 +5953,7 @@
     const btn = e.target.closest('[data-remove-category]');
     if (!btn || btn.disabled) return;
     const catId = btn.dataset.removeCategory;
+    if (RESERVED_CATEGORY_IDS.includes(catId)) return;
     const idx = store.settings.purchaseCategories.findIndex((c) => c.id === catId);
     if (idx === -1) return;
     const [removed] = store.settings.purchaseCategories.splice(idx, 1);
