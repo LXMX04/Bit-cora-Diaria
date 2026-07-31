@@ -47,6 +47,15 @@
       weeklyTasks: [],
       badHabits: [],
       purchaseItems: [],
+      purchaseCategories: [
+        { id: 'cat_alimentacion', label: 'Alimentación' },
+        { id: 'cat_ocio', label: 'Ocio' },
+        { id: 'cat_tabaco', label: 'Tabaco / sustancias' },
+        { id: 'cat_suscripciones', label: 'Suscripciones' },
+        { id: 'cat_otros', label: 'Otros' }
+      ],
+      categoryBudgets: {},
+      categorySavingsGoals: {},
       supplements: [],
       goals: [],
       exercises: [],
@@ -80,10 +89,16 @@
       if (!Array.isArray(parsed.settings.exercises)) {
         parsed.settings.exercises = [];
       }
+      if (!Array.isArray(parsed.settings.purchaseCategories) || parsed.settings.purchaseCategories.length === 0) {
+        parsed.settings.purchaseCategories = defaultSettings().purchaseCategories;
+      }
+      if (!parsed.settings.purchaseCategories.some((c) => c.id === 'cat_otros')) {
+        parsed.settings.purchaseCategories.push({ id: 'cat_otros', label: 'Otros' });
+      }
       if (!Array.isArray(parsed.settings.purchaseItems)) {
         parsed.settings.purchaseItems = [
-          { id: 'packRojo', label: 'Lucky rojo', price: 5.50 },
-          { id: 'packBlanco', label: 'Lucky blanco', price: 6.30 }
+          { id: 'packRojo', label: 'Lucky rojo', price: 5.50, categoryId: 'cat_tabaco' },
+          { id: 'packBlanco', label: 'Lucky blanco', price: 6.30, categoryId: 'cat_tabaco' }
         ];
         Object.keys(parsed.entries).forEach((key) => {
           const entry = parsed.entries[key];
@@ -92,6 +107,22 @@
           if (entry.packRojo) entry.purchases.packRojo = entry.packRojo;
           if (entry.packBlanco) entry.purchases.packBlanco = entry.packBlanco;
         });
+      }
+      // Older backups/imports may have items with no category (or one that no longer
+      // exists) — fall back every item to "Otros" so the UI always has somewhere to show it.
+      parsed.settings.purchaseItems.forEach((item) => {
+        if (typeof item.categoryId !== 'string' || !parsed.settings.purchaseCategories.some((c) => c.id === item.categoryId)) {
+          item.categoryId = 'cat_otros';
+        }
+        if (typeof item.recurring !== 'boolean') {
+          item.recurring = false;
+        }
+      });
+      if (!parsed.settings.categoryBudgets || typeof parsed.settings.categoryBudgets !== 'object' || Array.isArray(parsed.settings.categoryBudgets)) {
+        parsed.settings.categoryBudgets = {};
+      }
+      if (!parsed.settings.categorySavingsGoals || typeof parsed.settings.categorySavingsGoals !== 'object' || Array.isArray(parsed.settings.categorySavingsGoals)) {
+        parsed.settings.categorySavingsGoals = {};
       }
       if (typeof parsed.settings.tracksConsumo !== 'boolean') {
         parsed.settings.tracksConsumo = true;
@@ -482,45 +513,78 @@
   }
 
   function renderSpendGroups(container, year, monthIndex, lastDay, monthLabel, yearLabel) {
-    const groups = store.settings.purchaseItems.map((item, i) => ({
-      label: item.label,
-      month: monthPurchaseSpend(item.id, item.price, year, monthIndex, lastDay),
-      year: yearPurchaseSpend(item.id, item.price, year),
-      color: purchaseColor(i)
-    }));
     const showJoints = jointsEnabled();
-    if (showJoints) {
-      groups.push({ label: 'Joints', month: monthJointsSpend(year, monthIndex, lastDay), year: yearJointsSpend(year) });
-    }
-    if (groups.length > 1) {
-      const totalMonth = groups.reduce((s, g) => s + g.month, 0);
-      const totalYear = groups.reduce((s, g) => s + g.year, 0);
-      groups.push({ label: 'Total', month: totalMonth, year: totalYear, isTotal: true });
-    }
+    const sections = store.settings.purchaseCategories.map((cat, ci) => {
+      const color = categoryColor(ci);
+      const items = store.settings.purchaseItems
+        .filter((item) => purchaseItemCategoryId(item) === cat.id)
+        .map((item) => ({
+          label: item.label,
+          recurring: item.recurring,
+          color,
+          month: monthPurchaseSpend(item.id, item.price, year, monthIndex, lastDay),
+          year: yearPurchaseSpend(item.id, item.price, year)
+        }));
+      if (cat.id === 'cat_tabaco' && showJoints) {
+        items.push({ label: 'Joints', color, month: monthJointsSpend(year, monthIndex, lastDay), year: yearJointsSpend(year) });
+      }
+      return { category: cat, color, items };
+    }).filter((s) => s.items.length > 0);
 
-    if (groups.length === 0) {
+    const itemCount = sections.reduce((s, sec) => s + sec.items.length, 0);
+    if (itemCount === 0) {
       container.innerHTML = '<p class="task-empty-hint">Sin gastos configurados todavía.</p>';
       return;
     }
 
-    container.innerHTML = groups.map((g) => {
-      const tileStyle = g.color ? ` style="background:color-mix(in srgb, ${g.color} 14%, var(--surface-alt))"` : '';
-      const labelStyle = g.color ? ` style="color:${g.color}"` : '';
-      return `
-      <div class="spend-group${g.isTotal ? ' spend-group--total' : ''}">
-        <div class="spend-group-label"${labelStyle}>${escapeHtml(g.label)}</div>
+    let totalMonth = 0, totalYear = 0;
+    let html = sections.map(({ category, color, items }) => {
+      const catMonth = items.reduce((s, it) => s + it.month, 0);
+      const catYear = items.reduce((s, it) => s + it.year, 0);
+      totalMonth += catMonth;
+      totalYear += catYear;
+      const tiles = items.map((it) => `
+      <div class="spend-group">
+        <div class="spend-group-label" style="color:${it.color}">${it.recurring ? '🔁 ' : ''}${escapeHtml(it.label)}</div>
         <div class="avg-grid">
-          <div class="avg-tile"${tileStyle}>
-            <span class="avg-value">${formatEuro(g.month)}</span>
+          <div class="avg-tile" style="background:color-mix(in srgb, ${it.color} 14%, var(--surface-alt))">
+            <span class="avg-value">${formatEuro(it.month)}</span>
             <span class="avg-label">${monthLabel}</span>
           </div>
-          <div class="avg-tile"${tileStyle}>
-            <span class="avg-value">${formatEuro(g.year)}</span>
+          <div class="avg-tile" style="background:color-mix(in srgb, ${it.color} 14%, var(--surface-alt))">
+            <span class="avg-value">${formatEuro(it.year)}</span>
+            <span class="avg-label">${yearLabel}</span>
+          </div>
+        </div>
+      </div>`).join('');
+      return `
+      <div class="spend-category-group">
+        <div class="spend-category-header" style="color:${color}">
+          <span class="consumo-swatch" style="background:${color}"></span>${categoryIcon(category.id)} ${escapeHtml(category.label)}
+          <span class="spend-category-total">${formatEuro(catMonth)}</span>
+        </div>
+        ${tiles}
+      </div>`;
+    }).join('');
+
+    if (itemCount > 1) {
+      html += `
+      <div class="spend-group spend-group--total">
+        <div class="spend-group-label">Total</div>
+        <div class="avg-grid">
+          <div class="avg-tile">
+            <span class="avg-value">${formatEuro(totalMonth)}</span>
+            <span class="avg-label">${monthLabel}</span>
+          </div>
+          <div class="avg-tile">
+            <span class="avg-value">${formatEuro(totalYear)}</span>
             <span class="avg-label">${yearLabel}</span>
           </div>
         </div>
       </div>`;
-    }).join('');
+    }
+
+    container.innerHTML = html;
   }
 
   function getEntry(key) {
@@ -2877,12 +2941,14 @@
     const entry = getEntry(key) || emptyEntry();
     const items = store.settings.purchaseItems;
     purchaseEmptyHint.hidden = items.length > 0;
-    purchaseRows.innerHTML = items.map((item, i) => {
-      const color = purchaseColor(i);
-      return `
+    purchaseRows.innerHTML = store.settings.purchaseCategories.map((cat, ci) => {
+      const catItems = items.filter((item) => purchaseItemCategoryId(item) === cat.id);
+      if (catItems.length === 0) return '';
+      const color = categoryColor(ci);
+      const rowsHtml = catItems.map((item) => `
       <div class="consumo-row consumo-row--item" style="background:color-mix(in srgb, ${color} 13%, var(--surface))">
         <div class="consumo-label">
-          <span class="consumo-name"><span class="consumo-swatch" style="background:${color}"></span>${escapeHtml(item.label)}</span>
+          <span class="consumo-name"><span class="consumo-swatch" style="background:${color}"></span>${item.recurring ? '🔁 ' : ''}${escapeHtml(item.label)}</span>
           <span class="consumo-price">${formatEuro(item.price)}/unidad</span>
         </div>
         <div class="stepper stepper--lg" data-stepper="${item.id}">
@@ -2890,7 +2956,8 @@
           <span class="stepper-value">${(entry.purchases && entry.purchases[item.id]) || 0}</span>
           <button class="stepper-btn" data-step="1" aria-label="Sumar ${escapeHtml(item.label)}">+</button>
         </div>
-      </div>`;
+      </div>`).join('');
+      return `<div class="habit-group-label">${categoryIcon(cat.id)} ${escapeHtml(cat.label)}</div>${rowsHtml}`;
     }).join('');
   }
 
@@ -3614,10 +3681,56 @@
     return `hsl(${hue}, ${dark ? 55 : 50}%, ${dark ? 62 : 45}%)`;
   }
 
-  function purchaseColor(index) {
-    const hue = (index * 53 + 340) % 360;
+  const CATEGORY_HUES = [95, 205, 10, 260, 35, 150, 280, 320, 60, 190];
+  function categoryColor(index) {
+    const hue = CATEGORY_HUES[((index % CATEGORY_HUES.length) + CATEGORY_HUES.length) % CATEGORY_HUES.length];
     const dark = currentTheme() === 'dark';
     return `hsl(${hue}, ${dark ? 55 : 50}%, ${dark ? 62 : 45}%)`;
+  }
+  const CATEGORY_ICONS = {
+    cat_alimentacion: '🍽',
+    cat_ocio: '🎟',
+    cat_tabaco: '🚬',
+    cat_suscripciones: '📅',
+    cat_otros: '📦'
+  };
+  function categoryIcon(categoryId) {
+    return CATEGORY_ICONS[categoryId] || '🏷';
+  }
+  function categoryIndexById(categoryId) {
+    const idx = store.settings.purchaseCategories.findIndex((c) => c.id === categoryId);
+    return idx === -1 ? store.settings.purchaseCategories.length : idx;
+  }
+  function purchaseItemCategoryId(item) {
+    return (item.categoryId && store.settings.purchaseCategories.some((c) => c.id === item.categoryId)) ? item.categoryId : 'cat_otros';
+  }
+  function categoryMonthSpend(categoryId, year, monthIndex) {
+    const lastDay = monthDayRange(year, monthIndex);
+    let sum = store.settings.purchaseItems
+      .filter((item) => purchaseItemCategoryId(item) === categoryId)
+      .reduce((s, item) => s + monthPurchaseSpend(item.id, item.price, year, monthIndex, lastDay), 0);
+    if (categoryId === 'cat_tabaco' && jointsEnabled()) sum += monthJointsSpend(year, monthIndex, lastDay);
+    return sum;
+  }
+  function categorySavingsGoalStatus(categoryId, year, monthIndex) {
+    const percent = store.settings.categorySavingsGoals[categoryId];
+    if (!percent || percent <= 0) return null;
+    let streak = 0;
+    let met = false;
+    let y = year, m = monthIndex;
+    for (let i = 0; i < 24; i++) {
+      const prevDate = new Date(y, m - 1, 1);
+      const curSpend = categoryMonthSpend(categoryId, y, m);
+      const prevSpend = categoryMonthSpend(categoryId, prevDate.getFullYear(), prevDate.getMonth());
+      if (prevSpend <= 0) break;
+      const monthMet = curSpend <= prevSpend * (1 - percent / 100);
+      if (i === 0) met = monthMet;
+      if (!monthMet) break;
+      streak++;
+      y = prevDate.getFullYear();
+      m = prevDate.getMonth();
+    }
+    return { percent, met, streak };
   }
 
   function supplementColor(index) {
@@ -3630,6 +3743,30 @@
     const hue = (index * 61 + 20) % 360;
     const dark = currentTheme() === 'dark';
     return `hsl(${hue}, ${dark ? 55 : 50}%, ${dark ? 62 : 45}%)`;
+  }
+
+  function buildConsumoRows() {
+    if (!consumoEnabled()) return [];
+    const rows = [];
+    const openedSections = new Set();
+    function pushRow(row) {
+      const isNewSection = !openedSections.has(row.section);
+      openedSections.add(row.section);
+      rows.push({ ...row, groupStart: rows.length === 0 || isNewSection });
+    }
+    if (jointsEnabled()) {
+      const tabacoCat = store.settings.purchaseCategories.find((c) => c.id === 'cat_tabaco');
+      const section = tabacoCat ? tabacoCat.label : 'Consumo';
+      pushRow({ key: 'cigarettes', label: 'Cigarros', type: 'consumo', color: 'var(--h-cig)', section, categoryId: 'cat_tabaco' });
+      pushRow({ key: 'joints', label: 'Joints', type: 'consumo', color: 'var(--h-joint)', section, categoryId: 'cat_tabaco' });
+    }
+    store.settings.purchaseCategories.forEach((cat, ci) => {
+      const color = categoryColor(ci);
+      store.settings.purchaseItems
+        .filter((item) => purchaseItemCategoryId(item) === cat.id)
+        .forEach((item) => pushRow({ key: item.id, label: item.label, type: 'consumo', color, section: cat.label, categoryId: cat.id }));
+    });
+    return rows;
   }
 
   function buildHeatmapRows() {
@@ -3658,15 +3795,7 @@
       ...weeklyRows,
       ...badHabitRows,
       { key: 'total', label: 'Total', type: 'total', color: 'var(--h-total)', groupStart: true, section: 'Total' },
-      ...(consumoEnabled() ? [
-        ...(jointsEnabled() ? [
-          { key: 'cigarettes', label: 'Cigarros', type: 'consumo', color: 'var(--h-cig)', groupStart: true, section: 'Consumo' },
-          { key: 'joints', label: 'Joints', type: 'consumo', color: 'var(--h-joint)', section: 'Consumo' }
-        ] : []),
-        ...store.settings.purchaseItems.map((item, i) => ({
-          key: item.id, label: item.label, type: 'consumo', color: purchaseColor(i), groupStart: (!jointsEnabled() && i === 0), section: 'Consumo'
-        }))
-      ] : [])
+      ...buildConsumoRows()
     ];
   }
 
@@ -4107,20 +4236,56 @@
   }
   function renderHeatmapFilterChips(heatmapRows) {
     const chipsWrap = document.getElementById('heatmapFilterChips');
-    const filterableKeys = new Set(heatmapRows.filter((r) => r.type === 'daily' || r.type === 'badHabit').map((r) => r.key));
+    const chipRows = heatmapRows.filter((r) => r.type === 'daily' || r.type === 'badHabit');
+    const consumoRows = heatmapRows.filter((r) => r.type === 'consumo');
+
+    // Habit/bad-habit chips filter one row each; consumo chips filter a whole category at once.
+    const filterableKeys = new Set([...chipRows.map((r) => r.key), ...consumoRows.map((r) => r.key)]);
     // Drop stale selections for rows that no longer exist (task renamed/removed).
     Array.from(heatmapHiddenKeys).forEach((k) => { if (!filterableKeys.has(k)) heatmapHiddenKeys.delete(k); });
-    const chipRows = heatmapRows.filter((r) => r.type === 'daily' || r.type === 'badHabit');
-    if (chipRows.length < 2) { chipsWrap.innerHTML = ''; applyHeatmapFilter(); return; }
-    chipsWrap.innerHTML = chipRows.map((r) => `
+
+    const catGroups = [];
+    const catGroupById = new Map();
+    consumoRows.forEach((r) => {
+      const groupId = r.categoryId || r.section;
+      let group = catGroupById.get(groupId);
+      if (!group) {
+        group = { id: groupId, label: r.section, color: r.color, keys: [] };
+        catGroupById.set(groupId, group);
+        catGroups.push(group);
+      }
+      group.keys.push(r.key);
+    });
+
+    if (chipRows.length < 2 && catGroups.length === 0) { chipsWrap.innerHTML = ''; applyHeatmapFilter(); return; }
+
+    const habitChipsHtml = chipRows.length >= 2 ? chipRows.map((r) => `
       <button type="button" class="heatmap-filter-chip${heatmapHiddenKeys.has(r.key) ? ' is-off' : ''}" data-filter-key="${escapeHtml(r.key)}">
         <span class="heatmap-filter-chip-dot" style="background-color:${r.color}"></span>${escapeHtml(r.label)}
-      </button>`).join('');
+      </button>`).join('') : '';
+    const catChipsHtml = catGroups.map((g) => {
+      const allHidden = g.keys.every((k) => heatmapHiddenKeys.has(k));
+      return `
+      <button type="button" class="heatmap-filter-chip${allHidden ? ' is-off' : ''}" data-filter-keys="${escapeHtml(g.keys.join(','))}">
+        <span class="heatmap-filter-chip-dot" style="background-color:${g.color}"></span>${escapeHtml(g.label)}
+      </button>`;
+    }).join('');
+
+    chipsWrap.innerHTML = habitChipsHtml + catChipsHtml;
     chipsWrap.querySelectorAll('[data-filter-key]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const key = btn.dataset.filterKey;
         if (heatmapHiddenKeys.has(key)) heatmapHiddenKeys.delete(key); else heatmapHiddenKeys.add(key);
         btn.classList.toggle('is-off', heatmapHiddenKeys.has(key));
+        applyHeatmapFilter();
+      });
+    });
+    chipsWrap.querySelectorAll('[data-filter-keys]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const keys = btn.dataset.filterKeys.split(',');
+        const allHidden = keys.every((k) => heatmapHiddenKeys.has(k));
+        keys.forEach((k) => { if (allHidden) heatmapHiddenKeys.delete(k); else heatmapHiddenKeys.add(k); });
+        btn.classList.toggle('is-off', !allHidden);
         applyHeatmapFilter();
       });
     });
@@ -4691,10 +4856,12 @@
     }
     if (showConsumo) {
       renderTobaccoSpendStats(year, monthIndex, lastDay);
+      renderCategorySpendCard(year, monthIndex);
     } else {
       document.getElementById('statsSpendGroups').innerHTML = '';
       document.getElementById('spendHintStats').textContent = '';
       document.getElementById('budgetGroup').hidden = true;
+      document.getElementById('categorySpendCard').hidden = true;
     }
   }
 
@@ -4724,6 +4891,91 @@
     hint.textContent = over
       ? `Has superado tu presupuesto de ${formatEuro(budget)}: llevas ${formatEuro(totalMonth)} este mes.`
       : `Llevas ${formatEuro(totalMonth)} de tu presupuesto de ${formatEuro(budget)} este mes.`;
+  }
+
+  function renderCategorySpendCard(year, monthIndex) {
+    const card = document.getElementById('categorySpendCard');
+    const prevDate = new Date(year, monthIndex - 1, 1);
+
+    const rows = store.settings.purchaseCategories.map((cat, ci) => {
+      const hasItems = store.settings.purchaseItems.some((item) => purchaseItemCategoryId(item) === cat.id);
+      const isTabaco = cat.id === 'cat_tabaco' && jointsEnabled();
+      if (!hasItems && !isTabaco) return null;
+      return {
+        category: cat,
+        color: categoryColor(ci),
+        month: categoryMonthSpend(cat.id, year, monthIndex),
+        prev: categoryMonthSpend(cat.id, prevDate.getFullYear(), prevDate.getMonth())
+      };
+    }).filter(Boolean);
+
+    if (rows.length === 0) {
+      card.hidden = true;
+      return;
+    }
+    card.hidden = false;
+
+    const ranked = rows.filter((r) => r.month > 0).sort((a, b) => b.month - a.month).slice(0, 3);
+    const medals = ['🥇', '🥈', '🥉'];
+    document.getElementById('categoryRanking').innerHTML = ranked.length ? `
+      <div class="cat-ranking">
+        ${ranked.map((r, i) => `
+        <div class="cat-ranking-row">
+          <span class="cat-ranking-medal">${medals[i]}</span>
+          <span class="cat-ranking-name" style="color:${r.color}">${categoryIcon(r.category.id)} ${escapeHtml(r.category.label)}</span>
+          <span class="cat-ranking-value">${formatEuro(r.month)}</span>
+        </div>`).join('')}
+      </div>` : '<p class="hint-text" style="margin-top:0">Todavía no hay gasto este mes.</p>';
+
+    const maxVal = Math.max(1, ...rows.map((r) => Math.max(r.month, r.prev)));
+    document.getElementById('categorySpendBars').innerHTML = rows.map((r) => {
+      const monthPct = Math.min(100, (r.month / maxVal) * 100);
+      const prevPct = Math.min(100, (r.prev / maxVal) * 100);
+      let deltaHtml = '';
+      if (r.prev > 0) {
+        const diffPct = ((r.month - r.prev) / r.prev) * 100;
+        const cls = diffPct < -1 ? 'down' : diffPct > 1 ? 'up' : 'flat';
+        const arrow = diffPct < -1 ? '↓' : diffPct > 1 ? '↑' : '=';
+        deltaHtml = `<span class="cat-spend-delta ${cls}">${arrow} ${Math.abs(diffPct).toFixed(0)}%</span>`;
+      }
+
+      const budget = store.settings.categoryBudgets[r.category.id];
+      let budgetHtml = '';
+      if (budget != null && budget > 0) {
+        const pct = Math.min(100, (r.month / budget) * 100);
+        const over = r.month > budget;
+        budgetHtml = `
+        <div class="cat-budget-row">
+          <div class="budget-bar-track"><div class="budget-bar-fill${over ? ' budget-bar-fill--over' : ''}" style="width:${pct}%"></div></div>
+          <span class="hint-text cat-budget-hint">${over ? 'Presupuesto superado — ' : ''}${formatEuro(r.month)} de ${formatEuro(budget)}</span>
+        </div>`;
+      }
+
+      const goal = categorySavingsGoalStatus(r.category.id, year, monthIndex);
+      const goalHtml = goal
+        ? `<span class="cat-goal-badge ${goal.met ? 'is-met' : 'is-missed'}">🎯 -${goal.percent}% ${goal.met ? 'cumplido' : 'no cumplido'}${goal.streak > 0 ? ` · racha ${goal.streak} ${goal.streak === 1 ? 'mes' : 'meses'}` : ''}</span>`
+        : '';
+
+      return `
+      <div class="cat-spend-row">
+        <div class="cat-spend-head">
+          <span class="cat-spend-name"><span class="consumo-swatch" style="background:${r.color}"></span>${categoryIcon(r.category.id)} ${escapeHtml(r.category.label)}</span>
+          ${deltaHtml}
+        </div>
+        <div class="cat-spend-bar-row">
+          <span class="cat-spend-bar-label">Este mes</span>
+          <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${monthPct}%;background:${r.color}"></div></div>
+          <span class="cat-spend-bar-value">${formatEuro(r.month)}</span>
+        </div>
+        <div class="cat-spend-bar-row">
+          <span class="cat-spend-bar-label">Mes pasado</span>
+          <div class="cat-bar-track"><div class="cat-bar-fill cat-bar-fill--prev" style="width:${prevPct}%"></div></div>
+          <span class="cat-spend-bar-value">${r.prev > 0 ? formatEuro(r.prev) : '–'}</span>
+        </div>
+        ${budgetHtml}
+        ${goalHtml}
+      </div>`;
+    }).join('');
   }
 
   function computeWrappedStats(rangeStart, rangeEnd) {
@@ -5637,26 +5889,169 @@
     if (activeTab === 'stats') renderStats();
   });
 
+  /* ---- Categorías de compra ---- */
+  const purchaseCategoryManageList = document.getElementById('purchaseCategoryManageList');
+  const newCategoryLabelInput = document.getElementById('newCategoryLabelInput');
+  const addCategoryBtn = document.getElementById('addCategoryBtn');
+
+  function renderPurchaseCategoryManageList() {
+    const cats = store.settings.purchaseCategories;
+    purchaseCategoryManageList.innerHTML = cats.map((cat, i) => {
+      const color = categoryColor(i);
+      const budget = store.settings.categoryBudgets[cat.id];
+      const goalPct = store.settings.categorySavingsGoals[cat.id];
+      const isProtected = cat.id === 'cat_otros';
+      return `
+      <li class="task-manage-item category-manage-item" data-category-id="${cat.id}">
+        <div class="category-manage-row1">
+          <span class="consumo-swatch" style="background:${color}"></span>
+          <input type="text" class="task-add-input category-label-input" data-category-label-input="${cat.id}" value="${escapeHtml(cat.label)}" maxlength="24" aria-label="Nombre de la categoría" />
+          <button type="button" class="task-remove-btn" data-remove-category="${cat.id}" aria-label="Eliminar ${escapeHtml(cat.label)}"${isProtected ? ' disabled title="Categoría de reserva: no se puede eliminar"' : ''}>×</button>
+        </div>
+        <div class="category-manage-row2">
+          <label class="category-field">
+            <span class="category-field-label">Presupuesto</span>
+            <input type="number" class="purchase-price-input" data-category-budget="${cat.id}" placeholder="€" min="0" step="1" value="${budget != null ? budget : ''}" aria-label="Presupuesto mensual para ${escapeHtml(cat.label)}" />
+          </label>
+          <label class="category-field">
+            <span class="category-field-label">Meta ahorro</span>
+            <input type="number" class="purchase-price-input" data-category-goal="${cat.id}" placeholder="%" min="1" max="90" step="1" value="${goalPct != null ? goalPct : ''}" aria-label="Meta de ahorro para ${escapeHtml(cat.label)}" />
+          </label>
+        </div>
+      </li>`;
+    }).join('');
+  }
+
+  function addPurchaseCategory() {
+    const label = newCategoryLabelInput.value.trim();
+    if (!label) return;
+    store.settings.purchaseCategories.push({ id: generateTaskId(), label });
+    saveStore();
+    newCategoryLabelInput.value = '';
+    renderPurchaseCategoryManageList();
+    renderPurchaseManageList();
+    renderConsumo();
+    if (activeTab === 'stats') renderStats();
+  }
+
+  addCategoryBtn.addEventListener('click', addPurchaseCategory);
+  newCategoryLabelInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') addPurchaseCategory();
+  });
+
+  purchaseCategoryManageList.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-remove-category]');
+    if (!btn || btn.disabled) return;
+    const catId = btn.dataset.removeCategory;
+    const idx = store.settings.purchaseCategories.findIndex((c) => c.id === catId);
+    if (idx === -1) return;
+    const [removed] = store.settings.purchaseCategories.splice(idx, 1);
+    const reassigned = store.settings.purchaseItems.filter((item) => item.categoryId === catId);
+    reassigned.forEach((item) => { item.categoryId = 'cat_otros'; });
+    const hadBudget = store.settings.categoryBudgets[catId];
+    const hadGoal = store.settings.categorySavingsGoals[catId];
+    delete store.settings.categoryBudgets[catId];
+    delete store.settings.categorySavingsGoals[catId];
+    saveStore();
+    renderPurchaseCategoryManageList();
+    renderPurchaseManageList();
+    renderConsumo();
+    if (activeTab === 'stats') renderStats();
+    showSettingsToast(`"${removed.label}" eliminada`, 'Deshacer', () => {
+      store.settings.purchaseCategories.splice(idx, 0, removed);
+      reassigned.forEach((item) => { item.categoryId = catId; });
+      if (hadBudget != null) store.settings.categoryBudgets[catId] = hadBudget;
+      if (hadGoal != null) store.settings.categorySavingsGoals[catId] = hadGoal;
+      saveStore();
+      renderPurchaseCategoryManageList();
+      renderPurchaseManageList();
+      renderConsumo();
+      if (activeTab === 'stats') renderStats();
+    });
+  });
+
+  purchaseCategoryManageList.addEventListener('change', (e) => {
+    const labelInput = e.target.closest('[data-category-label-input]');
+    if (labelInput) {
+      const cat = store.settings.purchaseCategories.find((c) => c.id === labelInput.dataset.categoryLabelInput);
+      if (cat) {
+        cat.label = labelInput.value.trim() || cat.label;
+        labelInput.value = cat.label;
+        saveStore();
+        renderPurchaseManageList();
+        renderConsumo();
+        if (activeTab === 'stats') renderStats();
+      }
+      return;
+    }
+    const budgetInput = e.target.closest('[data-category-budget]');
+    if (budgetInput) {
+      const catId = budgetInput.dataset.categoryBudget;
+      const value = parseFloat(budgetInput.value);
+      if (!isNaN(value) && value > 0) store.settings.categoryBudgets[catId] = value;
+      else delete store.settings.categoryBudgets[catId];
+      budgetInput.value = store.settings.categoryBudgets[catId] != null ? store.settings.categoryBudgets[catId] : '';
+      saveStore();
+      if (activeTab === 'stats') renderStats();
+      return;
+    }
+    const goalInput = e.target.closest('[data-category-goal]');
+    if (goalInput) {
+      const catId = goalInput.dataset.categoryGoal;
+      const value = parseFloat(goalInput.value);
+      if (!isNaN(value) && value > 0 && value < 100) store.settings.categorySavingsGoals[catId] = value;
+      else delete store.settings.categorySavingsGoals[catId];
+      goalInput.value = store.settings.categorySavingsGoals[catId] != null ? store.settings.categorySavingsGoals[catId] : '';
+      saveStore();
+      if (activeTab === 'stats') renderStats();
+      return;
+    }
+  });
+
+  renderPurchaseCategoryManageList();
+
+  /* ---- Artículos de compra ---- */
   const purchaseManageList = document.getElementById('purchaseManageList');
   const newPurchaseLabelInput = document.getElementById('newPurchaseLabelInput');
+  const newPurchaseCategorySelect = document.getElementById('newPurchaseCategorySelect');
   const newPurchasePriceInput = document.getElementById('newPurchasePriceInput');
   const addPurchaseBtn = document.getElementById('addPurchaseBtn');
 
+  function renderPurchaseCategorySelectOptions() {
+    const prevValue = newPurchaseCategorySelect.value;
+    newPurchaseCategorySelect.innerHTML = store.settings.purchaseCategories.map((c) => `<option value="${c.id}">${escapeHtml(c.label)}</option>`).join('');
+    if (store.settings.purchaseCategories.some((c) => c.id === prevValue)) newPurchaseCategorySelect.value = prevValue;
+  }
+
   function renderPurchaseManageList() {
     const items = store.settings.purchaseItems;
-    purchaseManageList.innerHTML = items.length ? items.map((p) => `
-      <li class="task-manage-item" data-task-id="${p.id}">
-        <span class="task-manage-label">${escapeHtml(p.label)}</span>
-        <input type="number" class="purchase-price-input" data-price-item="${p.id}" value="${p.price.toFixed(2)}" min="0" step="0.01" />
-        <button type="button" class="task-remove-btn" data-remove-task="${p.id}" aria-label="Eliminar ${escapeHtml(p.label)}">×</button>
-      </li>`).join('') : '<li class="task-empty-hint">No tienes artículos de compra todavía.</li>';
+    renderPurchaseCategorySelectOptions();
+    purchaseManageList.innerHTML = items.length ? items.map((p) => {
+      const catId = purchaseItemCategoryId(p);
+      const color = categoryColor(categoryIndexById(catId));
+      const categoryOptions = store.settings.purchaseCategories.map((c) => `<option value="${c.id}"${c.id === catId ? ' selected' : ''}>${escapeHtml(c.label)}</option>`).join('');
+      return `
+      <li class="task-manage-item purchase-manage-item" data-task-id="${p.id}">
+        <div class="purchase-manage-row1">
+          <span class="consumo-swatch" style="background:${color}"></span>
+          <span class="task-manage-label">${escapeHtml(p.label)}</span>
+          <button type="button" class="task-remove-btn" data-remove-task="${p.id}" aria-label="Eliminar ${escapeHtml(p.label)}">×</button>
+        </div>
+        <div class="purchase-manage-row2">
+          <select class="purchase-category-select" data-category-item="${p.id}" aria-label="Categoría de ${escapeHtml(p.label)}">${categoryOptions}</select>
+          <input type="number" class="purchase-price-input" data-price-item="${p.id}" value="${p.price.toFixed(2)}" min="0" step="0.01" />
+          <button type="button" class="purchase-recurring-btn${p.recurring ? ' is-active' : ''}" data-recurring-item="${p.id}" aria-pressed="${!!p.recurring}" aria-label="Marcar ${escapeHtml(p.label)} como gasto recurrente" title="Gasto recurrente">🔁</button>
+        </div>
+      </li>`;
+    }).join('') : '<li class="task-empty-hint">No tienes artículos de compra todavía.</li>';
   }
 
   function addPurchaseItem() {
     const label = newPurchaseLabelInput.value.trim();
     if (!label) return;
     const price = parseFloat(newPurchasePriceInput.value);
-    store.settings.purchaseItems.push({ id: generateTaskId(), label, price: (!isNaN(price) && price >= 0) ? price : 0 });
+    const categoryId = store.settings.purchaseCategories.some((c) => c.id === newPurchaseCategorySelect.value) ? newPurchaseCategorySelect.value : 'cat_otros';
+    store.settings.purchaseItems.push({ id: generateTaskId(), label, price: (!isNaN(price) && price >= 0) ? price : 0, categoryId, recurring: false });
     saveStore();
     newPurchaseLabelInput.value = '';
     newPurchasePriceInput.value = '';
@@ -5675,31 +6070,56 @@
   });
 
   purchaseManageList.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-remove-task]');
-    if (!btn) return;
-    const itemId = btn.dataset.removeTask;
-    const label = btn.closest('.task-manage-item').querySelector('.task-manage-label').textContent;
-    deleteWithUndo(store.settings.purchaseItems, itemId, label, () => {
-      renderPurchaseManageList();
-      updateJointPriceHints();
+    const removeBtn = e.target.closest('[data-remove-task]');
+    if (removeBtn) {
+      const itemId = removeBtn.dataset.removeTask;
+      const label = removeBtn.closest('.task-manage-item').querySelector('.task-manage-label').textContent;
+      deleteWithUndo(store.settings.purchaseItems, itemId, label, () => {
+        renderPurchaseManageList();
+        updateJointPriceHints();
+        renderConsumo();
+        if (activeTab === 'stats') renderStats();
+      });
+      return;
+    }
+    const recurringBtn = e.target.closest('[data-recurring-item]');
+    if (recurringBtn) {
+      const item = store.settings.purchaseItems.find((p) => p.id === recurringBtn.dataset.recurringItem);
+      if (!item) return;
+      item.recurring = !item.recurring;
+      recurringBtn.classList.toggle('is-active', item.recurring);
+      recurringBtn.setAttribute('aria-pressed', String(item.recurring));
+      saveStore();
       renderConsumo();
       if (activeTab === 'stats') renderStats();
-    });
+    }
   });
 
   purchaseManageList.addEventListener('change', (e) => {
-    const input = e.target.closest('[data-price-item]');
-    if (!input) return;
-    const itemId = input.dataset.priceItem;
-    const item = store.settings.purchaseItems.find((p) => p.id === itemId);
-    if (!item) return;
-    const value = parseFloat(input.value);
-    item.price = (!isNaN(value) && value >= 0) ? value : 0;
-    input.value = item.price.toFixed(2);
-    saveStore();
-    updateJointPriceHints();
-    renderConsumo();
-    if (activeTab === 'stats') renderStats();
+    const priceInput = e.target.closest('[data-price-item]');
+    if (priceInput) {
+      const item = store.settings.purchaseItems.find((p) => p.id === priceInput.dataset.priceItem);
+      if (!item) return;
+      const value = parseFloat(priceInput.value);
+      item.price = (!isNaN(value) && value >= 0) ? value : 0;
+      priceInput.value = item.price.toFixed(2);
+      saveStore();
+      updateJointPriceHints();
+      renderConsumo();
+      if (activeTab === 'stats') renderStats();
+      return;
+    }
+    const categorySelect = e.target.closest('[data-category-item]');
+    if (categorySelect) {
+      const item = store.settings.purchaseItems.find((p) => p.id === categorySelect.dataset.categoryItem);
+      if (!item) return;
+      item.categoryId = store.settings.purchaseCategories.some((c) => c.id === categorySelect.value) ? categorySelect.value : 'cat_otros';
+      saveStore();
+      renderPurchaseManageList();
+      renderConsumo();
+      if (activeTab === 'stats') renderStats();
+      return;
+    }
   });
 
   renderPurchaseManageList();
@@ -6396,6 +6816,17 @@
       if (jointsEnabled()) cols.push({ header: 'Joints', get: (e) => e.joints || 0 });
       store.settings.purchaseItems.forEach((item) => {
         cols.push({ header: item.label || 'Artículo', get: (e) => (e.purchases && e.purchases[item.id]) || 0 });
+      });
+      store.settings.purchaseCategories.forEach((cat) => {
+        const catItems = store.settings.purchaseItems.filter((item) => purchaseItemCategoryId(item) === cat.id);
+        const includesTabaco = cat.id === 'cat_tabaco' && jointsEnabled();
+        if (catItems.length === 0 && !includesTabaco) return;
+        cols.push({ header: `Gasto ${cat.label} (€)`, get: (e) => {
+          let spend = 0;
+          catItems.forEach((item) => { spend += ((e.purchases && e.purchases[item.id]) || 0) * item.price; });
+          if (includesTabaco) spend += ((e.joints || 0) / 4) * jointPricePer4();
+          return spend.toFixed(2);
+        } });
       });
       cols.push({ header: 'Gasto (€)', get: (e) => {
         let spend = 0;

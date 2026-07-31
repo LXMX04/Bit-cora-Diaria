@@ -770,6 +770,12 @@
             <p class="hint-text" id="budgetHint"></p>
           </div>
         </div>
+
+        <div class="card" id="categorySpendCard" hidden>
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12,7.5 L12,16.5 M9.7,9.3 C9.7,8.2 10.7,7.5 12,7.5 C13.4,7.5 14.3,8.3 14.3,9.3 C14.3,11.7 9.7,10.8 9.7,13.2 C9.7,14.3 10.6,15 12,15 C13.4,15 14.3,14.3 14.3,13.2" stroke-linecap="round"/></svg></span>Categorías de gasto</h2>
+          <div id="categoryRanking"></div>
+          <div id="categorySpendBars"></div>
+        </div>
       </div>
 
       <div class="settings-group stats-group" id="statsGroupReflexiones">
@@ -1051,18 +1057,27 @@
                 <p class="hint-text">Se usa para calcular el gasto en Consumo y Stats.</p>
               </div>
             </div>
-            <ul class="task-manage-list" id="purchaseManageList"></ul>
+            <p class="setting-subhead">Categorías de compra</p>
+            <ul class="task-manage-list" id="purchaseCategoryManageList"></ul>
             <div class="task-add-row">
+              <input type="text" id="newCategoryLabelInput" class="task-add-input" placeholder="Nueva categoría…" maxlength="24" aria-label="Nombre de la nueva categoría" />
+              <button class="secondary-btn task-add-btn" id="addCategoryBtn">Añadir</button>
+            </div>
+            <p class="hint-text">Organiza tus artículos en categorías para ver el gasto desglosado en Stats, y fija un presupuesto y/o una meta de ahorro (% de reducción frente al mes anterior) por categoría si quieres.</p>
+            <p class="setting-subhead">Artículos de compra</p>
+            <ul class="task-manage-list" id="purchaseManageList"></ul>
+            <div class="task-add-row purchase-add-row">
               <input type="text" id="newPurchaseLabelInput" class="task-add-input" placeholder="Nuevo artículo…" maxlength="30" aria-label="Nombre del nuevo artículo de compra" />
+              <select id="newPurchaseCategorySelect" class="purchase-category-select" aria-label="Categoría del nuevo artículo"></select>
               <input type="number" id="newPurchasePriceInput" class="purchase-price-input" placeholder="€" min="0" step="0.01" aria-label="Precio por unidad en euros" />
               <button class="secondary-btn task-add-btn" id="addPurchaseBtn">Añadir</button>
             </div>
-            <p class="hint-text">Añade cualquier cosa que quieras contar (cafeína, alcohol, lo que sea). Cada artículo aparece en Consumo con su propio contador y en Gasto total con su propia categoría — pon precio 0 si no quieres llevar el gasto.</p>
+            <p class="hint-text">Añade cualquier cosa que quieras contar (cafeína, alcohol, lo que sea). El icono 🔁 marca un gasto recurrente/suscripción — pon precio 0 si no quieres llevar el gasto.</p>
             <div class="setting-row">
-              <label for="monthlyBudgetInput">Presupuesto mensual (€)</label>
+              <label for="monthlyBudgetInput">Presupuesto mensual global (€)</label>
               <input type="number" id="monthlyBudgetInput" min="0" step="1" placeholder="Sin límite" />
             </div>
-            <p class="hint-text">Si lo rellenas, en Stats → Gasto total verás cuánto llevas gastado frente a tu presupuesto.</p>
+            <p class="hint-text">Si lo rellenas, en Stats → Gasto total verás cuánto llevas gastado frente a tu presupuesto global (además de los presupuestos por categoría).</p>
           </div>
         </div>
 
