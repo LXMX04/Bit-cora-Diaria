@@ -14,6 +14,8 @@
       tracksSupplements: false,
       tracksAgua: false,
       aguaGoal: 8,
+      tracksPasos: false,
+      pasosGoal: 8000,
       tracksSueno: false,
       sleepGoalHours: 8,
       tracksPeso: false,
@@ -56,6 +58,7 @@
       ],
       categoryBudgets: {},
       categorySavingsGoals: {},
+      budgetWarnPercent: 90,
       supplements: [],
       goals: [],
       exercises: [],
@@ -101,6 +104,20 @@
       if (!parsed.settings.purchaseCategories.some((c) => c.id === 'cat_tabaco')) {
         parsed.settings.purchaseCategories.push({ id: 'cat_tabaco', label: 'Tabaco / sustancias' });
       }
+      parsed.settings.purchaseCategories.forEach((cat) => {
+        if (typeof cat.icon !== 'string' || !cat.icon) cat.icon = null;
+        if (typeof cat.parentId !== 'string') cat.parentId = null;
+      });
+      // Subcategories are capped at one level deep: a category's parent must exist,
+      // not be itself, not already have its own parent, and not be a reserved category.
+      parsed.settings.purchaseCategories.forEach((cat) => {
+        if (!cat.parentId) return;
+        const parent = parsed.settings.purchaseCategories.find((c) => c.id === cat.parentId);
+        const isReserved = cat.id === 'cat_otros' || cat.id === 'cat_tabaco';
+        if (!parent || parent.id === cat.id || parent.parentId || isReserved) {
+          cat.parentId = null;
+        }
+      });
       if (!Array.isArray(parsed.settings.purchaseItems)) {
         parsed.settings.purchaseItems = [
           { id: 'packRojo', label: 'Lucky rojo', price: 5.50, categoryId: 'cat_tabaco' },
@@ -122,6 +139,9 @@
         }
         if (typeof item.recurring !== 'boolean') {
           item.recurring = false;
+        }
+        if (typeof item.billingDay !== 'number' || item.billingDay < 1 || item.billingDay > 31) {
+          item.billingDay = null;
         }
       });
       if (!parsed.settings.categoryBudgets || typeof parsed.settings.categoryBudgets !== 'object' || Array.isArray(parsed.settings.categoryBudgets)) {
@@ -147,6 +167,12 @@
       }
       if (typeof parsed.settings.aguaGoal !== 'number' || parsed.settings.aguaGoal <= 0) {
         parsed.settings.aguaGoal = 8;
+      }
+      if (typeof parsed.settings.tracksPasos !== 'boolean') {
+        parsed.settings.tracksPasos = false;
+      }
+      if (typeof parsed.settings.pasosGoal !== 'number' || parsed.settings.pasosGoal <= 0) {
+        parsed.settings.pasosGoal = 8000;
       }
       if (typeof parsed.settings.tracksSueno !== 'boolean') {
         parsed.settings.tracksSueno = false;
@@ -222,6 +248,9 @@
       if (parsed.settings.monthlyBudget !== null && typeof parsed.settings.monthlyBudget !== 'number') {
         parsed.settings.monthlyBudget = null;
       }
+      if (typeof parsed.settings.budgetWarnPercent !== 'number' || parsed.settings.budgetWarnPercent < 1 || parsed.settings.budgetWarnPercent > 99) {
+        parsed.settings.budgetWarnPercent = 90;
+      }
       if (typeof parsed.settings.travelModeActive !== 'boolean') {
         parsed.settings.travelModeActive = false;
       }
@@ -290,6 +319,7 @@
       joints: 0,
       purchases: {},
       agua: 0,
+      steps: 0,
       sleepHours: 0,
       sleepQuality: 0,
       weight: null,
@@ -316,6 +346,13 @@
     return `${n.toFixed(2).replace('.', ',')} €`;
   }
 
+  // Manual thousands separator (matching formatEuro's manual approach) instead of
+  // toLocaleString, which silently degrades to unseparated digits on stripped-down
+  // ICU builds (some embedded WebViews) — this works the same everywhere.
+  function formatThousands(n) {
+    return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+
   function consumoEnabled() {
     return store.settings.tracksConsumo !== false;
   }
@@ -334,6 +371,10 @@
 
   function aguaEnabled() {
     return store.settings.tracksAgua === true;
+  }
+
+  function pasosEnabled() {
+    return store.settings.tracksPasos === true;
   }
 
   function suenoEnabled() {
@@ -518,6 +559,10 @@
     return store.settings.aguaGoal || 8;
   }
 
+  function pasosGoal() {
+    return store.settings.pasosGoal || 8000;
+  }
+
   function renderSpendGroups(container, year, monthIndex, lastDay, monthLabel, yearLabel) {
     const showJoints = jointsEnabled();
     const sections = store.settings.purchaseCategories.map((cat, ci) => {
@@ -566,7 +611,7 @@
       return `
       <div class="spend-category-group">
         <div class="spend-category-header" style="color:${color}">
-          <span class="consumo-swatch" style="background:${color}"></span>${categoryIcon(category.id)} ${escapeHtml(category.label)}
+          <span class="consumo-swatch" style="background:${color}"></span>${categoryIcon(category)} ${escapeHtml(categoryDisplayLabel(category))}
           <span class="spend-category-total">${formatEuro(catMonth)}</span>
         </div>
         ${tiles}
@@ -716,7 +761,9 @@
   const tabBtnObjetivos = document.getElementById('tabBtnObjetivos');
   function objetivosEnabled() {
     return aguaEnabled() || suenoEnabled() || pesoEnabled() || ayunoEnabled() ||
-      meditacionEnabled() || lecturaEnabled() || workoutsEnabled() || pantallaEnabled() || store.settings.goals.length > 0;
+      meditacionEnabled() || lecturaEnabled() || workoutsEnabled() || pantallaEnabled() ||
+      pasosEnabled() || store.settings.goals.length > 0 ||
+      Object.keys(store.settings.categorySavingsGoals).length > 0;
   }
   function updateObjetivosTabVisibility() {
     tabBtnObjetivos.hidden = !objetivosEnabled();
@@ -821,6 +868,7 @@
     setAccordionDot('supplementsDot', supplementsEnabled());
     setAccordionDot('consumoDot', consumoEnabled());
     setAccordionDot('aguaDot', aguaEnabled());
+    setAccordionDot('pasosDot', pasosEnabled());
     setAccordionDot('suenoDot', suenoEnabled());
     setAccordionDot('pesoDot', pesoEnabled());
     setAccordionDot('ayunoDot', ayunoEnabled());
@@ -857,6 +905,7 @@
     setUnusedHint('supplementsUnusedHint', supplementsEnabled(),
       anyEntryMatches((e) => e.supplements && Object.values(e.supplements).some(Boolean)), 'Suplementos');
     setUnusedHint('aguaUnusedHint', aguaEnabled(), anyEntryMatches((e) => e.agua > 0), 'Agua');
+    setUnusedHint('pasosUnusedHint', pasosEnabled(), anyEntryMatches((e) => e.steps > 0), 'Pasos');
     setUnusedHint('suenoUnusedHint', suenoEnabled(), anyEntryMatches((e) => e.sleepHours > 0), 'Sueño');
     setUnusedHint('pesoUnusedHint', pesoEnabled(), anyEntryMatches((e) => e.weight != null), 'Peso corporal');
     setUnusedHint('ayunoUnusedHint', ayunoEnabled(), anyEntryMatches((e) => e.fastStart || e.fastEnd), 'Ayuno intermitente');
@@ -1186,6 +1235,17 @@
     renderHoy();
   });
 
+  const pasosCard = document.getElementById('pasosCard');
+  const stepsInput = document.getElementById('stepsInput');
+  stepsInput.addEventListener('change', () => {
+    const key = dateKey(currentDate);
+    const entry = ensureEntry(key);
+    const value = parseInt(stepsInput.value, 10);
+    entry.steps = (!isNaN(value) && value >= 0) ? value : 0;
+    saveStore();
+    renderHoy();
+  });
+
   const ayunoCard = document.getElementById('ayunoCard');
   const fastStartInput = document.getElementById('fastStartInput');
   const fastEndInput = document.getElementById('fastEndInput');
@@ -1344,6 +1404,8 @@
 
   const goalsCard = document.getElementById('goalsCard');
   const goalsList = document.getElementById('goalsList');
+  const savingsGoalsCard = document.getElementById('savingsGoalsCard');
+  const savingsGoalsList = document.getElementById('savingsGoalsList');
   goalsList.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-check-goal]');
     if (!btn) return;
@@ -2025,6 +2087,10 @@
     pesoCard.hidden = !pesoEnabled();
     weightInput.value = entry.weight != null ? entry.weight : '';
 
+    pasosCard.hidden = !pasosEnabled();
+    stepsInput.value = entry.steps ? entry.steps : '';
+    document.getElementById('pasosGoalHint').textContent = `Objetivo: ${formatThousands(pasosGoal())} pasos`;
+
     ayunoCard.hidden = !ayunoEnabled();
     fastStartInput.value = entry.fastStart || '';
     fastEndInput.value = entry.fastEnd || '';
@@ -2090,6 +2156,27 @@
           <span class="habit-meta">objetivo: ${g.target}/mes${goalDueLabel(g.dueDate)}</span>
         </div>
       </li>`).join('');
+
+    const savingsGoalCats = store.settings.purchaseCategories.filter((c) => store.settings.categorySavingsGoals[c.id] != null);
+    savingsGoalsCard.hidden = savingsGoalCats.length === 0;
+    if (savingsGoalCats.length > 0) {
+      const nowD = new Date();
+      savingsGoalsList.innerHTML = savingsGoalCats.map((cat) => {
+        const status = categorySavingsGoalStatus(cat.id, nowD.getFullYear(), nowD.getMonth());
+        if (!status) {
+          return `
+          <li class="savings-goal-row">
+            <span class="savings-goal-name">${categoryIcon(cat)} ${escapeHtml(categoryDisplayLabel(cat))}</span>
+            <span class="hint-text" style="margin:0">objetivo -${store.settings.categorySavingsGoals[cat.id]}% · sin datos del mes pasado todavía</span>
+          </li>`;
+        }
+        return `
+        <li class="savings-goal-row">
+          <span class="savings-goal-name">${categoryIcon(cat)} ${escapeHtml(categoryDisplayLabel(cat))}</span>
+          <span class="cat-goal-badge ${status.met ? 'is-met' : 'is-missed'}">🎯 -${status.percent}% ${status.met ? 'cumplido' : 'no cumplido'}${status.streak > 0 ? ` · racha ${status.streak} ${status.streak === 1 ? 'mes' : 'meses'}` : ''}</span>
+        </li>`;
+      }).join('');
+    }
 
     updateObjetivosTabVisibility();
   }
@@ -2963,7 +3050,7 @@
           <button class="stepper-btn" data-step="1" aria-label="Sumar ${escapeHtml(item.label)}">+</button>
         </div>
       </div>`).join('');
-      return `<div class="habit-group-label">${categoryIcon(cat.id)} ${escapeHtml(cat.label)}</div>${rowsHtml}`;
+      return `<div class="habit-group-label">${categoryIcon(cat)} ${escapeHtml(categoryDisplayLabel(cat))}</div>${rowsHtml}`;
     }).join('');
   }
 
@@ -3063,6 +3150,30 @@
 
     updateJointPriceHints();
     renderSpendGroups(document.getElementById('spendGroups'), y, m, monthDayRange(y, m), 'este mes', 'este año');
+    renderRecurringDueHint();
+  }
+
+  function renderRecurringDueHint() {
+    const hintEl = document.getElementById('recurringDueHint');
+    if (!hintEl) return;
+    const today = startOfDay(new Date());
+    const todayDay = today.getDate();
+    const tomorrowDay = new Date(today.getTime() + 86400000).getDate();
+    const dueToday = [], dueTomorrow = [];
+    store.settings.purchaseItems.forEach((item) => {
+      if (!item.recurring || item.billingDay == null) return;
+      if (item.billingDay === todayDay) dueToday.push(item);
+      else if (item.billingDay === tomorrowDay) dueTomorrow.push(item);
+    });
+    if (dueToday.length === 0 && dueTomorrow.length === 0) {
+      hintEl.hidden = true;
+      return;
+    }
+    const parts = [];
+    if (dueToday.length) parts.push(`Hoy se cobra ${dueToday.map((i) => i.label).join(', ')} (${formatEuro(dueToday.reduce((s, i) => s + i.price, 0))})`);
+    if (dueTomorrow.length) parts.push(`Mañana se cobra ${dueTomorrow.map((i) => i.label).join(', ')} (${formatEuro(dueTomorrow.reduce((s, i) => s + i.price, 0))})`);
+    hintEl.textContent = `🔁 ${parts.join(' · ')}.`;
+    hintEl.hidden = false;
   }
 
   function setDelta(elId, current, previous, hasPrevious) {
@@ -3298,6 +3409,27 @@
     const pct = lastDay > 0 ? (daysMet / lastDay) * 100 : 0;
     grid.innerHTML = `<div class="ring-tile ring-tile--lg">${ringSVGLarge(pct)}<span class="ring-pct ring-pct--lg">${Math.round(pct)}%</span><span class="ring-name">días con objetivo cumplido</span></div>`;
     document.getElementById('aguaAvgHint').textContent = count > 0 ? `Media: ${(sum / count).toFixed(1)} vasos/día registrado.` : 'Sin datos todavía este mes.';
+  }
+
+  function renderPasosStats(year, monthIndex, lastDay) {
+    const card = document.getElementById('pasosStatsCard');
+    if (!pasosEnabled()) { card.hidden = true; return; }
+    card.hidden = false;
+    const grid = document.getElementById('pasosRingGrid');
+    const goal = pasosGoal();
+    let daysMet = 0, sum = 0, count = 0;
+    const pasosSeries = [];
+    for (let d = 1; d <= lastDay; d++) {
+      const entry = getEntryForDay(year, monthIndex, d);
+      if (!entry) continue;
+      const v = entry.steps || 0;
+      if (v > 0) { sum += v; count++; pasosSeries.push(v); }
+      if (v >= goal) daysMet++;
+    }
+    renderSparkline('pasosSparkline', pasosSeries, 'var(--accent-2)');
+    const pct = lastDay > 0 ? (daysMet / lastDay) * 100 : 0;
+    grid.innerHTML = `<div class="ring-tile ring-tile--lg">${ringSVGLarge(pct)}<span class="ring-pct ring-pct--lg">${Math.round(pct)}%</span><span class="ring-name">días con objetivo cumplido</span></div>`;
+    document.getElementById('pasosAvgHint').textContent = count > 0 ? `Media: ${formatThousands(sum / count)} pasos/día registrado.` : 'Sin datos todavía este mes.';
   }
 
   let sleepChartView = 'line';
@@ -3700,8 +3832,19 @@
     cat_suscripciones: '📅',
     cat_otros: '📦'
   };
-  function categoryIcon(categoryId) {
-    return CATEGORY_ICONS[categoryId] || '🏷';
+  function categoryIcon(cat) {
+    if (!cat) return '🏷';
+    return cat.icon || CATEGORY_ICONS[cat.id] || '🏷';
+  }
+  // Subcategories (cat.parentId) aren't nested visually anywhere except the
+  // management list itself (where indentation already shows the relationship) —
+  // everywhere else they're shown flat with "Padre › Hijo" so context isn't lost.
+  function categoryDisplayLabel(cat) {
+    if (cat.parentId) {
+      const parent = store.settings.purchaseCategories.find((c) => c.id === cat.parentId);
+      if (parent) return `${parent.label} › ${cat.label}`;
+    }
+    return cat.label;
   }
   function categoryIndexById(categoryId) {
     const idx = store.settings.purchaseCategories.findIndex((c) => c.id === categoryId);
@@ -3770,7 +3913,7 @@
       const color = categoryColor(ci);
       store.settings.purchaseItems
         .filter((item) => purchaseItemCategoryId(item) === cat.id)
-        .forEach((item) => pushRow({ key: item.id, label: item.label, type: 'consumo', color, section: cat.label, categoryId: cat.id }));
+        .forEach((item) => pushRow({ key: item.id, label: item.label, type: 'consumo', color, section: categoryDisplayLabel(cat), categoryId: cat.id }));
     });
     return rows;
   }
@@ -3801,6 +3944,7 @@
       ...weeklyRows,
       ...badHabitRows,
       { key: 'total', label: 'Total', type: 'total', color: 'var(--h-total)', groupStart: true, section: 'Total' },
+      ...(pasosEnabled() ? [{ key: 'steps', label: 'Pasos', type: 'consumo', color: 'var(--accent-2)', groupStart: true, section: 'Pasos' }] : []),
       ...buildConsumoRows()
     ];
   }
@@ -3845,7 +3989,8 @@
         teeth: teethDone,
         health,
         cigarettes: entry ? (entry.cigarettes || 0) : 0,
-        joints: entry ? (entry.joints || 0) : 0
+        joints: entry ? (entry.joints || 0) : 0,
+        steps: entry ? (entry.steps || 0) : 0
       };
       store.settings.purchaseItems.forEach((item) => {
         dayEntry[item.id] = entry && entry.purchases ? (entry.purchases[item.id] || 0) : 0;
@@ -4801,6 +4946,7 @@
 
     renderSupplementRings(year, monthIndex, lastDay);
     renderAguaStats(year, monthIndex, lastDay);
+    renderPasosStats(year, monthIndex, lastDay);
     renderSuenoStats(year, monthIndex, lastDay);
     renderPesoStats(year, monthIndex, lastDay);
     renderAyunoStats(year, monthIndex, lastDay);
@@ -4871,6 +5017,14 @@
     }
   }
 
+  function budgetBarState(spend, budget) {
+    const pct = Math.min(100, (spend / budget) * 100);
+    const over = spend > budget;
+    const warnPercent = store.settings.budgetWarnPercent || 90;
+    const warn = !over && (spend / budget) * 100 >= warnPercent;
+    return { pct, over, warn };
+  }
+
   function renderTobaccoSpendStats(year, monthIndex, lastDay) {
     updateJointPriceHints();
     renderSpendGroups(
@@ -4888,15 +5042,68 @@
     let totalMonth = store.settings.purchaseItems.reduce((s, item) => s + monthPurchaseSpend(item.id, item.price, year, monthIndex, lastDay), 0);
     if (jointsEnabled()) totalMonth += monthJointsSpend(year, monthIndex, lastDay);
     budgetGroup.hidden = false;
-    const pct = Math.min(100, (totalMonth / budget) * 100);
-    const over = totalMonth > budget;
+    const { pct, over, warn } = budgetBarState(totalMonth, budget);
     const fill = document.getElementById('budgetBarFill');
     fill.style.width = `${pct}%`;
     fill.classList.toggle('budget-bar-fill--over', over);
+    fill.classList.toggle('budget-bar-fill--warn', warn);
     const hint = document.getElementById('budgetHint');
     hint.textContent = over
       ? `Has superado tu presupuesto de ${formatEuro(budget)}: llevas ${formatEuro(totalMonth)} este mes.`
-      : `Llevas ${formatEuro(totalMonth)} de tu presupuesto de ${formatEuro(budget)} este mes.`;
+      : warn
+        ? `Cerca de tu presupuesto: llevas ${formatEuro(totalMonth)} de ${formatEuro(budget)} este mes (${pct.toFixed(0)}%).`
+        : `Llevas ${formatEuro(totalMonth)} de tu presupuesto de ${formatEuro(budget)} este mes.`;
+  }
+
+  function categoryMonthSeries(categoryId, year, monthIndex, months) {
+    const vals = [];
+    let y = year, m = monthIndex;
+    for (let i = 0; i < months; i++) {
+      vals.unshift(categoryMonthSpend(categoryId, y, m));
+      m -= 1;
+      if (m < 0) { m = 11; y -= 1; }
+    }
+    return vals;
+  }
+
+  function sparklineSvg(values, color) {
+    const W = 100, H = 26, pad = 2;
+    const max = Math.max(1, ...values);
+    const stepX = values.length > 1 ? (W - pad * 2) / (values.length - 1) : 0;
+    const points = values.map((v, i) => {
+      const x = pad + i * stepX;
+      const y = H - pad - (v / max) * (H - pad * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    return `<svg viewBox="0 0 ${W} ${H}" class="cat-sparkline" preserveAspectRatio="none"><polyline points="${points}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  }
+
+  function categoryDonutHtml(rows) {
+    const total = rows.reduce((s, r) => s + r.month, 0);
+    const withSpend = rows.filter((r) => r.month > 0);
+    if (total <= 0 || withSpend.length === 0) return '';
+    const R = 42, C = 2 * Math.PI * R;
+    let offset = 0;
+    const segments = withSpend.map((r) => {
+      const len = (r.month / total) * C;
+      const circle = `<circle cx="60" cy="60" r="${R}" fill="none" stroke="${r.color}" stroke-width="16" stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-offset).toFixed(2)}" transform="rotate(-90 60 60)"/>`;
+      offset += len;
+      return circle;
+    }).join('');
+    const legend = withSpend.map((r) => `
+      <div class="cat-donut-legend-row">
+        <span class="consumo-swatch" style="background:${r.color}"></span>${categoryIcon(r.category)} ${escapeHtml(categoryDisplayLabel(r.category))}
+        <span class="cat-donut-legend-pct">${Math.round((r.month / total) * 100)}%</span>
+      </div>`).join('');
+    return `
+    <div class="cat-donut-wrap">
+      <svg viewBox="0 0 120 120" class="cat-donut">
+        ${segments}
+        <text x="60" y="57" text-anchor="middle" class="cat-donut-total">${formatEuro(total)}</text>
+        <text x="60" y="72" text-anchor="middle" class="cat-donut-sublabel">este mes</text>
+      </svg>
+      <div class="cat-donut-legend">${legend}</div>
+    </div>`;
   }
 
   function renderCategorySpendCard(year, monthIndex) {
@@ -4921,6 +5128,8 @@
     }
     card.hidden = false;
 
+    document.getElementById('categoryDonut').innerHTML = categoryDonutHtml(rows);
+
     const ranked = rows.filter((r) => r.month > 0).sort((a, b) => b.month - a.month).slice(0, 3);
     const medals = ['🥇', '🥈', '🥉'];
     document.getElementById('categoryRanking').innerHTML = ranked.length ? `
@@ -4928,7 +5137,7 @@
         ${ranked.map((r, i) => `
         <div class="cat-ranking-row">
           <span class="cat-ranking-medal">${medals[i]}</span>
-          <span class="cat-ranking-name" style="color:${r.color}">${categoryIcon(r.category.id)} ${escapeHtml(r.category.label)}</span>
+          <span class="cat-ranking-name" style="color:${r.color}">${categoryIcon(r.category)} ${escapeHtml(categoryDisplayLabel(r.category))}</span>
           <span class="cat-ranking-value">${formatEuro(r.month)}</span>
         </div>`).join('')}
       </div>` : '<p class="hint-text" style="margin-top:0">Todavía no hay gasto este mes.</p>';
@@ -4948,24 +5157,37 @@
       const budget = store.settings.categoryBudgets[r.category.id];
       let budgetHtml = '';
       if (budget != null && budget > 0) {
-        const pct = Math.min(100, (r.month / budget) * 100);
-        const over = r.month > budget;
+        const { pct, over, warn } = budgetBarState(r.month, budget);
         budgetHtml = `
         <div class="cat-budget-row">
-          <div class="budget-bar-track"><div class="budget-bar-fill${over ? ' budget-bar-fill--over' : ''}" style="width:${pct}%"></div></div>
-          <span class="hint-text cat-budget-hint">${over ? 'Presupuesto superado — ' : ''}${formatEuro(r.month)} de ${formatEuro(budget)}</span>
+          <div class="budget-bar-track"><div class="budget-bar-fill${over ? ' budget-bar-fill--over' : ''}${warn ? ' budget-bar-fill--warn' : ''}" style="width:${pct}%"></div></div>
+          <span class="hint-text cat-budget-hint">${over ? 'Presupuesto superado — ' : warn ? 'Cerca del límite — ' : ''}${formatEuro(r.month)} de ${formatEuro(budget)}</span>
         </div>`;
       }
 
       const goal = categorySavingsGoalStatus(r.category.id, year, monthIndex);
-      const goalHtml = goal
-        ? `<span class="cat-goal-badge ${goal.met ? 'is-met' : 'is-missed'}">🎯 -${goal.percent}% ${goal.met ? 'cumplido' : 'no cumplido'}${goal.streak > 0 ? ` · racha ${goal.streak} ${goal.streak === 1 ? 'mes' : 'meses'}` : ''}</span>`
-        : '';
+      let goalHtml = '';
+      if (goal) {
+        goalHtml = `<span class="cat-goal-badge ${goal.met ? 'is-met' : 'is-missed'}">🎯 -${goal.percent}% ${goal.met ? 'cumplido' : 'no cumplido'}${goal.streak > 0 ? ` · racha ${goal.streak} ${goal.streak === 1 ? 'mes' : 'meses'}` : ''}</span>`;
+        if (goal.met && r.prev > 0) {
+          const projected = (r.prev - r.month) * 12;
+          if (projected > 0) {
+            goalHtml += `<p class="cat-projection">Si mantienes este ritmo, ahorrarías ~${formatEuro(projected)} al año.</p>`;
+          }
+        }
+      }
+
+      const sparkValues = categoryMonthSeries(r.category.id, year, monthIndex, 6);
+      const sparklineHtml = `
+        <div class="cat-sparkline-row">
+          <span class="cat-spend-bar-label">6 meses</span>
+          ${sparklineSvg(sparkValues, r.color)}
+        </div>`;
 
       return `
       <div class="cat-spend-row">
         <div class="cat-spend-head">
-          <span class="cat-spend-name"><span class="consumo-swatch" style="background:${r.color}"></span>${categoryIcon(r.category.id)} ${escapeHtml(r.category.label)}</span>
+          <span class="cat-spend-name"><span class="consumo-swatch" style="background:${r.color}"></span>${categoryIcon(r.category)} ${escapeHtml(categoryDisplayLabel(r.category))}</span>
           ${deltaHtml}
         </div>
         <div class="cat-spend-bar-row">
@@ -4978,6 +5200,7 @@
           <div class="cat-bar-track"><div class="cat-bar-fill cat-bar-fill--prev" style="width:${prevPct}%"></div></div>
           <span class="cat-spend-bar-value">${r.prev > 0 ? formatEuro(r.prev) : '–'}</span>
         </div>
+        ${sparklineHtml}
         ${budgetHtml}
         ${goalHtml}
       </div>`;
@@ -4992,6 +5215,7 @@
     let daysCount = 0, loggedDays = 0, completeDays = 0, longestStreak = 0, curStreak = 0;
     let foodSum = 0, foodCount = 0;
     let cig = 0, joints = 0, spend = 0;
+    const spendByCategory = {};
     let workoutDays = 0;
     let sleepSum = 0, sleepCount = 0;
     let weightFirst = null, weightLast = null;
@@ -5021,9 +5245,18 @@
         cig += entry.cigarettes || 0;
         if (jointsEnabled()) joints += entry.joints || 0;
         store.settings.purchaseItems.forEach((item) => {
-          spend += ((entry.purchases && entry.purchases[item.id]) || 0) * item.price;
+          const itemSpend = ((entry.purchases && entry.purchases[item.id]) || 0) * item.price;
+          spend += itemSpend;
+          if (itemSpend > 0) {
+            const catId = purchaseItemCategoryId(item);
+            spendByCategory[catId] = (spendByCategory[catId] || 0) + itemSpend;
+          }
         });
-        if (jointsEnabled()) spend += ((entry.joints || 0) / 4) * jointPricePer4();
+        if (jointsEnabled()) {
+          const jointSpend = ((entry.joints || 0) / 4) * jointPricePer4();
+          spend += jointSpend;
+          if (jointSpend > 0) spendByCategory.cat_tabaco = (spendByCategory.cat_tabaco || 0) + jointSpend;
+        }
       }
       if (workoutsEnabled() && entry.workout) {
         const w = entry.workout;
@@ -5045,12 +5278,20 @@
       }
     });
 
+    let topCategorySpend = null;
+    Object.keys(spendByCategory).forEach((catId) => {
+      if (!topCategorySpend || spendByCategory[catId] > topCategorySpend.spend) {
+        const cat = store.settings.purchaseCategories.find((c) => c.id === catId);
+        if (cat) topCategorySpend = { category: cat, spend: spendByCategory[catId] };
+      }
+    });
+
     return {
       daysCount, loggedDays, completeDays, longestStreak,
       completePct: daysCount > 0 ? (completeDays / daysCount) * 100 : 0,
       bestHabit,
       foodAvg: foodCount > 0 ? foodSum / foodCount : 0,
-      cig, joints, spend,
+      cig, joints, spend, topCategorySpend,
       workoutDays,
       sleepAvg: sleepCount > 0 ? sleepSum / sleepCount : 0,
       weightDiff: (weightFirst != null && weightLast != null) ? weightLast - weightFirst : null,
@@ -5087,6 +5328,10 @@
     }
     if (consumoEnabled() && (stats.cig > 0 || stats.joints > 0)) {
       tiles.push(wrappedTileData('var(--h-cig)', formatEuro(stats.spend), 'gasto en consumo', 'spend', stats.spend));
+    }
+    if (consumoEnabled() && stats.topCategorySpend) {
+      const tc = stats.topCategorySpend;
+      tiles.push(wrappedTileData(categoryColor(categoryIndexById(tc.category.id)), escapeHtml(categoryDisplayLabel(tc.category)), 'tu categoría con más gasto', 'topCategorySpend', tc.spend));
     }
     if (cicloEnabled() && stats.periodDays > 0) {
       tiles.push(wrappedTileData('var(--h-ciclo)', `${stats.periodDays}`, stats.periodDays === 1 ? 'día de regla' : 'días de regla', 'periodDays', stats.periodDays));
@@ -5130,6 +5375,8 @@
           : `Subiste ${t.raw.toFixed(1)} kg — dato a tener en cuenta según tu objetivo.`;
       case 'spend':
         return 'Esto es lo que costó tu consumo este periodo. Mirarlo de frente ya es el primer cambio.';
+      case 'topCategorySpend':
+        return `Se llevó ${formatEuro(t.raw)} de tu gasto total — la candidata número uno si buscas dónde recortar.`;
       case 'periodDays':
         return 'Días de regla registrados — así tu ciclo se estima cada vez con más precisión.';
       default:
@@ -5904,6 +6151,11 @@
   const newCategoryLabelInput = document.getElementById('newCategoryLabelInput');
   const addCategoryBtn = document.getElementById('addCategoryBtn');
 
+  const CATEGORY_ICON_OPTIONS = ['🏷', '🍽', '🎟', '🚬', '📅', '📦', '🛒', '🎬', '🎮', '✈️', '🏋️', '💊', '👕', '🐾', '📚', '🎵', '🚗', '🏠', '💻', '☕'];
+  function categoryParentOptions(excludeId) {
+    return store.settings.purchaseCategories.filter((c) => !c.parentId && c.id !== excludeId);
+  }
+
   function renderPurchaseCategoryManageList() {
     const cats = store.settings.purchaseCategories;
     purchaseCategoryManageList.innerHTML = cats.map((cat, i) => {
@@ -5911,12 +6163,23 @@
       const budget = store.settings.categoryBudgets[cat.id];
       const goalPct = store.settings.categorySavingsGoals[cat.id];
       const isProtected = RESERVED_CATEGORY_IDS.includes(cat.id);
+      const iconOptionsHtml = CATEGORY_ICON_OPTIONS.map((emoji) => `<option value="${emoji}"${categoryIcon(cat) === emoji ? ' selected' : ''}>${emoji}</option>`).join('');
+      const parentSelectHtml = isProtected ? '' : `
+          <select class="purchase-category-select" data-category-parent="${cat.id}" aria-label="Categoría padre de ${escapeHtml(cat.label)}">
+            <option value="">Ninguna (categoría principal)</option>
+            ${categoryParentOptions(cat.id).map((p) => `<option value="${p.id}"${cat.parentId === p.id ? ' selected' : ''}>${escapeHtml(p.label)}</option>`).join('')}
+          </select>`;
       return `
-      <li class="task-manage-item category-manage-item" data-category-id="${cat.id}">
+      <li class="task-manage-item category-manage-item"${cat.parentId ? ' data-is-subcategory' : ''} data-category-id="${cat.id}">
         <div class="category-manage-row1">
+          <button type="button" class="category-drag-handle" aria-label="Reordenar categoría: arrastra, o usa las flechas arriba/abajo"><svg viewBox="0 0 24 24"><circle cx="8" cy="6" r="1.4"/><circle cx="16" cy="6" r="1.4"/><circle cx="8" cy="12" r="1.4"/><circle cx="16" cy="12" r="1.4"/><circle cx="8" cy="18" r="1.4"/><circle cx="16" cy="18" r="1.4"/></svg></button>
           <span class="consumo-swatch" style="background:${color}"></span>
           <input type="text" class="task-add-input category-label-input" data-category-label-input="${cat.id}" value="${escapeHtml(cat.label)}" maxlength="24" aria-label="Nombre de la categoría" />
           <button type="button" class="task-remove-btn" data-remove-category="${cat.id}" aria-label="Eliminar ${escapeHtml(cat.label)}"${isProtected ? ' disabled title="Categoría de reserva: no se puede eliminar"' : ''}>×</button>
+        </div>
+        <div class="category-manage-row2">
+          <select class="purchase-category-select category-icon-select" data-category-icon="${cat.id}" aria-label="Icono de ${escapeHtml(cat.label)}">${iconOptionsHtml}</select>
+          ${parentSelectHtml}
         </div>
         <div class="category-manage-row2">
           <label class="category-field">
@@ -5930,6 +6193,76 @@
         </div>
       </li>`;
     }).join('');
+    purchaseCategoryManageList.querySelectorAll('[data-category-id]').forEach((li) => {
+      const handle = li.querySelector('.category-drag-handle');
+      if (handle) attachCategoryDragHandlers(handle, li);
+    });
+  }
+
+  function attachCategoryDragHandlers(handle, li) {
+    let dragging = false;
+
+    function commitOrder() {
+      const newOrderIds = Array.from(purchaseCategoryManageList.querySelectorAll('[data-category-id]')).map((el) => el.dataset.categoryId);
+      const byId = {};
+      store.settings.purchaseCategories.forEach((c) => { byId[c.id] = c; });
+      store.settings.purchaseCategories = newOrderIds.map((id) => byId[id]).filter(Boolean);
+      saveStore();
+      renderPurchaseManageList();
+      renderConsumo();
+      if (activeTab === 'stats') renderStats();
+    }
+
+    function onPointerMove(e) {
+      if (!dragging) return;
+      const siblings = Array.from(purchaseCategoryManageList.querySelectorAll('[data-category-id]')).filter((el) => el !== li);
+      const pointerY = e.clientY;
+      for (const sib of siblings) {
+        const rect = sib.getBoundingClientRect();
+        const mid = rect.top + rect.height / 2;
+        const liIsAfter = !!(sib.compareDocumentPosition(li) & Node.DOCUMENT_POSITION_FOLLOWING);
+        if (pointerY < mid && liIsAfter) { purchaseCategoryManageList.insertBefore(li, sib); break; }
+        else if (pointerY > mid && !liIsAfter) { purchaseCategoryManageList.insertBefore(li, sib.nextSibling); break; }
+      }
+    }
+
+    function endDrag() {
+      if (!dragging) return;
+      dragging = false;
+      li.classList.remove('is-dragging');
+      document.removeEventListener('pointermove', onPointerMove);
+      document.removeEventListener('pointerup', endDrag);
+      document.removeEventListener('pointercancel', endDrag);
+      commitOrder();
+      renderPurchaseCategoryManageList();
+    }
+
+    handle.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      dragging = true;
+      li.classList.add('is-dragging');
+      document.addEventListener('pointermove', onPointerMove);
+      document.addEventListener('pointerup', endDrag);
+      document.addEventListener('pointercancel', endDrag);
+    });
+
+    function moveCategory(direction) {
+      const siblings = Array.from(purchaseCategoryManageList.querySelectorAll('[data-category-id]'));
+      const idx = siblings.indexOf(li);
+      const targetIdx = idx + direction;
+      if (targetIdx < 0 || targetIdx >= siblings.length) return;
+      if (direction < 0) purchaseCategoryManageList.insertBefore(li, siblings[targetIdx]);
+      else purchaseCategoryManageList.insertBefore(li, siblings[targetIdx].nextSibling);
+      commitOrder();
+      renderPurchaseCategoryManageList();
+      const newHandle = purchaseCategoryManageList.querySelector(`[data-category-id="${li.dataset.categoryId}"] .category-drag-handle`);
+      if (newHandle) newHandle.focus();
+    }
+
+    handle.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowUp') { e.preventDefault(); moveCategory(-1); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); moveCategory(1); }
+    });
   }
 
   function addPurchaseCategory() {
@@ -5959,6 +6292,8 @@
     const [removed] = store.settings.purchaseCategories.splice(idx, 1);
     const reassigned = store.settings.purchaseItems.filter((item) => item.categoryId === catId);
     reassigned.forEach((item) => { item.categoryId = 'cat_otros'; });
+    const orphanedChildren = store.settings.purchaseCategories.filter((c) => c.parentId === catId);
+    orphanedChildren.forEach((c) => { c.parentId = null; });
     const hadBudget = store.settings.categoryBudgets[catId];
     const hadGoal = store.settings.categorySavingsGoals[catId];
     delete store.settings.categoryBudgets[catId];
@@ -5971,6 +6306,7 @@
     showSettingsToast(`"${removed.label}" eliminada`, 'Deshacer', () => {
       store.settings.purchaseCategories.splice(idx, 0, removed);
       reassigned.forEach((item) => { item.categoryId = catId; });
+      orphanedChildren.forEach((c) => { c.parentId = catId; });
       if (hadBudget != null) store.settings.categoryBudgets[catId] = hadBudget;
       if (hadGoal != null) store.settings.categorySavingsGoals[catId] = hadGoal;
       saveStore();
@@ -5989,6 +6325,33 @@
         cat.label = labelInput.value.trim() || cat.label;
         labelInput.value = cat.label;
         saveStore();
+        renderPurchaseCategoryManageList();
+        renderPurchaseManageList();
+        renderConsumo();
+        if (activeTab === 'stats') renderStats();
+      }
+      return;
+    }
+    const iconSelect = e.target.closest('[data-category-icon]');
+    if (iconSelect) {
+      const cat = store.settings.purchaseCategories.find((c) => c.id === iconSelect.dataset.categoryIcon);
+      if (cat) {
+        cat.icon = iconSelect.value || null;
+        saveStore();
+        renderPurchaseManageList();
+        renderConsumo();
+        if (activeTab === 'stats') renderStats();
+      }
+      return;
+    }
+    const parentSelect = e.target.closest('[data-category-parent]');
+    if (parentSelect) {
+      const cat = store.settings.purchaseCategories.find((c) => c.id === parentSelect.dataset.categoryParent);
+      if (cat) {
+        const value = parentSelect.value;
+        cat.parentId = (value && store.settings.purchaseCategories.some((c) => c.id === value && !c.parentId)) ? value : null;
+        saveStore();
+        renderPurchaseCategoryManageList();
         renderPurchaseManageList();
         renderConsumo();
         if (activeTab === 'stats') renderStats();
@@ -6053,6 +6416,11 @@
           <input type="number" class="purchase-price-input" data-price-item="${p.id}" value="${p.price.toFixed(2)}" min="0" step="0.01" />
           <button type="button" class="purchase-recurring-btn${p.recurring ? ' is-active' : ''}" data-recurring-item="${p.id}" aria-pressed="${!!p.recurring}" aria-label="Marcar ${escapeHtml(p.label)} como gasto recurrente" title="Gasto recurrente">🔁</button>
         </div>
+        ${p.recurring ? `
+        <div class="purchase-manage-row3">
+          <label class="category-field-label" for="billing-day-${p.id}">Día de cobro del mes (opcional)</label>
+          <input type="number" id="billing-day-${p.id}" class="purchase-price-input" data-billing-day="${p.id}" value="${p.billingDay != null ? p.billingDay : ''}" min="1" max="31" placeholder="—" aria-label="Día de cobro de ${escapeHtml(p.label)}" />
+        </div>` : ''}
       </li>`;
     }).join('') : '<li class="task-empty-hint">No tienes artículos de compra todavía.</li>';
   }
@@ -6098,9 +6466,9 @@
       const item = store.settings.purchaseItems.find((p) => p.id === recurringBtn.dataset.recurringItem);
       if (!item) return;
       item.recurring = !item.recurring;
-      recurringBtn.classList.toggle('is-active', item.recurring);
-      recurringBtn.setAttribute('aria-pressed', String(item.recurring));
+      if (!item.recurring) item.billingDay = null;
       saveStore();
+      renderPurchaseManageList();
       renderConsumo();
       if (activeTab === 'stats') renderStats();
     }
@@ -6131,6 +6499,17 @@
       if (activeTab === 'stats') renderStats();
       return;
     }
+    const billingDayInput = e.target.closest('[data-billing-day]');
+    if (billingDayInput) {
+      const item = store.settings.purchaseItems.find((p) => p.id === billingDayInput.dataset.billingDay);
+      if (!item) return;
+      const value = parseInt(billingDayInput.value, 10);
+      item.billingDay = (!isNaN(value) && value >= 1 && value <= 31) ? value : null;
+      billingDayInput.value = item.billingDay != null ? item.billingDay : '';
+      saveStore();
+      renderConsumo();
+      return;
+    }
   });
 
   renderPurchaseManageList();
@@ -6141,6 +6520,16 @@
     const value = parseFloat(monthlyBudgetInput.value);
     store.settings.monthlyBudget = (!isNaN(value) && value > 0) ? value : null;
     monthlyBudgetInput.value = store.settings.monthlyBudget != null ? store.settings.monthlyBudget : '';
+    saveStore();
+    if (activeTab === 'stats') renderStats();
+  });
+
+  const budgetWarnPercentInput = document.getElementById('budgetWarnPercentInput');
+  budgetWarnPercentInput.value = store.settings.budgetWarnPercent;
+  budgetWarnPercentInput.addEventListener('change', () => {
+    const value = parseInt(budgetWarnPercentInput.value, 10);
+    store.settings.budgetWarnPercent = (!isNaN(value) && value >= 1 && value <= 99) ? value : 90;
+    budgetWarnPercentInput.value = store.settings.budgetWarnPercent;
     saveStore();
     if (activeTab === 'stats') renderStats();
   });
@@ -6264,6 +6653,26 @@
     const value = parseInt(aguaGoalInput.value, 10);
     store.settings.aguaGoal = (!isNaN(value) && value > 0) ? value : 8;
     aguaGoalInput.value = store.settings.aguaGoal;
+    saveStore();
+    renderHoy();
+    if (activeTab === 'stats') renderStats();
+  });
+
+  /* ============ AJUSTES panel / Pasos ============ */
+  const tracksPasosToggle = document.getElementById('tracksPasosToggle');
+  const pasosGoalInput = document.getElementById('pasosGoalInput');
+  tracksPasosToggle.checked = pasosEnabled();
+  pasosGoalInput.value = pasosGoal();
+  tracksPasosToggle.addEventListener('change', () => {
+    store.settings.tracksPasos = tracksPasosToggle.checked;
+    saveStore();
+    renderHoy();
+    if (activeTab === 'stats') renderStats();
+  });
+  pasosGoalInput.addEventListener('change', () => {
+    const value = parseInt(pasosGoalInput.value, 10);
+    store.settings.pasosGoal = (!isNaN(value) && value > 0) ? value : 8000;
+    pasosGoalInput.value = store.settings.pasosGoal;
     saveStore();
     renderHoy();
     if (activeTab === 'stats') renderStats();
@@ -6805,6 +7214,7 @@
       } });
     }
     if (aguaEnabled()) cols.push({ header: 'Agua (vasos)', get: (e) => e.agua || 0 });
+    if (pasosEnabled()) cols.push({ header: 'Pasos', get: (e) => e.steps || 0 });
     if (suenoEnabled()) {
       cols.push({ header: 'Horas sueño', get: (e) => e.sleepHours || '' });
       cols.push({ header: 'Calidad sueño', get: (e) => e.sleepQuality || '' });
@@ -6832,7 +7242,7 @@
         const catItems = store.settings.purchaseItems.filter((item) => purchaseItemCategoryId(item) === cat.id);
         const includesTabaco = cat.id === 'cat_tabaco' && jointsEnabled();
         if (catItems.length === 0 && !includesTabaco) return;
-        cols.push({ header: `Gasto ${cat.label} (€)`, get: (e) => {
+        cols.push({ header: `Gasto ${categoryDisplayLabel(cat)} (€)`, get: (e) => {
           let spend = 0;
           catItems.forEach((item) => { spend += ((e.purchases && e.purchases[item.id]) || 0) * item.price; });
           if (includesTabaco) spend += ((e.joints || 0) / 4) * jointPricePer4();
@@ -6970,6 +7380,120 @@
     reader.readAsText(file);
     importFile.value = '';
   });
+
+  /* ============ Importar desde Salud (Apple) — pasos + sueño ============ */
+  // No hay API web para HealthKit (restricción de iOS, no algo evitable desde código),
+  // así que esto es una importación puntual del export.xml de la app Salud, no una
+  // sincronización en vivo. Se parsea con regex en vez de un parser XML/DOM completo
+  // para no cargar el archivo entero como árbol DOM (puede ser de cientos de MB con
+  // años de datos de Apple Watch).
+  const healthImportFile = document.getElementById('healthImportFile');
+  const healthImportOverwrite = document.getElementById('healthImportOverwrite');
+  const healthImportStatus = document.getElementById('healthImportStatus');
+  document.getElementById('healthImportBtn').addEventListener('click', () => healthImportFile.click());
+
+  function extractXmlAttr(tag, name) {
+    const m = tag.match(new RegExp(`${name}="([^"]*)"`));
+    return m ? m[1] : null;
+  }
+
+  function parseHealthExportXml(xmlText) {
+    const stepDaySource = {};
+    const sleepByDate = {};
+    const recordRegex = /<Record\b[^>]*\/>/g;
+    let match;
+    while ((match = recordRegex.exec(xmlText)) !== null) {
+      const tag = match[0];
+      if (tag.indexOf('HKQuantityTypeIdentifierStepCount') !== -1) {
+        const startDate = extractXmlAttr(tag, 'startDate');
+        const value = parseFloat(extractXmlAttr(tag, 'value'));
+        if (!startDate || isNaN(value) || value < 0) continue;
+        const sourceName = extractXmlAttr(tag, 'sourceName') || 'desconocido';
+        const date = startDate.slice(0, 10);
+        stepDaySource[date] = stepDaySource[date] || {};
+        stepDaySource[date][sourceName] = (stepDaySource[date][sourceName] || 0) + value;
+      } else if (tag.indexOf('HKCategoryTypeIdentifierSleepAnalysis') !== -1) {
+        const value = extractXmlAttr(tag, 'value') || '';
+        if (value.indexOf('Asleep') === -1) continue; // skip InBed/Awake records
+        const startDate = extractXmlAttr(tag, 'startDate');
+        const endDate = extractXmlAttr(tag, 'endDate');
+        if (!startDate || !endDate) continue;
+        // Apple's format is "YYYY-MM-DD HH:MM:SS -0400" — the space before the
+        // offset makes this non-ISO, so Date can't parse it as-is; drop that space
+        // too ("...SS-0400") rather than just swapping the date/time separator.
+        const start = new Date(startDate.replace(' ', 'T').replace(' ', ''));
+        const end = new Date(endDate.replace(' ', 'T').replace(' ', ''));
+        const hours = (end - start) / 3600000;
+        if (!(hours > 0 && hours < 24)) continue;
+        // A sleep session is attributed to the morning you woke up (Apple's own
+        // convention), unless it ends in the afternoon/evening — a nap, say.
+        const bucketDate = (end.getHours() < 14 ? endDate : startDate).slice(0, 10);
+        sleepByDate[bucketDate] = (sleepByDate[bucketDate] || 0) + hours;
+      }
+    }
+    const stepsByDate = {};
+    Object.keys(stepDaySource).forEach((date) => {
+      // Different sources (iPhone + Watch) can double-log the same walk; taking the
+      // max across sources instead of summing them avoids inflating the total.
+      stepsByDate[date] = Math.round(Math.max(...Object.values(stepDaySource[date])));
+    });
+    return { stepsByDate, sleepByDate };
+  }
+
+  function applyHealthImport(parsed, overwrite) {
+    let stepsDays = 0, stepsSkipped = 0, sleepDays = 0, sleepSkipped = 0;
+    const stepDates = Object.keys(parsed.stepsByDate);
+    const sleepDates = Object.keys(parsed.sleepByDate);
+    const pasosAutoEnabled = stepDates.length > 0 && !pasosEnabled();
+    const suenoAutoEnabled = sleepDates.length > 0 && !suenoEnabled();
+    if (pasosAutoEnabled) store.settings.tracksPasos = true;
+    if (suenoAutoEnabled) store.settings.tracksSueno = true;
+    stepDates.forEach((date) => {
+      const entry = ensureEntry(date);
+      if (entry.steps > 0 && !overwrite) { stepsSkipped++; return; }
+      entry.steps = parsed.stepsByDate[date];
+      stepsDays++;
+    });
+    sleepDates.forEach((date) => {
+      const entry = ensureEntry(date);
+      if (entry.sleepHours > 0 && !overwrite) { sleepSkipped++; return; }
+      entry.sleepHours = Math.round(parsed.sleepByDate[date] * 10) / 10;
+      sleepDays++;
+    });
+    saveStore();
+    renderAll();
+    // tracksPasos/tracksSueno were flipped directly on the settings object (no
+    // change event on the toggles themselves), so their checkbox state and the
+    // accordion dots next to them would otherwise stay stale until a reload.
+    if (pasosAutoEnabled) tracksPasosToggle.checked = true;
+    if (suenoAutoEnabled) tracksSuenoToggle.checked = true;
+    if (pasosAutoEnabled || suenoAutoEnabled) updateAccordionBadges();
+    return { stepsDays, stepsSkipped, sleepDays, sleepSkipped };
+  }
+
+  healthImportFile.addEventListener('change', () => {
+    const file = healthImportFile.files[0];
+    healthImportFile.value = '';
+    if (!file) return;
+    healthImportStatus.textContent = 'Leyendo el archivo… puede tardar si tienes años de datos del Apple Watch.';
+    setTimeout(() => {
+      file.text().then((xmlText) => {
+        const parsed = parseHealthExportXml(xmlText);
+        const stepCount = Object.keys(parsed.stepsByDate).length;
+        const sleepCount = Object.keys(parsed.sleepByDate).length;
+        if (stepCount === 0 && sleepCount === 0) {
+          healthImportStatus.textContent = 'No se encontraron registros de pasos ni sueño en ese archivo. Asegúrate de elegir el export.xml de dentro del .zip (no el .zip en sí).';
+          return;
+        }
+        const result = applyHealthImport(parsed, healthImportOverwrite.checked);
+        healthImportStatus.textContent = `Importado: ${result.stepsDays} ${result.stepsDays === 1 ? 'día' : 'días'} de pasos y ${result.sleepDays} ${result.sleepDays === 1 ? 'día' : 'días'} de sueño` +
+          ((result.stepsSkipped + result.sleepSkipped) > 0 ? ` (${result.stepsSkipped + result.sleepSkipped} días con datos ya existentes se dejaron igual — activa "sobrescribir" para reemplazarlos).` : '.');
+      }).catch(() => {
+        healthImportStatus.textContent = 'No se ha podido leer el archivo. Si tienes muchos años de datos del Apple Watch, prueba desde un ordenador — el archivo puede ser demasiado grande para el navegador del móvil.';
+      });
+    }, 30);
+  });
+
   updateBackupReminderHint();
 
   /* ============ Init ============ */
