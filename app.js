@@ -7596,9 +7596,18 @@
     }
   }
 
-  async function importHealthFile(file, onProgress) {
+  async function importHealthFile(file, onProgress, onCheckpoint) {
     const parser = makeStreamingHealthParser();
-    const onChunk = (chunk) => { parser.push(chunk); onProgress(parser.recordCount); };
+    let lastCheckpointAt = Date.now();
+    const onChunk = (chunk) => {
+      parser.push(chunk);
+      onProgress(parser.recordCount);
+      const now = Date.now();
+      if (onCheckpoint && now - lastCheckpointAt > 6000) {
+        lastCheckpointAt = now;
+        onCheckpoint(parser.result());
+      }
+    };
     if (/\.zip$/i.test(file.name)) {
       const buffer = await file.arrayBuffer();
       const entry = findZipEntry(buffer, (name) => /(^|\/)export\.xml$/i.test(name) && !/export_cda\.xml$/i.test(name));
@@ -7618,29 +7627,38 @@
     return parser.result();
   }
 
-  function applyHealthImport(parsed, overwrite) {
+  // iOS is aggressive about killing an installed home-screen PWA in the background —
+  // a multi-year export can take long enough to parse on a phone that the screen
+  // locks (or the OS reclaims memory) before it finishes, losing the whole import.
+  // To survive that: (1) a Wake Lock keeps the screen from auto-locking while it
+  // runs, and (2) every few seconds we merge whatever has been parsed so far into
+  // the store and save it (`finalize: false`), so a mid-import kill only loses the
+  // last few seconds of progress instead of everything. `preExisting*` is captured
+  // once up front so repeated checkpoint merges keep honoring the user's original
+  // "sobrescribir" choice instead of re-reading it against our own partial writes.
+  function mergeHealthData(parsed, overwrite, preExistingSteps, preExistingSleep, finalize) {
     let stepsDays = 0, stepsSkipped = 0, sleepDays = 0, sleepSkipped = 0;
     const stepDates = Object.keys(parsed.stepsByDate);
     const sleepDates = Object.keys(parsed.sleepByDate);
     const pasosAutoEnabled = stepDates.length > 0 && !pasosEnabled();
     const suenoAutoEnabled = sleepDates.length > 0 && !suenoEnabled();
-    const statsAutoEnabled = !store.settings.tracksHealthImportStats;
+    const statsAutoEnabled = (stepDates.length > 0 || sleepDates.length > 0) && !store.settings.tracksHealthImportStats;
     if (pasosAutoEnabled) store.settings.tracksPasos = true;
     if (suenoAutoEnabled) store.settings.tracksSueno = true;
     if (statsAutoEnabled) store.settings.tracksHealthImportStats = true;
     stepDates.forEach((date) => {
-      const entry = ensureEntry(date);
-      if (entry.steps > 0 && !overwrite) { stepsSkipped++; return; }
-      entry.steps = parsed.stepsByDate[date];
+      if (preExistingSteps.has(date) && !overwrite) { stepsSkipped++; return; }
+      ensureEntry(date).steps = parsed.stepsByDate[date];
       stepsDays++;
     });
     sleepDates.forEach((date) => {
-      const entry = ensureEntry(date);
-      if (entry.sleepHours > 0 && !overwrite) { sleepSkipped++; return; }
-      entry.sleepHours = Math.round(parsed.sleepByDate[date] * 10) / 10;
+      if (preExistingSleep.has(date) && !overwrite) { sleepSkipped++; return; }
+      ensureEntry(date).sleepHours = Math.round(parsed.sleepByDate[date] * 10) / 10;
       sleepDays++;
     });
-    store.settings.lastHealthImport = { date: dateKey(new Date()), stepsDaysImported: stepsDays, sleepDaysImported: sleepDays };
+    if (finalize) {
+      store.settings.lastHealthImport = { date: dateKey(new Date()), stepsDaysImported: stepsDays, sleepDaysImported: sleepDays };
+    }
     saveStore();
     renderAll();
     // tracksPasos/tracksSueno were flipped directly on the settings object (no
@@ -7665,26 +7683,49 @@
     const file = healthImportFile.files[0];
     healthImportFile.value = '';
     if (!file) return;
-    healthImportStatus.textContent = 'Leyendo el archivo… puede tardar si tienes años de datos del Apple Watch.';
+
+    const overwrite = healthImportOverwrite.checked;
+    // Snapshot which days already had data BEFORE this import starts — checkpoint
+    // merges write partial results as they go, so entry.steps/sleepHours can't be
+    // used to detect "pre-existing" after the first checkpoint has already run.
+    const preExistingSteps = new Set();
+    const preExistingSleep = new Set();
+    Object.keys(store.entries).forEach((date) => {
+      const e = store.entries[date];
+      if (e.steps > 0) preExistingSteps.add(date);
+      if (e.sleepHours > 0) preExistingSleep.add(date);
+    });
+
+    let wakeLock = null;
+    const releaseWakeLock = () => { if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; } };
+    if ('wakeLock' in navigator) {
+      navigator.wakeLock.request('screen').then((wl) => { wakeLock = wl; }).catch(() => {});
+    }
+
+    healthImportStatus.textContent = 'Leyendo el archivo… no bloquees la pantalla ni cambies de app hasta que termine.';
     setTimeout(() => {
-      importHealthFile(file, (recordCount) => {
-        if (recordCount % 20000 === 0) {
-          healthImportStatus.textContent = `Procesando… ${formatThousands(recordCount)} registros leídos.`;
-        }
-      }).then((parsed) => {
+      importHealthFile(
+        file,
+        (recordCount) => {
+          if (recordCount % 20000 === 0) {
+            healthImportStatus.textContent = `Procesando… ${formatThousands(recordCount)} registros leídos. No bloquees la pantalla ni cambies de app.`;
+          }
+        },
+        (partial) => mergeHealthData(partial, overwrite, preExistingSteps, preExistingSleep, false)
+      ).then((parsed) => {
         const stepCount = Object.keys(parsed.stepsByDate).length;
         const sleepCount = Object.keys(parsed.sleepByDate).length;
         if (stepCount === 0 && sleepCount === 0) {
           healthImportStatus.textContent = 'No se encontraron registros de pasos ni sueño en ese archivo.';
           return;
         }
-        const result = applyHealthImport(parsed, healthImportOverwrite.checked);
+        const result = mergeHealthData(parsed, overwrite, preExistingSteps, preExistingSleep, true);
         healthImportStatus.textContent = `Importado: ${result.stepsDays} ${result.stepsDays === 1 ? 'día' : 'días'} de pasos y ${result.sleepDays} ${result.sleepDays === 1 ? 'día' : 'días'} de sueño` +
           ((result.stepsSkipped + result.sleepSkipped) > 0 ? ` (${result.stepsSkipped + result.sleepSkipped} días con datos ya existentes se dejaron igual — activa "sobrescribir" para reemplazarlos).` : '.');
       }).catch((e) => {
         healthImportStatus.textContent = HEALTH_IMPORT_ERROR_MESSAGES[e.message] ||
-          'No se ha podido leer el archivo. Si tienes muchos años de datos del Apple Watch, prueba desde un ordenador.';
-      });
+          'No se ha podido leer el archivo. Si tienes muchos años de datos del Apple Watch, prueba desde un ordenador. Si se quedó a medias, vuelve a intentarlo: lo ya importado no se pierde.';
+      }).finally(releaseWakeLock);
     }, 30);
   });
 
