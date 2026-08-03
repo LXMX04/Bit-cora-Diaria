@@ -2217,6 +2217,11 @@ select.profile-input {
   font-size: 14px;
   font-weight: 600;
 }
+.secondary-btn.danger-btn {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: var(--danger-soft);
+}
 .backup-row {
   display: flex;
   gap: 10px;

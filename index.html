@@ -1540,6 +1540,12 @@
         </div>
         <p class="hint-text">El CSV se abre en Excel/Sheets. "Vista para PDF" abre una página imprimible — desde ahí usa Imprimir → Guardar como PDF.</p>
 
+        <p class="setting-subhead">Reiniciar historial</p>
+        <p class="hint-text" style="margin-top:0">Borra todo lo registrado por días (Hoy, Stats, Progreso, rachas...) para empezar de cero, pero mantiene intacta tu configuración de Ajustes: tareas, categorías de gasto, objetivos, recetas guardadas, plantillas de ejercicio, etc. Antes de borrar se descarga automáticamente una copia de seguridad por si quieres recuperarlo más adelante. No se puede deshacer desde la app.</p>
+        <div class="backup-row">
+          <button class="secondary-btn danger-btn" id="resetHistoryBtn">Reiniciar historial (mantener ajustes)</button>
+        </div>
+
         <p class="setting-subhead">Importar desde Salud (Apple Watch / iPhone)</p>
         <p class="hint-text" style="margin-top:0">
           iOS no deja que ninguna app web se conecte en directo con HealthKit, así que no hay sincronización automática — pero puedes importar un volcado puntual: en el iPhone abre <strong>Salud → foto de perfil → Exportar todos los datos de salud</strong> y selecciona aquí directamente el <strong>.zip</strong> que descargas (también puedes descomprimirlo tú y elegir el export.xml de dentro). Se leen los pasos y las horas de sueño; el resto de datos del export se ignora. Si tienes muchos años de datos puede tardar: no bloquees la pantalla ni cambies de app mientras dice "Procesando…" — la app va guardando el progreso cada pocos segundos, así que si se interrumpe no pierdes lo ya importado y puedes simplemente volver a intentarlo.
@@ -1559,6 +1565,11 @@
             <span class="switch-slider"></span>
           </label>
         </div>
+        <div class="setting-row">
+          <label for="healthImportSinceDate">Importar solo desde (opcional)</label>
+          <input type="date" id="healthImportSinceDate" aria-label="Importar datos de Salud solo a partir de esta fecha" />
+        </div>
+        <p class="hint-text">Deja este campo vacío para importar todo el historial. Rellénalo (por ejemplo, para empezar de cero a partir de una fecha) y se ignorará todo lo anterior a ese día.</p>
         <div class="backup-row">
           <button class="secondary-btn" id="healthImportBtn">Elegir .zip o export.xml</button>
         </div>

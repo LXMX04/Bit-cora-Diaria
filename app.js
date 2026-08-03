@@ -7446,6 +7446,30 @@
     importFile.value = '';
   });
 
+  document.getElementById('resetHistoryBtn').addEventListener('click', () => {
+    if (!confirm('Esto borra TODO tu historial por días (Hoy, Stats, Progreso, rachas...) para empezar de cero. Tu configuración de Ajustes (tareas, categorías, objetivos, recetas, plantillas...) se mantiene igual. Antes de borrar se descarga automáticamente una copia de seguridad por si la necesitas más adelante. Esta acción no se puede deshacer desde la app. ¿Continuar?')) return;
+
+    store.settings.lastBackupDate = dateKey(new Date());
+    const blob = new Blob([JSON.stringify(store, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bitacora-backup-antes-de-reiniciar-${dateKey(new Date())}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+
+    store.entries = {};
+    store.weeks = {};
+    store.lastNotifiedDate = null;
+    store.settings.lastHealthImport = null;
+    saveStore();
+    renderAll();
+    updateBackupReminderHint();
+    alert('Historial reiniciado. Tu configuración de Ajustes se ha mantenido tal cual.');
+  });
+
   /* ============ Importar desde Salud (Apple) — pasos + sueño ============ */
   // No hay API web para HealthKit (restricción de iOS, no algo evitable desde código),
   // así que esto es una importación puntual del export.xml de la app Salud (o del .zip
@@ -7459,6 +7483,7 @@
   // un parser de regex "streaming" que nunca retiene más que un par de MB en memoria.
   const healthImportFile = document.getElementById('healthImportFile');
   const healthImportOverwrite = document.getElementById('healthImportOverwrite');
+  const healthImportSinceDate = document.getElementById('healthImportSinceDate');
   const healthImportStatus = document.getElementById('healthImportStatus');
   const tracksHealthImportStatsToggle = document.getElementById('tracksHealthImportStatsToggle');
   document.getElementById('healthImportBtn').addEventListener('click', () => healthImportFile.click());
@@ -7475,7 +7500,7 @@
     return m ? m[1] : null;
   }
 
-  function makeStreamingHealthParser() {
+  function makeStreamingHealthParser(minDate) {
     const stepDaySource = {};
     const sleepByDate = {};
     let buffer = '';
@@ -7490,8 +7515,9 @@
         const startDate = extractXmlAttr(tag, 'startDate');
         const value = parseFloat(extractXmlAttr(tag, 'value'));
         if (!startDate || isNaN(value) || value < 0) return;
-        const sourceName = extractXmlAttr(tag, 'sourceName') || 'desconocido';
         const date = startDate.slice(0, 10);
+        if (minDate && date < minDate) return;
+        const sourceName = extractXmlAttr(tag, 'sourceName') || 'desconocido';
         stepDaySource[date] = stepDaySource[date] || {};
         stepDaySource[date][sourceName] = (stepDaySource[date][sourceName] || 0) + value;
       } else if (tag.indexOf('HKCategoryTypeIdentifierSleepAnalysis') !== -1) {
@@ -7510,6 +7536,7 @@
         // A sleep session is attributed to the morning you woke up (Apple's own
         // convention), unless it ends in the afternoon/evening — a nap, say.
         const bucketDate = (end.getHours() < 14 ? endDate : startDate).slice(0, 10);
+        if (minDate && bucketDate < minDate) return;
         sleepByDate[bucketDate] = (sleepByDate[bucketDate] || 0) + hours;
       }
     }
@@ -7596,8 +7623,8 @@
     }
   }
 
-  async function importHealthFile(file, onProgress, onCheckpoint) {
-    const parser = makeStreamingHealthParser();
+  async function importHealthFile(file, onProgress, onCheckpoint, minDate) {
+    const parser = makeStreamingHealthParser(minDate);
     let lastCheckpointAt = Date.now();
     const onChunk = (chunk) => {
       parser.push(chunk);
@@ -7685,6 +7712,7 @@
     if (!file) return;
 
     const overwrite = healthImportOverwrite.checked;
+    const minDate = healthImportSinceDate.value || null;
     // Snapshot which days already had data BEFORE this import starts — checkpoint
     // merges write partial results as they go, so entry.steps/sleepHours can't be
     // used to detect "pre-existing" after the first checkpoint has already run.
@@ -7711,12 +7739,15 @@
             healthImportStatus.textContent = `Procesando… ${formatThousands(recordCount)} registros leídos. No bloquees la pantalla ni cambies de app.`;
           }
         },
-        (partial) => mergeHealthData(partial, overwrite, preExistingSteps, preExistingSleep, false)
+        (partial) => mergeHealthData(partial, overwrite, preExistingSteps, preExistingSleep, false),
+        minDate
       ).then((parsed) => {
         const stepCount = Object.keys(parsed.stepsByDate).length;
         const sleepCount = Object.keys(parsed.sleepByDate).length;
         if (stepCount === 0 && sleepCount === 0) {
-          healthImportStatus.textContent = 'No se encontraron registros de pasos ni sueño en ese archivo.';
+          healthImportStatus.textContent = minDate
+            ? `No se encontraron registros de pasos ni sueño a partir del ${niceDateEs(minDate)}.`
+            : 'No se encontraron registros de pasos ni sueño en ese archivo.';
           return;
         }
         const result = mergeHealthData(parsed, overwrite, preExistingSteps, preExistingSleep, true);
