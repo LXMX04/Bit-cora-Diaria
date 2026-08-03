@@ -16,6 +16,7 @@
       aguaGoal: 8,
       tracksPasos: false,
       pasosGoal: 8000,
+      lastHealthImport: null,
       tracksSueno: false,
       sleepGoalHours: 8,
       tracksPeso: false,
@@ -173,6 +174,10 @@
       }
       if (typeof parsed.settings.pasosGoal !== 'number' || parsed.settings.pasosGoal <= 0) {
         parsed.settings.pasosGoal = 8000;
+      }
+      if (!parsed.settings.lastHealthImport || typeof parsed.settings.lastHealthImport !== 'object' ||
+        typeof parsed.settings.lastHealthImport.date !== 'string') {
+        parsed.settings.lastHealthImport = null;
       }
       if (typeof parsed.settings.tracksSueno !== 'boolean') {
         parsed.settings.tracksSueno = false;
@@ -3411,6 +3416,54 @@
     document.getElementById('aguaAvgHint').textContent = count > 0 ? `Media: ${(sum / count).toFixed(1)} vasos/día registrado.` : 'Sin datos todavía este mes.';
   }
 
+  function niceDateEs(dateStr) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return `${d} de ${MONTHS_LONG[m - 1]} de ${y}`;
+  }
+
+  // Reflects the Apple Health import itself (last run + total coverage), distinct
+  // from the Pasos/Sueño cards above which show this month's data regardless of
+  // whether it was typed in by hand or came from an import.
+  function renderHealthImportStats() {
+    const card = document.getElementById('healthImportStatsCard');
+    const info = store.settings.lastHealthImport;
+    if (!info) { card.hidden = true; return; }
+    card.hidden = false;
+
+    let stepDays = 0, sleepDays = 0, firstStepDate = null, lastStepDate = null, firstSleepDate = null, lastSleepDate = null;
+    Object.keys(store.entries).forEach((key) => {
+      const e = store.entries[key];
+      if (e.steps > 0) {
+        stepDays++;
+        if (!firstStepDate || key < firstStepDate) firstStepDate = key;
+        if (!lastStepDate || key > lastStepDate) lastStepDate = key;
+      }
+      if (e.sleepHours > 0) {
+        sleepDays++;
+        if (!firstSleepDate || key < firstSleepDate) firstSleepDate = key;
+        if (!lastSleepDate || key > lastSleepDate) lastSleepDate = key;
+      }
+    });
+
+    document.getElementById('healthImportLastHint').textContent =
+      `Última importación: ${niceDateEs(info.date)} — ${info.stepsDaysImported} ${info.stepsDaysImported === 1 ? 'día' : 'días'} de pasos y ${info.sleepDaysImported} ${info.sleepDaysImported === 1 ? 'día' : 'días'} de sueño actualizados.`;
+
+    document.getElementById('healthImportCoverageGrid').innerHTML = `
+      <div class="avg-tile">
+        <span class="avg-value">${formatThousands(stepDays)}</span>
+        <span class="avg-label">días con pasos en total</span>
+      </div>
+      <div class="avg-tile">
+        <span class="avg-value">${formatThousands(sleepDays)}</span>
+        <span class="avg-label">días con sueño en total</span>
+      </div>`;
+
+    const rangeParts = [];
+    if (firstStepDate && lastStepDate) rangeParts.push(`Pasos: del ${niceDateEs(firstStepDate)} al ${niceDateEs(lastStepDate)}.`);
+    if (firstSleepDate && lastSleepDate) rangeParts.push(`Sueño: del ${niceDateEs(firstSleepDate)} al ${niceDateEs(lastSleepDate)}.`);
+    document.getElementById('healthImportRangeHint').textContent = rangeParts.join(' ');
+  }
+
   function renderPasosStats(year, monthIndex, lastDay) {
     const card = document.getElementById('pasosStatsCard');
     if (!pasosEnabled()) { card.hidden = true; return; }
@@ -4945,6 +4998,7 @@
     });
 
     renderSupplementRings(year, monthIndex, lastDay);
+    renderHealthImportStats();
     renderAguaStats(year, monthIndex, lastDay);
     renderPasosStats(year, monthIndex, lastDay);
     renderSuenoStats(year, monthIndex, lastDay);
@@ -7565,6 +7619,7 @@
       entry.sleepHours = Math.round(parsed.sleepByDate[date] * 10) / 10;
       sleepDays++;
     });
+    store.settings.lastHealthImport = { date: dateKey(new Date()), stepsDaysImported: stepsDays, sleepDaysImported: sleepDays };
     saveStore();
     renderAll();
     // tracksPasos/tracksSueno were flipped directly on the settings object (no
