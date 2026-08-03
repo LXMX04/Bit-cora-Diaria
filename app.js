@@ -7383,10 +7383,15 @@
 
   /* ============ Importar desde Salud (Apple) — pasos + sueño ============ */
   // No hay API web para HealthKit (restricción de iOS, no algo evitable desde código),
-  // así que esto es una importación puntual del export.xml de la app Salud, no una
-  // sincronización en vivo. Se parsea con regex en vez de un parser XML/DOM completo
-  // para no cargar el archivo entero como árbol DOM (puede ser de cientos de MB con
-  // años de datos de Apple Watch).
+  // así que esto es una importación puntual del export.xml de la app Salud (o del .zip
+  // que lo contiene), no una sincronización en vivo.
+  //
+  // El export.xml real de un usuario con Apple Watch puede pesar cientos de MB (394 MB
+  // sin comprimir en un caso real de prueba) — cargarlo entero en un string reventaría
+  // la memoria de Safari en iPhone. Por eso todo esto va por streaming: el .zip se lee
+  // entero (unos pocos MB, sin problema), pero el export.xml de dentro se descomprime
+  // con la API nativa DecompressionStream (sin librerías) y se procesa trozo a trozo con
+  // un parser de regex "streaming" que nunca retiene más que un par de MB en memoria.
   const healthImportFile = document.getElementById('healthImportFile');
   const healthImportOverwrite = document.getElementById('healthImportOverwrite');
   const healthImportStatus = document.getElementById('healthImportStatus');
@@ -7397,47 +7402,147 @@
     return m ? m[1] : null;
   }
 
-  function parseHealthExportXml(xmlText) {
+  function makeStreamingHealthParser() {
     const stepDaySource = {};
     const sleepByDate = {};
-    const recordRegex = /<Record\b[^>]*\/>/g;
-    let match;
-    while ((match = recordRegex.exec(xmlText)) !== null) {
-      const tag = match[0];
+    let buffer = '';
+    // Matches the opening <Record ...> tag whether it's self-closing (most
+    // HKQuantity records, e.g. steps) or has children like <MetadataEntry>
+    // before a separate </Record> (e.g. every sleep record, which carries a
+    // timezone MetadataEntry) — either way, only the attributes on this
+    // opening tag are read, so the rest of the element is never needed.
+    const recordRegex = /<Record\b[^>]*>/g;
+    function processTag(tag) {
       if (tag.indexOf('HKQuantityTypeIdentifierStepCount') !== -1) {
         const startDate = extractXmlAttr(tag, 'startDate');
         const value = parseFloat(extractXmlAttr(tag, 'value'));
-        if (!startDate || isNaN(value) || value < 0) continue;
+        if (!startDate || isNaN(value) || value < 0) return;
         const sourceName = extractXmlAttr(tag, 'sourceName') || 'desconocido';
         const date = startDate.slice(0, 10);
         stepDaySource[date] = stepDaySource[date] || {};
         stepDaySource[date][sourceName] = (stepDaySource[date][sourceName] || 0) + value;
       } else if (tag.indexOf('HKCategoryTypeIdentifierSleepAnalysis') !== -1) {
         const value = extractXmlAttr(tag, 'value') || '';
-        if (value.indexOf('Asleep') === -1) continue; // skip InBed/Awake records
+        if (value.indexOf('Asleep') === -1) return; // skip InBed/Awake records
         const startDate = extractXmlAttr(tag, 'startDate');
         const endDate = extractXmlAttr(tag, 'endDate');
-        if (!startDate || !endDate) continue;
+        if (!startDate || !endDate) return;
         // Apple's format is "YYYY-MM-DD HH:MM:SS -0400" — the space before the
         // offset makes this non-ISO, so Date can't parse it as-is; drop that space
         // too ("...SS-0400") rather than just swapping the date/time separator.
         const start = new Date(startDate.replace(' ', 'T').replace(' ', ''));
         const end = new Date(endDate.replace(' ', 'T').replace(' ', ''));
         const hours = (end - start) / 3600000;
-        if (!(hours > 0 && hours < 24)) continue;
+        if (!(hours > 0 && hours < 24)) return;
         // A sleep session is attributed to the morning you woke up (Apple's own
         // convention), unless it ends in the afternoon/evening — a nap, say.
         const bucketDate = (end.getHours() < 14 ? endDate : startDate).slice(0, 10);
         sleepByDate[bucketDate] = (sleepByDate[bucketDate] || 0) + hours;
       }
     }
-    const stepsByDate = {};
-    Object.keys(stepDaySource).forEach((date) => {
-      // Different sources (iPhone + Watch) can double-log the same walk; taking the
-      // max across sources instead of summing them avoids inflating the total.
-      stepsByDate[date] = Math.round(Math.max(...Object.values(stepDaySource[date])));
-    });
-    return { stepsByDate, sleepByDate };
+    return {
+      recordCount: 0,
+      push(chunk) {
+        buffer += chunk;
+        recordRegex.lastIndex = 0;
+        let m, lastIndex = 0;
+        while ((m = recordRegex.exec(buffer)) !== null) {
+          processTag(m[0]);
+          this.recordCount++;
+          lastIndex = recordRegex.lastIndex;
+        }
+        buffer = lastIndex > 0 ? buffer.slice(lastIndex) : buffer;
+        // Safety valve: a well-formed export never leaves a huge unmatched tail —
+        // this just guards against unbounded growth on a malformed/unexpected file.
+        if (buffer.length > 5000000) buffer = buffer.slice(-500000);
+      },
+      result() {
+        const stepsByDate = {};
+        Object.keys(stepDaySource).forEach((date) => {
+          // Different sources (iPhone + Watch) can double-log the same walk; taking
+          // the max across sources instead of summing avoids inflating the total.
+          stepsByDate[date] = Math.round(Math.max(...Object.values(stepDaySource[date])));
+        });
+        return { stepsByDate, sleepByDate };
+      }
+    };
+  }
+
+  // ---- Minimal ZIP reader: just enough to locate one entry by name and hand back
+  // its compressed byte range. No general ZIP64 support (not needed — Apple's export
+  // entries are all well under the 4GB 32-bit limit even for years of Watch data).
+  function findZipEntry(buffer, nameTest) {
+    const view = new DataView(buffer);
+    const bytes = new Uint8Array(buffer);
+    const EOCD_SIG = 0x06054b50;
+    const maxCommentLen = 65535;
+    const searchStart = Math.max(0, bytes.length - 22 - maxCommentLen);
+    let eocdOffset = -1;
+    for (let i = bytes.length - 22; i >= searchStart; i--) {
+      if (view.getUint32(i, true) === EOCD_SIG) { eocdOffset = i; break; }
+    }
+    if (eocdOffset === -1) throw new Error('ZIP_EOCD_NOT_FOUND');
+    const cdOffset = view.getUint32(eocdOffset + 16, true);
+    const cdSize = view.getUint32(eocdOffset + 12, true);
+    if (cdOffset === 0xffffffff || cdSize === 0xffffffff) throw new Error('ZIP_UNSUPPORTED_METHOD');
+    const CD_SIG = 0x02014b50;
+    const decoder = new TextDecoder('utf-8');
+    let p = cdOffset;
+    const cdEnd = cdOffset + cdSize;
+    let found = null;
+    while (p < cdEnd && p + 46 <= bytes.length) {
+      if (view.getUint32(p, true) !== CD_SIG) break;
+      const compressionMethod = view.getUint16(p + 10, true);
+      const compressedSize = view.getUint32(p + 20, true);
+      const fileNameLen = view.getUint16(p + 28, true);
+      const extraLen = view.getUint16(p + 30, true);
+      const commentLen = view.getUint16(p + 32, true);
+      const localHeaderOffset = view.getUint32(p + 42, true);
+      const name = decoder.decode(bytes.subarray(p + 46, p + 46 + fileNameLen));
+      if (!found && nameTest(name)) {
+        if (compressedSize === 0xffffffff || localHeaderOffset === 0xffffffff) throw new Error('ZIP_UNSUPPORTED_METHOD');
+        found = { name, compressionMethod, compressedSize, localHeaderOffset };
+      }
+      p += 46 + fileNameLen + extraLen + commentLen;
+    }
+    if (!found) return null;
+    const lp = found.localHeaderOffset;
+    if (view.getUint32(lp, true) !== 0x04034b50) throw new Error('ZIP_BAD_LOCAL_HEADER');
+    const lFileNameLen = view.getUint16(lp + 26, true);
+    const lExtraLen = view.getUint16(lp + 28, true);
+    found.dataStart = lp + 30 + lFileNameLen + lExtraLen;
+    return found;
+  }
+
+  async function streamBytesAsText(byteStream, onChunk) {
+    const reader = byteStream.pipeThrough(new TextDecoderStream()).getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      onChunk(value);
+    }
+  }
+
+  async function importHealthFile(file, onProgress) {
+    const parser = makeStreamingHealthParser();
+    const onChunk = (chunk) => { parser.push(chunk); onProgress(parser.recordCount); };
+    if (/\.zip$/i.test(file.name)) {
+      const buffer = await file.arrayBuffer();
+      const entry = findZipEntry(buffer, (name) => /(^|\/)export\.xml$/i.test(name) && !/export_cda\.xml$/i.test(name));
+      if (!entry) throw new Error('ZIP_NO_EXPORT_XML');
+      const compressedBytes = new Uint8Array(buffer, entry.dataStart, entry.compressedSize);
+      let byteStream = new Blob([compressedBytes]).stream();
+      if (entry.compressionMethod === 8) {
+        if (typeof DecompressionStream === 'undefined') throw new Error('NO_DECOMPRESSION_STREAM');
+        byteStream = byteStream.pipeThrough(new DecompressionStream('deflate-raw'));
+      } else if (entry.compressionMethod !== 0) {
+        throw new Error('ZIP_UNSUPPORTED_METHOD');
+      }
+      await streamBytesAsText(byteStream, onChunk);
+    } else {
+      await streamBytesAsText(file.stream(), onChunk);
+    }
+    return parser.result();
   }
 
   function applyHealthImport(parsed, overwrite) {
@@ -7471,25 +7576,37 @@
     return { stepsDays, stepsSkipped, sleepDays, sleepSkipped };
   }
 
+  const HEALTH_IMPORT_ERROR_MESSAGES = {
+    ZIP_EOCD_NOT_FOUND: 'Ese archivo no parece un .zip válido.',
+    ZIP_NO_EXPORT_XML: 'No se encontró export.xml dentro del .zip. Comprueba que es el que exporta Salud → foto de perfil → Exportar todos los datos de salud.',
+    ZIP_BAD_LOCAL_HEADER: 'El .zip parece dañado.',
+    ZIP_UNSUPPORTED_METHOD: 'Ese .zip usa un formato de compresión que esta app no sabe leer.',
+    NO_DECOMPRESSION_STREAM: 'Tu navegador no puede descomprimir el .zip aquí mismo. Descomprímelo a mano (verás una carpeta "apple_health_export") y elige el export.xml de dentro en su lugar.'
+  };
+
   healthImportFile.addEventListener('change', () => {
     const file = healthImportFile.files[0];
     healthImportFile.value = '';
     if (!file) return;
     healthImportStatus.textContent = 'Leyendo el archivo… puede tardar si tienes años de datos del Apple Watch.';
     setTimeout(() => {
-      file.text().then((xmlText) => {
-        const parsed = parseHealthExportXml(xmlText);
+      importHealthFile(file, (recordCount) => {
+        if (recordCount % 20000 === 0) {
+          healthImportStatus.textContent = `Procesando… ${formatThousands(recordCount)} registros leídos.`;
+        }
+      }).then((parsed) => {
         const stepCount = Object.keys(parsed.stepsByDate).length;
         const sleepCount = Object.keys(parsed.sleepByDate).length;
         if (stepCount === 0 && sleepCount === 0) {
-          healthImportStatus.textContent = 'No se encontraron registros de pasos ni sueño en ese archivo. Asegúrate de elegir el export.xml de dentro del .zip (no el .zip en sí).';
+          healthImportStatus.textContent = 'No se encontraron registros de pasos ni sueño en ese archivo.';
           return;
         }
         const result = applyHealthImport(parsed, healthImportOverwrite.checked);
         healthImportStatus.textContent = `Importado: ${result.stepsDays} ${result.stepsDays === 1 ? 'día' : 'días'} de pasos y ${result.sleepDays} ${result.sleepDays === 1 ? 'día' : 'días'} de sueño` +
           ((result.stepsSkipped + result.sleepSkipped) > 0 ? ` (${result.stepsSkipped + result.sleepSkipped} días con datos ya existentes se dejaron igual — activa "sobrescribir" para reemplazarlos).` : '.');
-      }).catch(() => {
-        healthImportStatus.textContent = 'No se ha podido leer el archivo. Si tienes muchos años de datos del Apple Watch, prueba desde un ordenador — el archivo puede ser demasiado grande para el navegador del móvil.';
+      }).catch((e) => {
+        healthImportStatus.textContent = HEALTH_IMPORT_ERROR_MESSAGES[e.message] ||
+          'No se ha podido leer el archivo. Si tienes muchos años de datos del Apple Watch, prueba desde un ordenador.';
       });
     }, 30);
   });

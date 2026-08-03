@@ -1535,7 +1535,7 @@
 
         <p class="setting-subhead">Importar desde Salud (Apple Watch / iPhone)</p>
         <p class="hint-text" style="margin-top:0">
-          iOS no deja que ninguna app web se conecte en directo con HealthKit, así que no hay sincronización automática — pero puedes importar un volcado puntual: en el iPhone abre <strong>Salud → foto de perfil → Exportar todos los datos de salud</strong>, descomprime el .zip que descargas y selecciona aquí el archivo <strong>export.xml</strong> de dentro. Se leen los pasos y las horas de sueño; el resto de datos del export se ignora.
+          iOS no deja que ninguna app web se conecte en directo con HealthKit, así que no hay sincronización automática — pero puedes importar un volcado puntual: en el iPhone abre <strong>Salud → foto de perfil → Exportar todos los datos de salud</strong> y selecciona aquí directamente el <strong>.zip</strong> que descargas (también puedes descomprimirlo tú y elegir el export.xml de dentro). Se leen los pasos y las horas de sueño; el resto de datos del export se ignora.
         </p>
         <div class="setting-row">
           <label for="healthImportOverwrite">Sobrescribir días que ya tienen datos</label>
@@ -1545,9 +1545,9 @@
           </label>
         </div>
         <div class="backup-row">
-          <button class="secondary-btn" id="healthImportBtn">Elegir export.xml</button>
+          <button class="secondary-btn" id="healthImportBtn">Elegir .zip o export.xml</button>
         </div>
-        <input type="file" id="healthImportFile" accept=".xml,text/xml,application/xml" hidden />
+        <input type="file" id="healthImportFile" accept=".zip,.xml,application/zip,text/xml,application/xml" hidden />
         <p class="hint-text" id="healthImportStatus"></p>
       </div>
     </section>
