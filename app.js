@@ -17,6 +17,7 @@
       tracksPasos: false,
       pasosGoal: 8000,
       lastHealthImport: null,
+      tracksHealthImportStats: false,
       tracksSueno: false,
       sleepGoalHours: 8,
       tracksPeso: false,
@@ -178,6 +179,9 @@
       if (!parsed.settings.lastHealthImport || typeof parsed.settings.lastHealthImport !== 'object' ||
         typeof parsed.settings.lastHealthImport.date !== 'string') {
         parsed.settings.lastHealthImport = null;
+      }
+      if (typeof parsed.settings.tracksHealthImportStats !== 'boolean') {
+        parsed.settings.tracksHealthImportStats = false;
       }
       if (typeof parsed.settings.tracksSueno !== 'boolean') {
         parsed.settings.tracksSueno = false;
@@ -3426,9 +3430,16 @@
   // whether it was typed in by hand or came from an import.
   function renderHealthImportStats() {
     const card = document.getElementById('healthImportStatsCard');
-    const info = store.settings.lastHealthImport;
-    if (!info) { card.hidden = true; return; }
+    if (!store.settings.tracksHealthImportStats) { card.hidden = true; return; }
     card.hidden = false;
+
+    const info = store.settings.lastHealthImport;
+    if (!info) {
+      document.getElementById('healthImportLastHint').textContent = 'Todavía no has importado nada de la app Salud. Ve a Ajustes → Copia de seguridad para importar tu export.zip o export.xml.';
+      document.getElementById('healthImportCoverageGrid').innerHTML = '';
+      document.getElementById('healthImportRangeHint').textContent = '';
+      return;
+    }
 
     let stepDays = 0, sleepDays = 0, firstStepDate = null, lastStepDate = null, firstSleepDate = null, lastSleepDate = null;
     Object.keys(store.entries).forEach((key) => {
@@ -7449,7 +7460,15 @@
   const healthImportFile = document.getElementById('healthImportFile');
   const healthImportOverwrite = document.getElementById('healthImportOverwrite');
   const healthImportStatus = document.getElementById('healthImportStatus');
+  const tracksHealthImportStatsToggle = document.getElementById('tracksHealthImportStatsToggle');
   document.getElementById('healthImportBtn').addEventListener('click', () => healthImportFile.click());
+
+  tracksHealthImportStatsToggle.checked = store.settings.tracksHealthImportStats;
+  tracksHealthImportStatsToggle.addEventListener('change', () => {
+    store.settings.tracksHealthImportStats = tracksHealthImportStatsToggle.checked;
+    saveStore();
+    if (activeTab === 'stats') renderStats();
+  });
 
   function extractXmlAttr(tag, name) {
     const m = tag.match(new RegExp(`${name}="([^"]*)"`));
@@ -7605,8 +7624,10 @@
     const sleepDates = Object.keys(parsed.sleepByDate);
     const pasosAutoEnabled = stepDates.length > 0 && !pasosEnabled();
     const suenoAutoEnabled = sleepDates.length > 0 && !suenoEnabled();
+    const statsAutoEnabled = !store.settings.tracksHealthImportStats;
     if (pasosAutoEnabled) store.settings.tracksPasos = true;
     if (suenoAutoEnabled) store.settings.tracksSueno = true;
+    if (statsAutoEnabled) store.settings.tracksHealthImportStats = true;
     stepDates.forEach((date) => {
       const entry = ensureEntry(date);
       if (entry.steps > 0 && !overwrite) { stepsSkipped++; return; }
@@ -7627,6 +7648,7 @@
     // accordion dots next to them would otherwise stay stale until a reload.
     if (pasosAutoEnabled) tracksPasosToggle.checked = true;
     if (suenoAutoEnabled) tracksSuenoToggle.checked = true;
+    if (statsAutoEnabled) tracksHealthImportStatsToggle.checked = true;
     if (pasosAutoEnabled || suenoAutoEnabled) updateAccordionBadges();
     return { stepsDays, stepsSkipped, sleepDays, sleepSkipped };
   }
