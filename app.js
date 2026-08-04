@@ -1939,10 +1939,13 @@
   function renderHoy() {
     const key = dateKey(currentDate);
     const today = startOfDay(new Date());
-    if (store.settings.travelModeActive && currentDate.getTime() === today.getTime()) {
+    // Today's "paused" flag always mirrors the travel-mode setting live — this has
+    // to run both ways (not just set it true), otherwise turning travel mode back
+    // off leaves today stuck as paused forever, since nothing else ever clears it.
+    if (currentDate.getTime() === today.getTime()) {
       const liveEntry = ensureEntry(key);
-      if (!liveEntry.paused) {
-        liveEntry.paused = true;
+      if (liveEntry.paused !== store.settings.travelModeActive) {
+        liveEntry.paused = store.settings.travelModeActive;
         saveStore();
       }
     }
