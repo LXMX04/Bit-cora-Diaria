@@ -3257,9 +3257,16 @@ select.profile-input {
 }
 
 /* ============ Ajustes: buscador, grupos, catálogo, avisos ============ */
+.settings-search-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
 .settings-search {
   position: relative;
-  margin-bottom: 4px;
+  flex: 1;
+  min-width: 0;
 }
 .settings-search-icon {
   position: absolute;
@@ -3432,19 +3439,17 @@ select.profile-input {
 
 /* Quick filter next to the settings search box: hide accordion cards whose
    tracker is currently off, so "what do I have on right now" is one tap. */
-.settings-filter-row {
-  display: flex;
-  justify-content: flex-end;
-  margin: 6px 2px 2px;
-}
 .filter-chip {
+  flex: none;
+  white-space: nowrap;
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 700;
-  padding: 6px 13px;
+  padding: 10px 16px;
   border-radius: 20px;
+  box-shadow: var(--shadow);
 }
 .filter-chip[aria-pressed="true"] {
   background: var(--accent);

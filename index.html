@@ -814,13 +814,13 @@
 
     <!-- AJUSTES -->
     <section class="tab-panel" id="panel-ajustes" data-panel="ajustes" hidden>
-      <div class="settings-search">
-        <svg class="settings-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.3" y1="15.3" x2="20" y2="20" stroke-linecap="round"/></svg>
-        <input type="search" id="settingsSearchInput" class="settings-search-input" placeholder="Buscar un ajuste…" autocomplete="off" aria-label="Buscar un ajuste" />
-        <button type="button" class="settings-search-clear" id="settingsSearchClear" hidden aria-label="Borrar búsqueda">×</button>
-      </div>
-      <div class="settings-filter-row">
-        <button type="button" class="filter-chip" id="settingsActiveFilterChip" aria-pressed="false">Solo activos</button>
+      <div class="settings-search-row">
+        <div class="settings-search">
+          <svg class="settings-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.3" y1="15.3" x2="20" y2="20" stroke-linecap="round"/></svg>
+          <input type="search" id="settingsSearchInput" class="settings-search-input" placeholder="Buscar un ajuste…" autocomplete="off" aria-label="Buscar un ajuste" />
+          <button type="button" class="settings-search-clear" id="settingsSearchClear" hidden aria-label="Borrar búsqueda">×</button>
+        </div>
+        <button type="button" class="filter-chip" id="settingsActiveFilterChip" aria-pressed="false" aria-label="Mostrar solo los ajustes activos">Activos</button>
       </div>
       <p class="settings-no-results" id="settingsNoResults" hidden>Sin resultados. Prueba con otra palabra.</p>
 
