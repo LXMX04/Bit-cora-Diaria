@@ -790,54 +790,72 @@
     body.hidden = isOpen;
   });
 
-  /* ============ Ajustes: buscador ============ */
+  /* ============ Ajustes: buscador + filtro "Solo activos" ============ */
   const settingsSearchInput = document.getElementById('settingsSearchInput');
   const settingsSearchClear = document.getElementById('settingsSearchClear');
   const settingsNoResults = document.getElementById('settingsNoResults');
   const settingsMoreToggle = document.getElementById('settingsMoreToggle');
   const settingsMoreGroup = document.getElementById('settingsMoreGroup');
+  const settingsActiveFilterChip = document.getElementById('settingsActiveFilterChip');
+  let onlyActiveFilter = false;
 
   function normalizeSearchText(s) {
     return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
   }
 
-  function applySettingsSearch() {
+  // Cards without a dot (Perfil, Apariencia, Tareas, Malos h\u00e1bitos, Metas...) aren't
+  // an on/off tracker \u2014 they always pass the "solo activos" filter untouched.
+  function cardPassesActiveFilter(card) {
+    if (!onlyActiveFilter) return true;
+    const dot = card.querySelector('.accordion-dot');
+    return !dot || dot.classList.contains('is-on');
+  }
+
+  function applySettingsFilters() {
     const query = normalizeSearchText(settingsSearchInput.value);
+    const filtering = !!query || onlyActiveFilter;
     settingsSearchClear.hidden = query.length === 0;
     const cards = panelAjustes.querySelectorAll('.accordion-card, .backup-card');
     let anyMatch = false;
     let anyMatchInMore = false;
     cards.forEach((card) => {
-      if (!query) { card.hidden = false; anyMatch = true; return; }
       const titleEl = card.querySelector('.card-title');
       const title = normalizeSearchText(titleEl ? titleEl.textContent : '');
       const keywords = normalizeSearchText(card.dataset.settingsKeywords);
-      const matches = title.includes(query) || keywords.includes(query);
+      const matchesQuery = !query || title.includes(query) || keywords.includes(query);
+      const matches = matchesQuery && cardPassesActiveFilter(card);
       card.hidden = !matches;
       if (matches) {
         anyMatch = true;
         if (settingsMoreGroup.contains(card)) anyMatchInMore = true;
-        const header = card.querySelector('[data-accordion-toggle]');
-        const body = card.querySelector('.accordion-body');
-        if (header && body) { header.setAttribute('aria-expanded', 'true'); body.hidden = false; }
+        if (query) {
+          const header = card.querySelector('[data-accordion-toggle]');
+          const body = card.querySelector('.accordion-body');
+          if (header && body) { header.setAttribute('aria-expanded', 'true'); body.hidden = false; }
+        }
       }
     });
     panelAjustes.querySelectorAll('.settings-group').forEach((group) => {
-      if (!query) { group.hidden = false; return; }
+      if (!filtering) { group.hidden = false; return; }
       const visibleCards = Array.from(group.querySelectorAll('.accordion-card')).filter((c) => !c.hidden);
       group.hidden = visibleCards.length === 0;
     });
-    if (query && anyMatchInMore) {
+    if (filtering && anyMatchInMore) {
       settingsMoreGroup.hidden = false;
       settingsMoreToggle.setAttribute('aria-expanded', 'true');
     }
     settingsNoResults.hidden = anyMatch;
   }
-  settingsSearchInput.addEventListener('input', applySettingsSearch);
+  settingsSearchInput.addEventListener('input', applySettingsFilters);
   settingsSearchClear.addEventListener('click', () => {
     settingsSearchInput.value = '';
-    applySettingsSearch();
+    applySettingsFilters();
     settingsSearchInput.focus();
+  });
+  settingsActiveFilterChip.addEventListener('click', () => {
+    onlyActiveFilter = !onlyActiveFilter;
+    settingsActiveFilterChip.setAttribute('aria-pressed', String(onlyActiveFilter));
+    applySettingsFilters();
   });
 
   /* ============ Ajustes: "Más funciones" ============ */
@@ -860,6 +878,33 @@
     el.hidden = false;
     el.classList.toggle('is-on', isOn);
   }
+
+  /* Quick-jump strip of everything currently tracked — built straight from the
+     already-rendered accordion headers (icon + title) rather than a second copy
+     of the same data, so it can never drift out of sync with the real list. */
+  const activeTrackersSection = document.getElementById('activeTrackersSection');
+  const activeTrackersStrip = document.getElementById('activeTrackersStrip');
+  function renderActiveTrackersStrip() {
+    activeTrackersStrip.innerHTML = '';
+    panelAjustes.querySelectorAll('.accordion-dot.is-on').forEach((dot) => {
+      const card = dot.closest('.card');
+      const header = card && card.querySelector('[data-accordion-toggle]');
+      const iconEl = card && card.querySelector('.card-title-icon');
+      const titleEl = card && card.querySelector('.card-title');
+      if (!card || !header || !iconEl || !titleEl) return;
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'tracker-chip';
+      chip.innerHTML = `<span class="tracker-chip-icon" style="${iconEl.getAttribute('style') || ''}">${iconEl.innerHTML}</span><span>${titleEl.textContent.trim()}</span>`;
+      chip.addEventListener('click', () => {
+        if (header.getAttribute('aria-expanded') !== 'true') header.click();
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      activeTrackersStrip.appendChild(chip);
+    });
+    activeTrackersSection.hidden = activeTrackersStrip.children.length === 0;
+  }
+
   function updateAccordionBadges() {
     setAccordionBadge('dailyTasksBadge', store.settings.dailyTasks.length);
     setAccordionBadge('weeklyTasksBadge', store.settings.weeklyTasks.length);
@@ -882,6 +927,7 @@
     setAccordionDot('bienestarFisicoDot', sintomasEnabled() || pantallaEnabled());
     setAccordionDot('reminderDot', !!store.settings.reminderEnabled);
     setAccordionDot('travelDot', !!store.settings.travelModeActive);
+    renderActiveTrackersStrip();
   }
 
   /* ============ Ajustes: aviso de función activada pero sin usar ============ */
@@ -1027,6 +1073,7 @@
     updateUnusedFeatureHints();
     updateDensityPreview();
     updateOnboardingCard();
+    applySettingsFilters();
   }
 
   /* ============ Day navigation ============ */

@@ -3397,6 +3397,100 @@ select.profile-input {
   background: var(--good);
 }
 
+/* Collapsible "why does this matter" text — replaces long always-visible
+   paragraphs so a scanned settings screen isn't wall-to-wall prose; the
+   explanation is one tap away instead of gone. Native <details>/<summary> on
+   purpose: no custom JS to keep in sync, works with keyboard/screen readers
+   for free, and can't desync from a click handler that forgot to fire. */
+.hint-details {
+  margin-top: 8px;
+}
+.hint-details > .hint-text {
+  margin-top: 8px;
+}
+.hint-summary {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-2);
+  list-style: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.hint-summary::-webkit-details-marker { display: none; }
+.hint-summary::marker { content: ''; }
+.hint-summary-icon {
+  flex: none;
+  width: 14px;
+  height: 14px;
+}
+.hint-details[open] > .hint-summary {
+  color: var(--text-muted);
+}
+
+/* Quick filter next to the settings search box: hide accordion cards whose
+   tracker is currently off, so "what do I have on right now" is one tap. */
+.settings-filter-row {
+  display: flex;
+  justify-content: flex-end;
+  margin: 6px 2px 2px;
+}
+.filter-chip {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 13px;
+  border-radius: 20px;
+}
+.filter-chip[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* Horizontal strip of everything currently tracked, for a jump-straight-there
+   shortcut instead of scrolling/expanding accordions to see what's on. */
+.tracker-strip-wrap {
+  margin-bottom: 2px;
+}
+.tracker-strip-wrap[hidden] { display: none; }
+.tracker-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 2px 6px;
+  margin: 0 -2px;
+  scrollbar-width: none;
+}
+.tracker-strip::-webkit-scrollbar { display: none; }
+.tracker-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 5px 13px 5px 5px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+.tracker-chip-icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 3px;
+  border-radius: 50%;
+  display: flex;
+}
+.tracker-chip-icon svg { display: block; width: 100%; height: 100%; }
+
 .onboarding-card {
   background: linear-gradient(165deg, color-mix(in srgb, var(--accent-2) 8%, var(--surface)), var(--surface) 70%);
   border-color: var(--accent-2);
