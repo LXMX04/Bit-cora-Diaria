@@ -95,6 +95,14 @@
       <div class="card" id="dailyTasksCard">
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--h-teeth);background:color-mix(in srgb, var(--h-teeth) 16%, transparent)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.5,4.5 L14.5,4.5 L13.2,7.2 L10.8,7.2 Z"/><path d="M10.8,7.2 L13.2,7.2 L14.3,13.5 L12,19 L9.7,13.5 Z"/></svg></span>Hábitos diarios</h2>
         <ul class="habit-list" id="dailyTaskList"></ul>
+        <div id="dayTemplateSection" hidden>
+          <p class="setting-subhead">Plantillas de día</p>
+          <div class="usual-meal-chips" id="dayTemplateChips"></div>
+          <div class="task-add-row">
+            <input type="text" id="newDayTemplateInput" class="task-add-input" placeholder="Nombre (ej. Día de descanso)…" maxlength="30" aria-label="Nombre de la nueva plantilla de día" />
+            <button class="secondary-btn task-add-btn" id="saveDayTemplateBtn">Guardar hoy</button>
+          </div>
+        </div>
       </div>
 
       <div class="card" id="weeklyTasksCard">

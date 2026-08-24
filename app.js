@@ -38,6 +38,7 @@
       tracksSintomas: false,
       tracksPantalla: false,
       usualMeals: { desayuno: [], comida: [], cena: [] },
+      dayTemplates: [],
       monthlyBudget: null,
       travelModeActive: false,
       cardOrder: {},
@@ -77,6 +78,16 @@
       if (!Array.isArray(parsed.settings.dailyTasks)) {
         parsed.settings.dailyTasks = defaultSettings().dailyTasks;
       }
+      parsed.settings.dailyTasks.forEach((t) => {
+        if (typeof t.reason !== 'string') t.reason = '';
+      });
+      if (!Array.isArray(parsed.settings.dayTemplates)) {
+        parsed.settings.dayTemplates = [];
+      }
+      parsed.settings.dayTemplates.forEach((tpl) => {
+        if (typeof tpl.label !== 'string') tpl.label = 'Plantilla';
+        if (!tpl.taskStates || typeof tpl.taskStates !== 'object') tpl.taskStates = {};
+      });
       if (!Array.isArray(parsed.settings.badHabits)) {
         parsed.settings.badHabits = [];
       }
@@ -272,6 +283,19 @@
       if (parsed.settings.lastBackupDate !== null && typeof parsed.settings.lastBackupDate !== 'string') {
         parsed.settings.lastBackupDate = null;
       }
+      // Imported/hand-edited backups can carry entries without a `meals` object (or a
+      // partial one) — Comidas assumes entry.meals.desayuno/comida/cena always exist, so
+      // backfill any gaps here rather than crashing when that day is opened.
+      Object.keys(parsed.entries).forEach((key) => {
+        const entry = parsed.entries[key];
+        if (!entry || typeof entry !== 'object') return;
+        if (!entry.meals || typeof entry.meals !== 'object') entry.meals = {};
+        ['desayuno', 'comida', 'cena'].forEach((meal) => {
+          if (!entry.meals[meal] || typeof entry.meals[meal] !== 'object') {
+            entry.meals[meal] = { time: '', desc: '', health: 0 };
+          }
+        });
+      });
       return parsed;
   }
 
@@ -1199,6 +1223,63 @@
     renderHoy();
   });
 
+  /* ============ Hoy: plantillas de día ============ */
+  // A saved snapshot of daily-task checkbox states, for atypical days (a rest day,
+  // a travel day) where you want to fill several tasks at once instead of tapping
+  // each one — distinct from Modo viaje, which pauses the streak rather than
+  // setting any particular pattern of tasks done/not-done.
+  function renderDayTemplates() {
+    const section = document.getElementById('dayTemplateSection');
+    const chips = document.getElementById('dayTemplateChips');
+    if (store.settings.dailyTasks.length === 0) { section.hidden = true; return; }
+    section.hidden = false;
+    chips.innerHTML = store.settings.dayTemplates.map((tpl) => `
+      <span class="usual-meal-chip">
+        <button type="button" class="usual-meal-chip-select" data-daytemplate-select="${tpl.id}">${escapeHtml(tpl.label)}</button>
+        <button type="button" class="usual-meal-chip-remove" data-daytemplate-remove="${tpl.id}" aria-label="Quitar plantilla ${escapeHtml(tpl.label)}">×</button>
+      </span>`).join('');
+  }
+
+  document.getElementById('dayTemplateChips').addEventListener('click', (e) => {
+    const selectBtn = e.target.closest('[data-daytemplate-select]');
+    if (selectBtn) {
+      const tpl = store.settings.dayTemplates.find((tp) => tp.id === selectBtn.dataset.daytemplateSelect);
+      if (!tpl) return;
+      const key = dateKey(currentDate);
+      const entry = ensureEntry(key);
+      const wasComplete = isDayComplete(entry);
+      const streakBefore = currentStreak();
+      store.settings.dailyTasks.forEach((t) => { entry[t.id] = !!tpl.taskStates[t.id]; });
+      saveStore();
+      renderHoy();
+      handleDayCompletionFeedback(wasComplete, streakBefore);
+      return;
+    }
+    const removeBtn = e.target.closest('[data-daytemplate-remove]');
+    if (removeBtn) {
+      store.settings.dayTemplates = store.settings.dayTemplates.filter((tp) => tp.id !== removeBtn.dataset.daytemplateRemove);
+      saveStore();
+      renderDayTemplates();
+    }
+  });
+
+  document.getElementById('saveDayTemplateBtn').addEventListener('click', () => {
+    const input = document.getElementById('newDayTemplateInput');
+    const label = input.value.trim();
+    if (!label) return;
+    const key = dateKey(currentDate);
+    const entry = ensureEntry(key);
+    const taskStates = {};
+    store.settings.dailyTasks.forEach((t) => { taskStates[t.id] = !!entry[t.id]; });
+    store.settings.dayTemplates.push({ id: generateTaskId(), label, taskStates });
+    saveStore();
+    input.value = '';
+    renderDayTemplates();
+  });
+  document.getElementById('newDayTemplateInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('saveDayTemplateBtn').click();
+  });
+
   weeklyTaskList.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-check-week]');
     if (!btn) return;
@@ -1592,6 +1673,33 @@
         continue;
       }
       if (!isDayComplete(entry)) break;
+      streak++;
+      cursor = new Date(cursor.getTime() - DAY_MS);
+    }
+    return streak;
+  }
+
+  // Same paused-day-skipping logic as currentStreak(), but for one specific daily
+  // task instead of "every task done" — so a habit you're consistent with still
+  // shows its own streak even on days you missed something else.
+  function habitStreak(taskId) {
+    let cursor = startOfDay(new Date());
+    let cursorEntry = getEntry(dateKey(cursor));
+    while (cursorEntry && cursorEntry.paused) {
+      cursor = new Date(cursor.getTime() - DAY_MS);
+      cursorEntry = getEntry(dateKey(cursor));
+    }
+    if (!cursorEntry || !cursorEntry[taskId]) {
+      cursor = new Date(cursor.getTime() - DAY_MS);
+    }
+    let streak = 0;
+    while (true) {
+      const entry = getEntry(dateKey(cursor));
+      if (entry && entry.paused) {
+        cursor = new Date(cursor.getTime() - DAY_MS);
+        continue;
+      }
+      if (!entry || !entry[taskId]) break;
       streak++;
       cursor = new Date(cursor.getTime() - DAY_MS);
     }
@@ -2005,17 +2113,27 @@
     renderMonthAgo();
 
     const habitNotes = entry.habitNotes || {};
+    const isTodayDate = currentDate.getTime() === today.getTime();
     function dailyTaskRowHtml(t) {
       const note = habitNotes[t.id] || '';
       const noteOpen = openHabitNoteRows.has(t.id);
       const checked = !!entry[t.id];
+      // Only shown for today — a streak computed against a past/future day being
+      // browsed wouldn't reflect "now", so it'd be confusing rather than useful.
+      const streak = isTodayDate ? habitStreak(t.id) : 0;
+      const streakBadge = streak >= 2 ? `
+        <span class="habit-streak-badge" title="${streak} días seguidos">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12,2 C12,7 8,8.5 8,13 C8,16 10,17.5 12,17.5 C14,17.5 16,16 16,13 C16,11.5 15,10.5 14.5,10 C14.7,12 13.5,13 12.5,13 C13.5,10.5 11.5,9 12,2 Z"/></svg>
+          ${streak}
+        </span>` : '';
       return `
       <li class="habit-row" data-habit="${t.id}">
         <button class="check-btn" data-check="${t.id}" aria-pressed="${checked}">
           <span class="check-icon">${CHECK_TICK_SVG}</span>
         </button>
         <div class="habit-text">
-          <span class="habit-name">${escapeHtml(t.label)}</span>
+          <span class="habit-name">${escapeHtml(t.label)}${streakBadge}</span>
+          ${t.reason ? `<span class="habit-reason-line">${escapeHtml(t.reason)}</span>` : ''}
           ${(note && !noteOpen) ? `<span class="habit-note-preview">${escapeHtml(note)}</span>` : ''}
         </div>
         <button type="button" class="habit-note-btn${note ? ' has-note' : ''}" data-note-task="${t.id}" aria-label="Nota para ${escapeHtml(t.label)}">
@@ -2053,6 +2171,7 @@
       </li>` : '';
     const dailyEmptyHtml = (!dailyItemsHtml && !teethHtml) ? '<li class="task-empty-hint">No tienes tareas diarias. Añade una en Ajustes.</li>' : '';
     dailyTaskList.innerHTML = dailyItemsHtml + teethHtml + dailyEmptyHtml;
+    renderDayTemplates();
 
     const wk = isoWeekKey(currentDate);
     const week = getWeek(wk);
@@ -5948,14 +6067,25 @@
   function taskPeriodLabel(period) {
     return (TASK_PERIODS.find((p) => p.id === period) || TASK_PERIODS[0]).label;
   }
+  const openTaskReasonRows = new Set();
   function renderDailyTaskManageList() {
     const tasks = store.settings.dailyTasks;
-    dailyTaskManageList.innerHTML = tasks.length ? tasks.map((t) => `
+    dailyTaskManageList.innerHTML = tasks.length ? tasks.map((t) => {
+      const reasonOpen = openTaskReasonRows.has(t.id);
+      return `
       <li class="task-manage-item" data-task-id="${t.id}">
         <span class="task-manage-label">${escapeHtml(t.label)}</span>
+        <button type="button" class="task-reason-btn${t.reason ? ' has-note' : ''}" data-reason-task="${t.id}" aria-label="Motivo de ${escapeHtml(t.label)}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><path d="M9.5,9.4 C9.5,7.8 10.6,6.8 12,6.8 C13.4,6.8 14.3,7.7 14.3,8.9 C14.3,11.3 11.9,10.6 11.9,12.7" stroke-linecap="round"/><circle cx="11.9" cy="15.8" r="0.9" fill="currentColor" stroke="none"/></svg>
+        </button>
         <button type="button" class="task-period-btn" data-period-task="${t.id}">${escapeHtml(taskPeriodLabel(t.period))}</button>
         <button type="button" class="task-remove-btn" data-remove-task="${t.id}" aria-label="Eliminar ${escapeHtml(t.label)}">×</button>
-      </li>`).join('') : '<li class="task-empty-hint">No tienes tareas diarias todavía.</li>';
+      </li>
+      ${reasonOpen ? `
+      <li class="task-reason-row" data-task-reason-row="${t.id}">
+        <input type="text" class="task-reason-input" data-task-reason-input="${t.id}" maxlength="80" placeholder="Motivo (opcional) — por qué quieres hacer esto…" value="${escapeHtml(t.reason || '')}" />
+      </li>` : ''}`;
+    }).join('') : '<li class="task-empty-hint">No tienes tareas diarias todavía.</li>';
   }
 
   let selectedDailyTaskIcon = null;
@@ -5996,6 +6126,14 @@
       });
       return;
     }
+    const reasonBtn = e.target.closest('[data-reason-task]');
+    if (reasonBtn) {
+      const taskId = reasonBtn.dataset.reasonTask;
+      if (openTaskReasonRows.has(taskId)) openTaskReasonRows.delete(taskId);
+      else openTaskReasonRows.add(taskId);
+      renderDailyTaskManageList();
+      return;
+    }
     const periodBtn = e.target.closest('[data-period-task]');
     if (periodBtn) {
       const task = store.settings.dailyTasks.find((t) => t.id === periodBtn.dataset.periodTask);
@@ -6006,6 +6144,22 @@
       renderDailyTaskManageList();
       renderHoy();
     }
+  });
+
+  dailyTaskManageList.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.closest('[data-task-reason-input]')) e.target.blur();
+  });
+
+  dailyTaskManageList.addEventListener('change', (e) => {
+    const input = e.target.closest('[data-task-reason-input]');
+    if (!input) return;
+    const task = store.settings.dailyTasks.find((t) => t.id === input.dataset.taskReasonInput);
+    if (!task) return;
+    task.reason = input.value.trim();
+    saveStore();
+    openTaskReasonRows.delete(input.dataset.taskReasonInput);
+    renderDailyTaskManageList();
+    renderHoy();
   });
 
   renderDailyTaskManageList();
