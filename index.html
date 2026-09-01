@@ -113,6 +113,14 @@
         <ul class="habit-list" id="weeklyTaskList"></ul>
       </div>
 
+      <div class="card" id="monthlyTasksCard">
+        <div class="card-title-row">
+          <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--h-total);background:color-mix(in srgb, var(--h-total) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M4,9.5 L20,9.5" stroke-linecap="round"/><path d="M8,3.5 L8,6.5 M16,3.5 L16,6.5" stroke-linecap="round"/></svg></span>Metas del mes</h2>
+          <span class="week-range" id="monthRange">–</span>
+        </div>
+        <ul class="habit-list" id="monthlyTaskList"></ul>
+      </div>
+
       <div class="card" id="supplementsCard">
         <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--good);background:color-mix(in srgb, var(--good) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="9" width="18" height="6" rx="3"/><line x1="12" y1="9" x2="12" y2="15"/></svg></span>Suplementos</h2>
         <ul class="habit-list" id="supplementList"></ul>
@@ -998,6 +1006,25 @@
             <details class="hint-details">
               <summary class="hint-summary"><svg class="hint-summary-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16.5" stroke-linecap="round"/><circle cx="12" cy="7.5" r="1" fill="currentColor" stroke="none"/></svg>Más información</summary>
               <p class="hint-text">Se guardan solo en este dispositivo — cada persona que use la app puede tener sus propias tareas semanales.</p>
+            </details>
+          </div>
+        </div>
+
+        <div class="card accordion-card" data-settings-keywords="metas del mes mensuales objetivo grande mes">
+          <button type="button" class="accordion-header" data-accordion-toggle aria-expanded="false">
+            <h2 class="card-title"><span class="card-title-icon" aria-hidden="true" style="color:var(--h-total);background:color-mix(in srgb, var(--h-total) 16%, transparent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M4,9.5 L20,9.5" stroke-linecap="round"/><path d="M8,3.5 L8,6.5 M16,3.5 L16,6.5" stroke-linecap="round"/></svg></span>Metas del mes</h2>
+            <span class="accordion-badge" id="monthlyTasksBadge" hidden></span>
+            <span class="accordion-chevron">›</span>
+          </button>
+          <div class="accordion-body" hidden>
+            <ul class="task-manage-list" id="monthlyTaskManageList"></ul>
+            <div class="task-add-row">
+              <input type="text" id="newMonthlyTaskInput" class="task-add-input" placeholder="Nueva meta del mes…" maxlength="40" aria-label="Nombre de la nueva meta del mes" />
+              <button class="secondary-btn task-add-btn" id="addMonthlyTaskBtn">Añadir</button>
+            </div>
+            <details class="hint-details">
+              <summary class="hint-summary"><svg class="hint-summary-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16.5" stroke-linecap="round"/><circle cx="12" cy="7.5" r="1" fill="currentColor" stroke="none"/></svg>Más información</summary>
+              <p class="hint-text">Como las tareas semanales, pero se reinician cada mes natural — para esos objetivos grandes que no encajan en un solo día o semana.</p>
             </details>
           </div>
         </div>

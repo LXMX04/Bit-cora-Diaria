@@ -48,6 +48,7 @@
       jointPricePer4: 4.50,
       dailyTasks: [],
       weeklyTasks: [],
+      monthlyTasks: [],
       badHabits: [],
       purchaseItems: [],
       purchaseCategories: [
@@ -71,9 +72,13 @@
   function normalizeStore(parsed) {
       parsed.entries = (parsed.entries && typeof parsed.entries === 'object') ? parsed.entries : {};
       parsed.weeks = parsed.weeks || {};
+      parsed.months = parsed.months || {};
       parsed.settings = parsed.settings || defaultSettings();
       if (!Array.isArray(parsed.settings.weeklyTasks)) {
         parsed.settings.weeklyTasks = defaultSettings().weeklyTasks;
+      }
+      if (!Array.isArray(parsed.settings.monthlyTasks)) {
+        parsed.settings.monthlyTasks = [];
       }
       if (!Array.isArray(parsed.settings.dailyTasks)) {
         parsed.settings.dailyTasks = defaultSettings().dailyTasks;
@@ -302,10 +307,10 @@
   function loadStore() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return { entries: {}, weeks: {}, settings: defaultSettings(), lastNotifiedDate: null };
+      if (!raw) return { entries: {}, weeks: {}, months: {}, settings: defaultSettings(), lastNotifiedDate: null };
       return normalizeStore(JSON.parse(raw));
     } catch (e) {
-      return { entries: {}, weeks: {}, settings: defaultSettings(), lastNotifiedDate: null };
+      return { entries: {}, weeks: {}, months: {}, settings: defaultSettings(), lastNotifiedDate: null };
     }
   }
 
@@ -695,6 +700,15 @@
     return store.weeks[key];
   }
 
+  function getMonth(key) {
+    return store.months[key] || {};
+  }
+
+  function ensureMonth(key) {
+    if (!store.months[key]) store.months[key] = {};
+    return store.months[key];
+  }
+
   /* ============ Date helpers ============ */
   const DAY_MS = 86400000;
 
@@ -729,6 +743,15 @@
     sunday.setDate(monday.getDate() + 6);
     const fmt = (x) => `${x.getDate()} ${MONTHS_SHORT[x.getMonth()]}`;
     return `${fmt(monday)} – ${fmt(sunday)}`;
+  }
+
+  function monthDateKey(d) {
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+  }
+
+  function monthRangeLabel(d) {
+    const label = MONTHS_LONG[d.getMonth()];
+    return `${label[0].toUpperCase()}${label.slice(1)} ${d.getFullYear()}`;
   }
 
   const MONTHS_LONG = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -932,6 +955,7 @@
   function updateAccordionBadges() {
     setAccordionBadge('dailyTasksBadge', store.settings.dailyTasks.length);
     setAccordionBadge('weeklyTasksBadge', store.settings.weeklyTasks.length);
+    setAccordionBadge('monthlyTasksBadge', store.settings.monthlyTasks.length);
     setAccordionBadge('badHabitsBadge', store.settings.badHabits.length);
     setAccordionBadge('goalsBadge', store.settings.goals.length);
     setAccordionDot('supplementsDot', supplementsEnabled());
@@ -1139,6 +1163,8 @@
   const reflectionHint = document.getElementById('reflectionHint');
   const weekRangeEl = document.getElementById('weekRange');
   const weeklyTaskList = document.getElementById('weeklyTaskList');
+  const monthRangeEl = document.getElementById('monthRange');
+  const monthlyTaskList = document.getElementById('monthlyTaskList');
   const dailyTaskList = document.getElementById('dailyTaskList');
 
   const STREAK_MILESTONES = [7, 14, 30, 60, 100, 150, 200, 365, 500, 1000];
@@ -1287,6 +1313,17 @@
     const week = ensureWeek(wk);
     const taskId = btn.dataset.checkWeek;
     week[taskId] = !week[taskId];
+    saveStore();
+    renderHoy();
+  });
+
+  monthlyTaskList.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-check-month]');
+    if (!btn) return;
+    const mk = monthDateKey(currentDate);
+    const month = ensureMonth(mk);
+    const taskId = btn.dataset.checkMonth;
+    month[taskId] = !month[taskId];
     saveStore();
     renderHoy();
   });
@@ -1653,16 +1690,24 @@
     return store.settings.dailyTasks.every((t) => entry[t.id]) && (!teethEnabled() || entry.teeth > 0);
   }
 
+  // The global racha counts any day you opened/registered something (same criterion as
+  // "Días sin registrar" in Stats) rather than requiring 100% of your daily tasks —
+  // otherwise it stays stuck at 0 forever for anyone who doesn't use tareas diarias, and
+  // doesn't reward just showing up consistently. isDayComplete() above still drives the
+  // separate "% hábitos completados" metrics (puntuación de constancia, mejor/peor día...).
+  function isDayLogged(entry) {
+    return !!entry;
+  }
+
   function currentStreak() {
-    const totalTasks = store.settings.dailyTasks.length + (teethEnabled() ? 1 : 0);
-    if (totalTasks === 0) return 0;
+    if (Object.keys(store.entries).length === 0) return 0;
     let cursor = startOfDay(new Date());
     let cursorEntry = getEntry(dateKey(cursor));
     while (cursorEntry && cursorEntry.paused) {
       cursor = new Date(cursor.getTime() - DAY_MS);
       cursorEntry = getEntry(dateKey(cursor));
     }
-    if (!isDayComplete(cursorEntry)) {
+    if (!isDayLogged(cursorEntry)) {
       cursor = new Date(cursor.getTime() - DAY_MS);
     }
     let streak = 0;
@@ -1672,7 +1717,7 @@
         cursor = new Date(cursor.getTime() - DAY_MS);
         continue;
       }
-      if (!isDayComplete(entry)) break;
+      if (!isDayLogged(entry)) break;
       streak++;
       cursor = new Date(cursor.getTime() - DAY_MS);
     }
@@ -1719,7 +1764,7 @@
       return;
     }
     badge.hidden = false;
-    badge.textContent = `🔥 ${streak} ${streak === 1 ? 'día seguido' : 'días seguidos'} completando tu día`;
+    badge.textContent = `🔥 ${streak} ${streak === 1 ? 'día seguido' : 'días seguidos'} usando Suit Up`;
   }
 
   let reflectionTimer = null;
@@ -2187,6 +2232,21 @@
         </div>
       </li>`).join('') : '<li class="task-empty-hint">No tienes tareas semanales. Añade una en Ajustes.</li>';
     weekRangeEl.textContent = weekRangeLabel(currentDate);
+
+    const mk = monthDateKey(currentDate);
+    const month = getMonth(mk);
+    const monthlyTasks = store.settings.monthlyTasks;
+    monthlyTaskList.innerHTML = monthlyTasks.length ? monthlyTasks.map((t) => `
+      <li class="habit-row" data-habit="${t.id}">
+        <button class="check-btn" data-check-month="${t.id}" aria-pressed="${!!month[t.id]}">
+          <span class="check-icon">${CHECK_TICK_SVG}</span>
+        </button>
+        <div class="habit-text">
+          <span class="habit-name">${escapeHtml(t.label)}</span>
+          <span class="habit-meta">este mes</span>
+        </div>
+      </li>`).join('') : '<li class="task-empty-hint">No tienes metas del mes. Añade una en Ajustes.</li>';
+    monthRangeEl.textContent = monthRangeLabel(currentDate);
 
     const badHabits = store.settings.badHabits;
     const entryBadHabits = entry.badHabits || {};
@@ -4849,9 +4909,8 @@
 
   /* ============ Stats: récords personales ============ */
   function longestStreakEver() {
-    const totalTasks = store.settings.dailyTasks.length + (teethEnabled() ? 1 : 0);
     const keys = Object.keys(store.entries);
-    if (totalTasks === 0 || keys.length === 0) return 0;
+    if (keys.length === 0) return 0;
     const dates = keys.map((k) => new Date(`${k}T00:00:00`)).sort((a, b) => a - b);
     let cursor = dates[0];
     const today = startOfDay(new Date());
@@ -4860,7 +4919,7 @@
       const entry = getEntry(dateKey(cursor));
       if (entry && entry.paused) {
         // paused days neither break nor extend the streak
-      } else if (isDayComplete(entry)) {
+      } else if (isDayLogged(entry)) {
         run++;
         best = Math.max(best, run);
       } else {
@@ -4943,8 +5002,7 @@
   /* ============ Stats: insignias de racha ============ */
   function renderMilestones() {
     const card = document.getElementById('milestonesCard');
-    const totalTasks = store.settings.dailyTasks.length + (teethEnabled() ? 1 : 0);
-    if (totalTasks === 0) { card.hidden = true; return; }
+    if (Object.keys(store.entries).length === 0) { card.hidden = true; return; }
     card.hidden = false;
     const longest = longestStreakEver();
     const iconBadge = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8,12.5 L10.5,15 L16,9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -5396,13 +5454,9 @@
       if (!entry) { curStreak = 0; continue; }
       if (entry.paused) continue;
       loggedDays++;
-      if (isDayComplete(entry)) {
-        completeDays++;
-        curStreak++;
-        if (curStreak > longestStreak) longestStreak = curStreak;
-      } else {
-        curStreak = 0;
-      }
+      curStreak++;
+      if (curStreak > longestStreak) longestStreak = curStreak;
+      if (isDayComplete(entry)) completeDays++;
       store.settings.dailyTasks.forEach((t) => { if (entry[t.id]) habitCounts[t.id]++; });
       if (entry.meals) {
         ['desayuno', 'comida', 'cena'].forEach((meal) => {
@@ -6205,6 +6259,48 @@
   });
 
   renderWeeklyTaskManageList();
+
+  /* ============ AJUSTES panel / Monthly task management ============ */
+  const monthlyTaskManageList = document.getElementById('monthlyTaskManageList');
+  const newMonthlyTaskInput = document.getElementById('newMonthlyTaskInput');
+  const addMonthlyTaskBtn = document.getElementById('addMonthlyTaskBtn');
+
+  function renderMonthlyTaskManageList() {
+    const tasks = store.settings.monthlyTasks;
+    monthlyTaskManageList.innerHTML = tasks.length ? tasks.map((t) => `
+      <li class="task-manage-item" data-task-id="${t.id}">
+        <span class="task-manage-label">${escapeHtml(t.label)}</span>
+        <button type="button" class="task-remove-btn" data-remove-task="${t.id}" aria-label="Eliminar ${escapeHtml(t.label)}">×</button>
+      </li>`).join('') : '<li class="task-empty-hint">No tienes metas del mes todavía.</li>';
+  }
+
+  function addMonthlyTask() {
+    const label = newMonthlyTaskInput.value.trim();
+    if (!label) return;
+    store.settings.monthlyTasks.push({ id: generateTaskId(), label });
+    saveStore();
+    newMonthlyTaskInput.value = '';
+    renderMonthlyTaskManageList();
+    renderHoy();
+  }
+
+  addMonthlyTaskBtn.addEventListener('click', addMonthlyTask);
+  newMonthlyTaskInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') addMonthlyTask();
+  });
+
+  monthlyTaskManageList.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-remove-task]');
+    if (!btn) return;
+    const taskId = btn.dataset.removeTask;
+    const label = btn.closest('.task-manage-item').querySelector('.task-manage-label').textContent;
+    deleteWithUndo(store.settings.monthlyTasks, taskId, label, () => {
+      renderMonthlyTaskManageList();
+      renderHoy();
+    });
+  });
+
+  renderMonthlyTaskManageList();
 
   /* ============ AJUSTES panel / Bad habit management ============ */
   const badHabitManageList = document.getElementById('badHabitManageList');
@@ -7601,6 +7697,7 @@
 
     store.entries = {};
     store.weeks = {};
+    store.months = {};
     store.lastNotifiedDate = null;
     saveStore();
     renderAll();
