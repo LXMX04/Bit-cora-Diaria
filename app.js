@@ -1852,10 +1852,75 @@
   const reflectionSearchCard = document.getElementById('reflectionSearchCard');
   const reflectionSearchInput = document.getElementById('reflectionSearchInput');
   const reflectionSearchResults = document.getElementById('reflectionSearchResults');
+  const reflectionTagsStrip = document.getElementById('reflectionTagsStrip');
+
+  // A "tag" is whatever the user typed as #algo inside a reflection — there's no
+  // separate tag list to maintain, it's just extracted on the fly from the text.
+  function extractTags(text) {
+    if (!text) return [];
+    const matches = text.match(/#[\p{L}0-9_]+/gu) || [];
+    return [...new Set(matches.map((t) => t.toLowerCase()))];
+  }
+
+  function escapeRegExp(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function allReflectionTagCounts() {
+    const counts = {};
+    Object.values(store.entries).forEach((entry) => {
+      extractTags(entry.reflection).forEach((tag) => { counts[tag] = (counts[tag] || 0) + 1; });
+    });
+    return Object.keys(counts)
+      .map((tag) => ({ tag, count: counts[tag] }))
+      .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+  }
+
+  function renderReflectionTagsStrip() {
+    const tags = allReflectionTagCounts().slice(0, 20);
+    if (tags.length === 0) { reflectionTagsStrip.hidden = true; reflectionTagsStrip.innerHTML = ''; return; }
+    reflectionTagsStrip.hidden = false;
+    reflectionTagsStrip.innerHTML = tags.map((t) =>
+      `<button type="button" class="reflection-tag-chip" data-tag="${escapeHtml(t.tag)}">${escapeHtml(t.tag)} <span class="reflection-tag-chip-count">${t.count}</span></button>`
+    ).join('');
+  }
+
+  // A tag's results are shown oldest-first as a timeline (not the newest-first snippet
+  // list free-text search uses) — the point of revisiting a tag is seeing how it
+  // played out over time, not finding the most recent mention.
+  function renderReflectionTagTimeline(tagQuery) {
+    const matches = Object.keys(store.entries)
+      .filter((key) => extractTags(store.entries[key].reflection).some((t) => t.startsWith(tagQuery)))
+      .sort();
+    if (matches.length === 0) {
+      reflectionSearchResults.innerHTML = '<p class="hint-text">Sin resultados para esa etiqueta.</p>';
+      return;
+    }
+    const highlightRe = new RegExp(`(${escapeRegExp(tagQuery)}[\\p{L}0-9_]*)`, 'giu');
+    let lastYear = null;
+    const rows = matches.map((key) => {
+      const year = key.slice(0, 4);
+      const yearHeading = year !== lastYear ? `<div class="reflection-timeline-year">${year}</div>` : '';
+      lastYear = year;
+      const text = store.entries[key].reflection || '';
+      const highlighted = escapeHtml(text).replace(highlightRe, '<mark>$1</mark>');
+      return `${yearHeading}<button type="button" class="reflection-result reflection-timeline-entry" data-jump-date="${key}">
+        <span class="reflection-result-date">${fmtKeyDate(key)}</span>
+        <span class="reflection-result-snippet reflection-timeline-text">${highlighted}</span>
+      </button>`;
+    }).join('');
+    reflectionSearchResults.innerHTML = `
+      <p class="hint-text reflection-timeline-count">${matches.length} ${matches.length === 1 ? 'entrada' : 'entradas'} con ${escapeHtml(tagQuery)} · desde ${fmtKeyDate(matches[0])}</p>
+      ${rows}`;
+  }
 
   function renderReflectionSearchResults(query) {
     const q = query.trim().toLowerCase();
     if (!q) { reflectionSearchResults.innerHTML = ''; return; }
+    if (q.startsWith('#') && q.length > 1) {
+      renderReflectionTagTimeline(q);
+      return;
+    }
     const matches = Object.keys(store.entries)
       .filter((key) => (store.entries[key].reflection || '').toLowerCase().includes(q))
       .sort()
@@ -1879,6 +1944,14 @@
   }
 
   reflectionSearchInput.addEventListener('input', () => renderReflectionSearchResults(reflectionSearchInput.value));
+
+  reflectionTagsStrip.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-tag]');
+    if (!btn) return;
+    reflectionSearchInput.value = btn.dataset.tag;
+    renderReflectionSearchResults(reflectionSearchInput.value);
+    reflectionSearchInput.focus();
+  });
 
   reflectionSearchResults.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-jump-date]');
@@ -5216,6 +5289,7 @@
     renderWeekdayPattern(year, monthIndex, lastDay);
     renderMissingDays(year, monthIndex, lastDay);
     reflectionSearchCard.hidden = !Object.keys(store.entries).some((key) => (store.entries[key].reflection || '').trim());
+    renderReflectionTagsStrip();
 
     // Weekly tasks bars
     const weekKeys = new Set();

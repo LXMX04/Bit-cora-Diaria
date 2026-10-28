@@ -2794,6 +2794,56 @@ select.profile-input {
   color: var(--text-muted);
 }
 
+.reflection-tags-strip {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px 2px 10px;
+  margin: 0 -2px;
+  scrollbar-width: none;
+}
+.reflection-tags-strip::-webkit-scrollbar { display: none; }
+.reflection-tags-strip[hidden] { display: none; }
+.reflection-tag-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--accent);
+  box-shadow: var(--shadow);
+}
+.reflection-tag-chip-count {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+.reflection-timeline-count {
+  margin-top: 0;
+}
+.reflection-timeline-year {
+  margin-top: 14px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+.reflection-timeline-year:first-of-type {
+  margin-top: 4px;
+}
+.reflection-timeline-text {
+  white-space: pre-line;
+}
+.reflection-timeline-text mark {
+  background: none;
+  color: var(--accent);
+  font-weight: 700;
+}
+
 /* ---------- Landscape ---------- */
 @media (orientation: landscape) and (min-width: 560px) {
   :root {
