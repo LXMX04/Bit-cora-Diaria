@@ -2142,10 +2142,21 @@
     // Today's "paused" flag always mirrors the travel-mode setting live — this has
     // to run both ways (not just set it true), otherwise turning travel mode back
     // off leaves today stuck as paused forever, since nothing else ever clears it.
+    // Only materializes today's entry when there's actually something to write —
+    // isDayLogged() treats any stored entry as "logged", so creating one on a mere
+    // visit (then having it persisted by an unrelated saveStore() later) would count
+    // today as registered before the user has entered anything.
     if (currentDate.getTime() === today.getTime()) {
-      const liveEntry = ensureEntry(key);
-      if (liveEntry.paused !== store.settings.travelModeActive) {
-        liveEntry.paused = store.settings.travelModeActive;
+      const wantPaused = store.settings.travelModeActive;
+      const existingEntry = getEntry(key);
+      if (existingEntry) {
+        if (existingEntry.paused !== wantPaused) {
+          existingEntry.paused = wantPaused;
+          saveStore();
+        }
+      } else if (wantPaused) {
+        const liveEntry = ensureEntry(key);
+        liveEntry.paused = true;
         saveStore();
       }
     }
@@ -4746,6 +4757,11 @@
   }
 
   /* ============ Stats: gráfico de línea con degradado + scrubbing táctil ============ */
+  // Each render replaces the chart's DOM (and its scrub handlers) but re-renders happen
+  // often (month navigation, any edit while Stats is open) — tracking the previous
+  // window-level handler per container lets us remove it before adding the new one,
+  // instead of leaking one extra 'pointerup' listener on window every time.
+  const scrubPointerUpHandlers = {};
   function renderScrubbableLineChart(containerId, points, opts) {
     const chart = document.getElementById(containerId);
     const { totalDays, color, unit, decimals = 1, gradientVar, mode = 'line' } = opts;
@@ -4831,7 +4847,12 @@
     let dragging = false;
     svg.addEventListener('pointerdown', (e) => { dragging = true; showScrub(e.clientX); });
     svg.addEventListener('pointermove', (e) => { if (dragging) showScrub(e.clientX); });
-    window.addEventListener('pointerup', () => { dragging = false; hideScrub(); });
+    if (scrubPointerUpHandlers[containerId]) {
+      window.removeEventListener('pointerup', scrubPointerUpHandlers[containerId]);
+    }
+    const onPointerUp = () => { dragging = false; hideScrub(); };
+    scrubPointerUpHandlers[containerId] = onPointerUp;
+    window.addEventListener('pointerup', onPointerUp);
     svg.addEventListener('pointerleave', () => { if (!dragging) hideScrub(); });
   }
 
@@ -5637,14 +5658,25 @@
   const WRAPPED_HIGHER_IS_BETTER = new Set(['completePct', 'streak', 'foodAvg', 'sleepAvg', 'workoutDays', 'energyAvg']);
   const WRAPPED_LOWER_IS_BETTER = new Set(['stressAvg', 'spend']);
   const WRAPPED_DELTA_THRESHOLD = { completePct: 1, streak: 0.5, workoutDays: 0.5, spend: 1 };
+  // computeWrappedStats() exposes the longest-streak figure as `longestStreak`, but the
+  // wrapped tile's own identifier is the shorter `streak` — map one to the other here
+  // instead of renaming the tile kind, which other code (WEEK_WRAPPED_KINDS, insight
+  // messages) keys off of.
+  const WRAPPED_KIND_FIELD = { streak: 'longestStreak' };
+  // These are 1-5 averages: unlike a day count or a euro amount, 0 can never be a real
+  // reading (an entry only contributes once it has a value), so 0 here always means
+  // "not tracked that period" rather than a genuine average of zero.
+  const WRAPPED_NO_DATA_IS_ZERO = new Set(['foodAvg', 'sleepAvg', 'energyAvg', 'stressAvg']);
 
   function wrappedDeltaFor(kind, curRaw, prevStats) {
     const higherBetter = WRAPPED_HIGHER_IS_BETTER.has(kind);
     const lowerBetter = WRAPPED_LOWER_IS_BETTER.has(kind);
     if (!higherBetter && !lowerBetter) return null;
     if (!prevStats || prevStats.loggedDays === 0) return null;
-    const prevRaw = prevStats[kind];
-    if (prevRaw == null || (prevRaw === 0 && curRaw === 0)) return null;
+    const prevRaw = prevStats[WRAPPED_KIND_FIELD[kind] || kind];
+    if (prevRaw == null) return null;
+    const noPrevData = WRAPPED_NO_DATA_IS_ZERO.has(kind) ? prevRaw === 0 : (prevRaw === 0 && curRaw === 0);
+    if (noPrevData) return null;
     const diff = curRaw - prevRaw;
     const threshold = WRAPPED_DELTA_THRESHOLD[kind] != null ? WRAPPED_DELTA_THRESHOLD[kind] : 0.1;
     if (Math.abs(diff) < threshold) return { text: '= igual que el periodo anterior', cls: 'flat' };
@@ -5752,6 +5784,8 @@
     const text = resolveColor('var(--text)');
     const textMuted = resolveColor('var(--text-muted)');
     const brass = resolveColor('var(--accent-2)');
+    const good = resolveColor('var(--good)');
+    const danger = resolveColor('var(--danger)');
 
     const grad = ctx.createLinearGradient(0, 0, W, H);
     grad.addColorStop(0, navyStrong);
@@ -5793,6 +5827,11 @@
       ctx.fillStyle = textMuted;
       ctx.font = '400 24px -apple-system, sans-serif';
       ctx.fillText(t.label.toUpperCase(), x + 34, y + 138, tileW - 66);
+      if (t.delta) {
+        ctx.fillStyle = t.delta.cls === 'good' ? good : (t.delta.cls === 'bad' ? danger : textMuted);
+        ctx.font = '600 20px -apple-system, sans-serif';
+        ctx.fillText(t.delta.text, x + 34, y + 172, tileW - 66);
+      }
     });
 
     drawStitchLine(ctx, 60, H - 80, W - 60, brass);
