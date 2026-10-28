@@ -2835,6 +2835,10 @@ select.profile-input {
 .reflection-timeline-year:first-of-type {
   margin-top: 4px;
 }
+.reflection-timeline-year + .reflection-timeline-entry {
+  border-top: none;
+  padding-top: 4px;
+}
 .reflection-timeline-text {
   white-space: pre-line;
 }

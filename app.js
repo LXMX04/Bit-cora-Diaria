@@ -1856,9 +1856,12 @@
 
   // A "tag" is whatever the user typed as #algo inside a reflection — there's no
   // separate tag list to maintain, it's just extracted on the fly from the text.
+  // Normalized to NFC so the same tag typed via sources that compose accents
+  // differently (e.g. "é" as one code point vs. "e" + combining accent) is counted
+  // and matched as one tag, not split into visually-identical duplicates.
   function extractTags(text) {
     if (!text) return [];
-    const matches = text.match(/#[\p{L}0-9_]+/gu) || [];
+    const matches = text.normalize('NFC').match(/#[\p{L}0-9_]+/gu) || [];
     return [...new Set(matches.map((t) => t.toLowerCase()))];
   }
 
@@ -1888,14 +1891,23 @@
   // A tag's results are shown oldest-first as a timeline (not the newest-first snippet
   // list free-text search uses) — the point of revisiting a tag is seeing how it
   // played out over time, not finding the most recent mention.
+  const TAG_TIMELINE_MAX = 60;
   function renderReflectionTagTimeline(tagQuery) {
-    const matches = Object.keys(store.entries)
-      .filter((key) => extractTags(store.entries[key].reflection).some((t) => t.startsWith(tagQuery)))
+    // Exact match, not a prefix — allReflectionTagCounts() counts exact tags for the
+    // chip's number, so a prefix match here (e.g. "#via" also pulling in "#viaje")
+    // would show more results than the chip promised.
+    const allMatches = Object.keys(store.entries)
+      .filter((key) => extractTags(store.entries[key].reflection).includes(tagQuery))
       .sort();
-    if (matches.length === 0) {
+    if (allMatches.length === 0) {
       reflectionSearchResults.innerHTML = '<p class="hint-text">Sin resultados para esa etiqueta.</p>';
       return;
     }
+    // Keep it bounded like the word-search path below (its own 30-result cap) — a tag
+    // used on hundreds of days would otherwise dump hundreds of full-text entries into
+    // the DOM. Keeps the most recent ones so the visible slice still reads oldest→newest.
+    const truncated = allMatches.length > TAG_TIMELINE_MAX;
+    const matches = truncated ? allMatches.slice(-TAG_TIMELINE_MAX) : allMatches;
     const highlightRe = new RegExp(`(${escapeRegExp(tagQuery)}[\\p{L}0-9_]*)`, 'giu');
     let lastYear = null;
     const rows = matches.map((key) => {
@@ -1903,14 +1915,24 @@
       const yearHeading = year !== lastYear ? `<div class="reflection-timeline-year">${year}</div>` : '';
       lastYear = year;
       const text = store.entries[key].reflection || '';
-      const highlighted = escapeHtml(text).replace(highlightRe, '<mark>$1</mark>');
+      // A window around the tag (not the full entry) — long reflections tagged often
+      // would otherwise make the timeline unreadable, same reasoning as the word
+      // search's own snippet below, just a wider window since this is meant to give
+      // more context than a keyword match.
+      const idx = text.toLowerCase().indexOf(tagQuery);
+      const start = Math.max(0, idx - 40);
+      const end = Math.min(text.length, idx + tagQuery.length + 160);
+      const snippet = `${start > 0 ? '…' : ''}${text.slice(start, end)}${end < text.length ? '…' : ''}`;
+      const highlighted = escapeHtml(snippet).replace(highlightRe, '<mark>$1</mark>');
       return `${yearHeading}<button type="button" class="reflection-result reflection-timeline-entry" data-jump-date="${key}">
         <span class="reflection-result-date">${fmtKeyDate(key)}</span>
         <span class="reflection-result-snippet reflection-timeline-text">${highlighted}</span>
       </button>`;
     }).join('');
+    const countLabel = `${allMatches.length} ${allMatches.length === 1 ? 'entrada' : 'entradas'} con ${escapeHtml(tagQuery)} · desde ${fmtKeyDate(allMatches[0])}`;
+    const truncatedNote = truncated ? ` · mostrando las ${TAG_TIMELINE_MAX} más recientes` : '';
     reflectionSearchResults.innerHTML = `
-      <p class="hint-text reflection-timeline-count">${matches.length} ${matches.length === 1 ? 'entrada' : 'entradas'} con ${escapeHtml(tagQuery)} · desde ${fmtKeyDate(matches[0])}</p>
+      <p class="hint-text reflection-timeline-count">${countLabel}${truncatedNote}</p>
       ${rows}`;
   }
 
