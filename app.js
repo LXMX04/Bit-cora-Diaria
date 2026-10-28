@@ -5445,6 +5445,7 @@
     const spendByCategory = {};
     let workoutDays = 0;
     let sleepSum = 0, sleepCount = 0;
+    let energySum = 0, energyCount = 0, stressSum = 0, stressCount = 0;
     let weightFirst = null, weightLast = null;
     let periodDays = 0;
 
@@ -5487,6 +5488,8 @@
         if ((w.durationMin > 0) || anyExercise) workoutDays++;
       }
       if (suenoEnabled() && entry.sleepHours) { sleepSum += entry.sleepHours; sleepCount++; }
+      if (energiaEnabled() && entry.energyLevel) { energySum += entry.energyLevel; energyCount++; }
+      if (energiaEnabled() && entry.stressLevel) { stressSum += entry.stressLevel; stressCount++; }
       if (pesoEnabled() && entry.weight != null) {
         if (weightFirst == null) weightFirst = entry.weight;
         weightLast = entry.weight;
@@ -5517,6 +5520,8 @@
       cig, joints, spend, topCategorySpend,
       workoutDays,
       sleepAvg: sleepCount > 0 ? sleepSum / sleepCount : 0,
+      energyAvg: energyCount > 0 ? energySum / energyCount : 0,
+      stressAvg: stressCount > 0 ? stressSum / stressCount : 0,
       weightDiff: (weightFirst != null && weightLast != null) ? weightLast - weightFirst : null,
       periodDays
     };
@@ -5542,6 +5547,12 @@
     }
     if (suenoEnabled() && stats.sleepAvg > 0) {
       tiles.push(wrappedTileData('var(--h-total)', `${stats.sleepAvg.toFixed(1)} h`, 'sueño medio', 'sleepAvg', stats.sleepAvg));
+    }
+    if (energiaEnabled() && stats.energyAvg > 0) {
+      tiles.push(wrappedTileData(healthColor(stats.energyAvg), `${stats.energyAvg.toFixed(1)} / 5`, 'energía media', 'energyAvg', stats.energyAvg));
+    }
+    if (energiaEnabled() && stats.stressAvg > 0) {
+      tiles.push(wrappedTileData(healthColor(6 - stats.stressAvg), `${stats.stressAvg.toFixed(1)} / 5`, 'estrés medio', 'stressAvg', stats.stressAvg));
     }
     if (workoutsEnabled() && stats.workoutDays > 0) {
       tiles.push(wrappedTileData('var(--h-teeth)', `${stats.workoutDays}`, stats.workoutDays === 1 ? 'día entrenado' : 'días entrenados', 'workoutDays', stats.workoutDays));
@@ -5588,6 +5599,14 @@
         if (t.raw >= 7.5) return 'Duermes lo que tu cuerpo necesita. La base de todo lo demás.';
         if (t.raw >= 6) return 'Cerca del objetivo — un poco más de sueño y notarás la diferencia.';
         return 'Menos horas de las recomendadas. El sueño es la palanca más infravalorada.';
+      case 'energyAvg':
+        if (t.raw >= 4) return 'Energía alta de media — se nota en cómo afrontas el día.';
+        if (t.raw >= 2.5) return 'Energía moderada, con margen para subir con mejor descanso o alimentación.';
+        return 'Energía baja de media — vale la pena mirar qué te la está drenando.';
+      case 'stressAvg':
+        if (t.raw <= 2) return 'Estrés bajo de media. Un buen periodo para el cuerpo y la cabeza.';
+        if (t.raw <= 3.5) return 'Estrés moderado — dentro de lo normal, sin pasarse de la raya.';
+        return 'Estrés alto de media — merece atención antes de que se acumule.';
       case 'workoutDays':
         if (t.raw >= 20) return 'Entrenaste la mayoría de los días. Un nivel de compromiso poco común.';
         if (t.raw >= 8) return 'Más de un entreno cada tres días — un ritmo que se puede mantener en el tiempo.';
@@ -5609,8 +5628,39 @@
 
   function wrappedTilesHtml(tileList) {
     return tileList
-      .map((t) => `<div class="wrapped-tile" style="background:${t.color}"><span class="wrapped-tile-value">${t.value}</span><span class="wrapped-tile-label">${t.label}</span></div>`)
+      .map((t) => `<div class="wrapped-tile" style="background:${t.color}"><span class="wrapped-tile-value">${t.value}</span><span class="wrapped-tile-label">${t.label}</span>${t.delta ? `<span class="wrapped-tile-delta ${t.delta.cls}">${t.delta.text}</span>` : ''}</div>`)
       .join('');
+  }
+
+  // Which tile kinds get a "vs. periodo anterior" delta, and in which direction
+  // a change counts as an improvement (not all metrics mean "more is better").
+  const WRAPPED_HIGHER_IS_BETTER = new Set(['completePct', 'streak', 'foodAvg', 'sleepAvg', 'workoutDays', 'energyAvg']);
+  const WRAPPED_LOWER_IS_BETTER = new Set(['stressAvg', 'spend']);
+  const WRAPPED_DELTA_THRESHOLD = { completePct: 1, streak: 0.5, workoutDays: 0.5, spend: 1 };
+
+  function wrappedDeltaFor(kind, curRaw, prevStats) {
+    const higherBetter = WRAPPED_HIGHER_IS_BETTER.has(kind);
+    const lowerBetter = WRAPPED_LOWER_IS_BETTER.has(kind);
+    if (!higherBetter && !lowerBetter) return null;
+    if (!prevStats || prevStats.loggedDays === 0) return null;
+    const prevRaw = prevStats[kind];
+    if (prevRaw == null || (prevRaw === 0 && curRaw === 0)) return null;
+    const diff = curRaw - prevRaw;
+    const threshold = WRAPPED_DELTA_THRESHOLD[kind] != null ? WRAPPED_DELTA_THRESHOLD[kind] : 0.1;
+    if (Math.abs(diff) < threshold) return { text: '= igual que el periodo anterior', cls: 'flat' };
+    const improved = higherBetter ? diff > 0 : diff < 0;
+    const arrow = diff > 0 ? '↑' : '↓';
+    const amount = kind === 'spend' ? formatEuro(Math.abs(diff)) : Math.abs(diff).toFixed(1);
+    return { text: `${arrow} ${amount} vs. anterior`, cls: improved ? 'good' : 'bad' };
+  }
+
+  function attachWrappedDeltas(tileList, prevStats) {
+    tileList.forEach((t) => {
+      if (!t.kind) return;
+      const delta = wrappedDeltaFor(t.kind, t.raw, prevStats);
+      if (delta) t.delta = delta;
+    });
+    return tileList;
   }
 
   // Renders a wrapped summary as a portrait share-card image (canvas), then uses the
@@ -5903,7 +5953,7 @@
   });
 
   let lastWeekWrappedShare = null;
-  const WEEK_WRAPPED_KINDS = new Set(['completePct', 'streak', 'workoutDays', 'sleepAvg']);
+  const WEEK_WRAPPED_KINDS = new Set(['completePct', 'streak', 'workoutDays', 'sleepAvg', 'energyAvg', 'stressAvg']);
 
   function renderWeekWrapped() {
     const card = document.getElementById('weekWrappedCard');
@@ -5919,7 +5969,14 @@
     if (stats.loggedDays === 0) { card.hidden = true; return; }
     card.hidden = false;
 
+    const prevMonday = new Date(wrapMonday);
+    prevMonday.setDate(wrapMonday.getDate() - 7);
+    const prevSunday = new Date(prevMonday);
+    prevSunday.setDate(prevMonday.getDate() + 6);
+    const prevStats = computeWrappedStats(prevMonday, prevSunday);
+
     let tileList = buildWrappedTileList(stats).filter((t) => WEEK_WRAPPED_KINDS.has(t.kind));
+    attachWrappedDeltas(tileList, prevStats);
     if (tileList.length === 0) tileList = [wrappedTileData('var(--surface-alt)', '–', 'Todavía sin datos suficientes')];
 
     const title = `Semana del ${weekRangeLabel(wrapMonday)}`;
@@ -5956,7 +6013,12 @@
     const stats = computeWrappedStats(new Date(wrapYear, wrapMonth, 1), new Date(wrapYear, wrapMonth, wrapLastDay));
     if (stats.loggedDays === 0) { card.hidden = true; return; }
     card.hidden = false;
+
+    const prevMonthDate = new Date(wrapYear, wrapMonth - 1, 1);
+    const prevStats = computeWrappedStats(prevMonthDate, new Date(prevMonthDate.getFullYear(), prevMonthDate.getMonth(), daysInMonth(prevMonthDate.getFullYear(), prevMonthDate.getMonth())));
+
     const tileList = buildWrappedTileList(stats);
+    attachWrappedDeltas(tileList, prevStats);
     const title = `Resumen de ${MONTHS_LONG[wrapMonth]}`;
     document.getElementById('monthWrappedTitle').textContent = title;
     document.getElementById('monthWrappedTiles').innerHTML = wrappedTilesHtml(tileList);
@@ -5988,7 +6050,11 @@
     const stats = computeWrappedStats(new Date(wrapYear, 0, 1), new Date(wrapYear, 11, 31));
     if (stats.loggedDays === 0) { card.hidden = true; return; }
     card.hidden = false;
+
+    const prevStats = computeWrappedStats(new Date(wrapYear - 1, 0, 1), new Date(wrapYear - 1, 11, 31));
+
     const tileList = buildWrappedTileList(stats);
+    attachWrappedDeltas(tileList, prevStats);
     document.getElementById('yearWrappedTitle').textContent = `Resumen de ${wrapYear}`;
     document.getElementById('yearWrappedTiles').innerHTML = wrappedTilesHtml(tileList);
     lastYearWrappedShare = { title: `${wrapYear}`, tiles: tileList };
