@@ -2794,6 +2794,28 @@ select.profile-input {
   color: var(--text-muted);
 }
 
+.surprise-me-card {
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+  border: 1px solid var(--border);
+}
+.surprise-me-date {
+  margin: 0 0 8px;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--text);
+}
+.surprise-me-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.surprise-me-actions .secondary-btn {
+  flex: 1;
+}
+
 .reflection-tags-strip {
   display: flex;
   gap: 6px;

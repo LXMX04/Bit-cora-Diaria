@@ -1984,6 +1984,54 @@
     renderAll();
   });
 
+  // "Sorpréndeme": unlike "en este día" (needs the calendar date to line up) or the
+  // tag timeline (needs you to remember a tag), this surfaces a random past reflection
+  // with no precondition beyond having written one — useful from the very first weeks.
+  const surpriseMeBtn = document.getElementById('surpriseMeBtn');
+  const surpriseMeResult = document.getElementById('surpriseMeResult');
+  let lastSurpriseKey = null;
+
+  function surpriseMeCandidates() {
+    const todayKey = dateKey(startOfDay(new Date()));
+    return Object.keys(store.entries).filter((key) => key !== todayKey && (store.entries[key].reflection || '').trim());
+  }
+
+  function renderSurpriseMe() {
+    const candidates = surpriseMeCandidates();
+    surpriseMeResult.hidden = false;
+    if (candidates.length === 0) {
+      surpriseMeResult.innerHTML = '<p class="hint-text">Todavía no tienes reflexiones guardadas para recordar.</p>';
+      return;
+    }
+    // Avoid showing the exact same entry twice in a row when there's more than one option.
+    const pool = (candidates.length > 1 && lastSurpriseKey) ? candidates.filter((k) => k !== lastSurpriseKey) : candidates;
+    const key = pool[Math.floor(Math.random() * pool.length)];
+    lastSurpriseKey = key;
+    const entry = store.entries[key];
+    const { summary, reflectionHtml } = lookbackSummaryHtml(entry);
+    surpriseMeResult.innerHTML = `
+      <div class="surprise-me-card">
+        <p class="surprise-me-date">${fmtKeyDate(key)}</p>
+        ${summary}
+        ${reflectionHtml}
+        <div class="surprise-me-actions">
+          <button type="button" class="secondary-btn" data-jump-date="${key}">Ver este día</button>
+          <button type="button" class="secondary-btn" id="surpriseMeAgainBtn">Otra</button>
+        </div>
+      </div>`;
+  }
+
+  surpriseMeBtn.addEventListener('click', renderSurpriseMe);
+  surpriseMeResult.addEventListener('click', (e) => {
+    if (e.target.closest('#surpriseMeAgainBtn')) { renderSurpriseMe(); return; }
+    const btn = e.target.closest('[data-jump-date]');
+    if (!btn) return;
+    const [y, m, d] = btn.dataset.jumpDate.split('-').map(Number);
+    currentDate = startOfDay(new Date(y, m - 1, d));
+    switchTab('hoy');
+    renderAll();
+  });
+
   const gratitudCard = document.getElementById('gratitudCard');
   const gratitudeInputs = document.querySelectorAll('.gratitude-input');
   let gratitudeTimer = null;
@@ -7606,7 +7654,16 @@
     const todayKey = dateKey(now);
     if (now < target || store.lastNotifiedDate === todayKey || isTodayComplete()) return;
     const title = 'Bitácora Diaria';
-    const body = 'No olvides rellenar tu bitácora de hoy.';
+    // currentStreak() counts "today" only once something's logged, so at this point
+    // (today still incomplete) it's the streak built through yesterday — exactly the
+    // one actually on the line if nothing gets logged today.
+    const streak = currentStreak();
+    let body = 'No olvides rellenar tu bitácora de hoy.';
+    if (streak > 0) {
+      body = getEntry(todayKey)
+        ? `Te faltan algunos hábitos para completar hoy — llevas ${streak} ${streak === 1 ? 'día seguido' : 'días seguidos'}.`
+        : `Llevas ${streak} ${streak === 1 ? 'día seguido' : 'días seguidos'} — no los pierdas, registra algo hoy.`;
+    }
     if (navigator.serviceWorker && navigator.serviceWorker.ready) {
       navigator.serviceWorker.ready.then((reg) => reg.showNotification(title, { body, icon: 'icons/icon-192.png' }));
     } else {
