@@ -65,7 +65,10 @@
       goals: [],
       exercises: [],
       profile: { name: '', sex: '', birthdate: '', height: null, weight: null },
-      onboardingDismissed: false
+      onboardingDismissed: false,
+      reflectionTagsEnabled: true,
+      surpriseMeEnabled: true,
+      wrappedDeltasEnabled: true
     };
   }
 
@@ -174,6 +177,15 @@
       }
       if (typeof parsed.settings.tracksTeeth !== 'boolean') {
         parsed.settings.tracksTeeth = true;
+      }
+      if (typeof parsed.settings.reflectionTagsEnabled !== 'boolean') {
+        parsed.settings.reflectionTagsEnabled = true;
+      }
+      if (typeof parsed.settings.surpriseMeEnabled !== 'boolean') {
+        parsed.settings.surpriseMeEnabled = true;
+      }
+      if (typeof parsed.settings.wrappedDeltasEnabled !== 'boolean') {
+        parsed.settings.wrappedDeltasEnabled = true;
       }
       if (typeof parsed.settings.tracksSupplements !== 'boolean') {
         parsed.settings.tracksSupplements = false;
@@ -392,6 +404,18 @@
 
   function teethEnabled() {
     return store.settings.tracksTeeth !== false;
+  }
+
+  function reflectionTagsEnabled() {
+    return store.settings.reflectionTagsEnabled !== false;
+  }
+
+  function surpriseMeEnabled() {
+    return store.settings.surpriseMeEnabled !== false;
+  }
+
+  function wrappedDeltasEnabled() {
+    return store.settings.wrappedDeltasEnabled !== false;
   }
 
   function supplementsEnabled() {
@@ -1880,6 +1904,7 @@
   }
 
   function renderReflectionTagsStrip() {
+    if (!reflectionTagsEnabled()) { reflectionTagsStrip.hidden = true; reflectionTagsStrip.innerHTML = ''; return; }
     const tags = allReflectionTagCounts().slice(0, 20);
     if (tags.length === 0) { reflectionTagsStrip.hidden = true; reflectionTagsStrip.innerHTML = ''; return; }
     reflectionTagsStrip.hidden = false;
@@ -1939,7 +1964,7 @@
   function renderReflectionSearchResults(query) {
     const q = query.trim().toLowerCase();
     if (!q) { reflectionSearchResults.innerHTML = ''; return; }
-    if (q.startsWith('#') && q.length > 1) {
+    if (reflectionTagsEnabled() && q.startsWith('#') && q.length > 1) {
       renderReflectionTagTimeline(q);
       return;
     }
@@ -5360,6 +5385,8 @@
     renderMissingDays(year, monthIndex, lastDay);
     reflectionSearchCard.hidden = !Object.keys(store.entries).some((key) => (store.entries[key].reflection || '').trim());
     renderReflectionTagsStrip();
+    surpriseMeBtn.hidden = !surpriseMeEnabled();
+    if (!surpriseMeEnabled()) surpriseMeResult.hidden = true;
 
     // Weekly tasks bars
     const weekKeys = new Set();
@@ -5831,6 +5858,7 @@
   }
 
   function attachWrappedDeltas(tileList, prevStats) {
+    if (!wrappedDeltasEnabled()) return tileList;
     tileList.forEach((t) => {
       if (!t.kind) return;
       const delta = wrappedDeltaFor(t.kind, t.raw, prevStats);
@@ -6410,6 +6438,31 @@
     store.settings.tracksTeeth = tracksTeethToggle.checked;
     saveStore();
     renderHoy();
+    if (activeTab === 'stats') renderStats();
+  });
+
+  const reflectionTagsToggle = document.getElementById('reflectionTagsToggle');
+  reflectionTagsToggle.checked = reflectionTagsEnabled();
+  reflectionTagsToggle.addEventListener('change', () => {
+    store.settings.reflectionTagsEnabled = reflectionTagsToggle.checked;
+    saveStore();
+    renderReflectionSearchResults(reflectionSearchInput.value);
+    if (activeTab === 'stats') renderStats();
+  });
+
+  const surpriseMeToggle = document.getElementById('surpriseMeToggle');
+  surpriseMeToggle.checked = surpriseMeEnabled();
+  surpriseMeToggle.addEventListener('change', () => {
+    store.settings.surpriseMeEnabled = surpriseMeToggle.checked;
+    saveStore();
+    if (activeTab === 'stats') renderStats();
+  });
+
+  const wrappedDeltasToggle = document.getElementById('wrappedDeltasToggle');
+  wrappedDeltasToggle.checked = wrappedDeltasEnabled();
+  wrappedDeltasToggle.addEventListener('change', () => {
+    store.settings.wrappedDeltasEnabled = wrappedDeltasToggle.checked;
+    saveStore();
     if (activeTab === 'stats') renderStats();
   });
 
